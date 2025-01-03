@@ -20,7 +20,19 @@ Also i found some usefull documentations that try to explain the code:
 There is already a [FPC Doom](https://github.com/jval1972/FPCDoom) on the [List](https://doomwiki.org/wiki/Source_port) of 
 ports, but that version only supports DirectX :/.
 
+## What needs to be done to compile the code
+- install [Lazarus-IDE](https://www.lazarus-ide.org/)
+- install package LazOpenGLContext (is shipped with lazarus)
+- download [dglOpenGL.pas](https://github.com/saschawillems/dglopengl) and store it in the units folder
+
+## What needs to be done to play the game
+- get a valid .wad file and copy it where the binary is beeing created
+- start the application
+
 Progress:
-- Got crispy Doom compiled
+- got crispy-doom compiled
 - created initial FPC_DOOM Lazarus project
 - stored everything on Github
+- able to extract icon from doom_icon.pas
+- w_wad.pas can now "load" the .wad file
+
