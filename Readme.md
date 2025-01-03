@@ -19,3 +19,8 @@ Also i found some usefull documentations that try to explain the code:
   
 There is already a [FPC Doom](https://github.com/jval1972/FPCDoom) on the [List](https://doomwiki.org/wiki/Source_port) of 
 ports, but that version only supports DirectX :/.
+
+Progress:
+- Got crispy Doom compiled
+- created initial FPC_DOOM Lazarus project
+- stored everything on Github
