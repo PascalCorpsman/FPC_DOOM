@@ -18,7 +18,8 @@ Uses
   , m_misc, m_config, m_argv
   , v_video
   , d_iwad, d_mode, d_englsh
-  , w_wad, w_file, w_main
+  , w_wad, w_main
+  , z_zone
   ;
 
 Var
@@ -34,13 +35,9 @@ Var
   fastparm: boolean; // checkparm of -fast
 
 Function D_AddFile(filename: String): boolean;
-Var
-  Handle: wad_file_t;
 Begin
   writeln(format(' adding %s', [filename]));
-  handle := W_AddFile(filename);
-
-  result := assigned(handle.mapped);
+  result := W_AddFile(filename);
 End;
 
 Procedure D_BindVariables();
@@ -270,21 +267,20 @@ End;
 Procedure InitGameVersion();
 Var
   i, p: int;
+  demolumpname: String;
+  demolump: ^Byte;
+  demoversion: int;
+  status: Boolean;
 Begin
-  //    byte *demolump;
-  //    char demolumpname[6];
-  //    int demoversion;
 
-  //    boolean status;
-
-      //!
-      // @arg <version>
-      // @category compat
-      //
-      // Emulate a specific version of Doom. Valid values are "1.2",
-      // "1.5", "1.666", "1.7", "1.8", "1.9", "ultimate", "final",
-      // "final2", "hacx" and "chex".
-      //
+  //!
+  // @arg <version>
+  // @category compat
+  //
+  // Emulate a specific version of Doom. Valid values are "1.2",
+  // "1.5", "1.666", "1.7", "1.8", "1.9", "ultimate", "final",
+  // "final2", "hacx" and "chex".
+  //
 
   p := M_CheckParmWithArgs('-gameversion', 1);
 
@@ -313,7 +309,7 @@ Begin
   End
   Else Begin
     // Determine automatically
-   weiter
+
     If (gamemission = pack_chex) Then Begin
 
       // chex.exe - identified by iwad filename
@@ -327,52 +323,53 @@ Begin
       gameversion := exe_hacx;
     End
     Else If (gamemode = shareware) Or (gamemode = registered)
-      Or ((gamemode = commercial) And (gamemission = doom2))
-      Then Begin
-      //            // original
-      //            gameversion = exe_doom_1_9;
-      //
-      //            // Detect version from demo lump
-      //            for (i = 1; i <= 3; ++i)
-      //            {
-      //                M_snprintf(demolumpname, 6, "demo%i", i);
-      //                if (W_CheckNumForName(demolumpname) > 0)
-      //                {
-      //                    demolump = W_CacheLumpName(demolumpname, PU_STATIC);
-      //                    demoversion = demolump[0];
-      //                    W_ReleaseLumpName(demolumpname);
-      //                    status = true;
-      //                    switch (demoversion)
-      //                    {
-      //                        case 0:
-      //                        case 1:
-      //                        case 2:
-      //                        case 3:
-      //                        case 4:
-      //                            gameversion = exe_doom_1_2;
-      //                            break;
-      //                        case 106:
-      //                            gameversion = exe_doom_1_666;
-      //                            break;
-      //                        case 107:
-      //                            gameversion = exe_doom_1_7;
-      //                            break;
-      //                        case 108:
-      //                            gameversion = exe_doom_1_8;
-      //                            break;
-      //                        case 109:
-      //                            gameversion = exe_doom_1_9;
-      //                            break;
-      //                        default:
-      //                            status = false;
-      //                            break;
-      //                    }
-      //                    if (status)
-      //                    {
-      //                        break;
-      //                    }
-      //                }
-      //            }
+      Or ((gamemode = commercial) And (gamemission = doom2)) Then Begin
+      // original
+      gameversion := exe_doom_1_9;
+
+      // Detect version from demo lump
+      For i := 1 To 3 Do Begin
+        demolumpname := 'demo' + inttostr(i);
+
+        If (W_CheckNumForName(demolumpname) > 0) Then Begin
+
+          demolump := W_CacheLumpName(demolumpname, PU_STATIC);
+          demoversion := demolump[0];
+          status := true;
+
+          Demoversion wird nun korrekt geladen, weiter Portieren..
+
+          //                    switch (demoversion)
+          //                    {
+          //                        case 0:
+          //                        case 1:
+          //                        case 2:
+          //                        case 3:
+          //                        case 4:
+          //                            gameversion = exe_doom_1_2;
+          //                            break;
+          //                        case 106:
+          //                            gameversion = exe_doom_1_666;
+          //                            break;
+          //                        case 107:
+          //                            gameversion = exe_doom_1_7;
+          //                            break;
+          //                        case 108:
+          //                            gameversion = exe_doom_1_8;
+          //                            break;
+          //                        case 109:
+          //                            gameversion = exe_doom_1_9;
+          //                            break;
+          //                        default:
+          //                            status = false;
+          //                            break;
+          //                    }
+          //                    if (status)
+          //                    {
+          //                        break;
+          //                    }
+        End;
+      End;
     End
     Else If (gamemode = retail)
       Then Begin

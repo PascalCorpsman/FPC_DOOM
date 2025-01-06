@@ -23,7 +23,7 @@ Uses
   Interfaces, // this includes the LCL widgetset
   Forms, Unit1, doom_icon, i_video, ufpc_doom_types, config, d_main, m_misc,
   usdl_wrapper, m_config, v_video, m_fixed, d_iwad, d_mode, doomtype, m_argv,
-  i_system, doomstat, w_wad, w_file, w_main, d_englsh;
+  i_system, doomstat, w_wad, w_main, d_englsh;
 
 Begin
   Application.Initialize;
