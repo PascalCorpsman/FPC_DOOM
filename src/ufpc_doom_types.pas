@@ -17,6 +17,7 @@ Type
   uint16_t = UInt16;
   uint64_t = UInt64;
   size_t = UInt64;
+  short = Int16;
 
   int = int32;
   P_int = ^int;

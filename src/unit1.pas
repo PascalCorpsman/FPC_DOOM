@@ -74,6 +74,7 @@ Implementation
 Uses
   m_argv
   , d_main
+  , m_menu // TODO: Debug muss wieder raus
   ;
 
 { TForm1 }
@@ -128,6 +129,7 @@ Begin
     Initialized := True;
     OpenGLControl1Resize(Nil);
     D_DoomMain(); // TODO: das muss noch wo "Besseres" hin, aber vorerst ist es mal ein Einstieg ;)
+    M_DrawNewGame(); // TODO: Debugg muss wieder raus ..
   End;
   Form1.Invalidate;
 End;

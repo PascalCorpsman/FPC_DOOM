@@ -16,7 +16,7 @@ Uses
   , i_system, i_video, i_timer, i_sound
   , g_game
   , doom_icon, doomstat
-  , m_misc, m_config, m_argv
+  , m_misc, m_config, m_argv, m_menu
   , v_video
   , d_iwad, d_mode, d_englsh
   , w_wad, w_main
@@ -1506,5 +1506,4 @@ Begin
 End;
 
 End.
-
 
