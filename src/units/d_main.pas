@@ -13,7 +13,8 @@ Implementation
 
 Uses
   config
-  , i_system, i_video
+  , i_system, i_video, i_timer, i_sound
+  , g_game
   , doom_icon, doomstat
   , m_misc, m_config, m_argv
   , v_video
@@ -33,6 +34,11 @@ Var
   nomonsters: boolean; // checkparm of -nomonsters
   respawnparm: boolean; // checkparm of -respawn
   fastparm: boolean; // checkparm of -fast
+
+  startskill: skill_t;
+  startepisode: int;
+  startmap: int;
+  autostart: Boolean;
 
 Function D_AddFile(filename: String): boolean;
 Begin
@@ -337,53 +343,32 @@ Begin
           demoversion := demolump[0];
           status := true;
 
-          Demoversion wird nun korrekt geladen, weiter Portieren..
-
-          //                    switch (demoversion)
-          //                    {
-          //                        case 0:
-          //                        case 1:
-          //                        case 2:
-          //                        case 3:
-          //                        case 4:
-          //                            gameversion = exe_doom_1_2;
-          //                            break;
-          //                        case 106:
-          //                            gameversion = exe_doom_1_666;
-          //                            break;
-          //                        case 107:
-          //                            gameversion = exe_doom_1_7;
-          //                            break;
-          //                        case 108:
-          //                            gameversion = exe_doom_1_8;
-          //                            break;
-          //                        case 109:
-          //                            gameversion = exe_doom_1_9;
-          //                            break;
-          //                        default:
-          //                            status = false;
-          //                            break;
-          //                    }
-          //                    if (status)
-          //                    {
-          //                        break;
-          //                    }
+          Case (demoversion) Of
+            0, 1, 2, 3, 4: gameversion := exe_doom_1_2;
+            106: gameversion := exe_doom_1_666;
+            107: gameversion := exe_doom_1_7;
+            108: gameversion := exe_doom_1_8;
+            109: gameversion := exe_doom_1_9;
+          Else
+            status := false;
+          End;
+          If (status) Then break;
         End;
       End;
     End
     Else If (gamemode = retail)
       Then Begin
-      //            gameversion = exe_ultimate;
+      gameversion := exe_ultimate;
     End
     Else If (gamemode = commercial)
       Then Begin
-      //            // Final Doom: tnt or plutonia
-      //            // Defaults to emulating the first Final Doom executable,
-      //            // which has the crash in the demo loop; however, having
-      //            // this as the default should mean that it plays back
-      //            // most demos correctly.
-      //
-      //            gameversion = exe_final;
+      // Final Doom: tnt or plutonia
+      // Defaults to emulating the first Final Doom executable,
+      // which has the crash in the demo loop; however, having
+      // this as the default should mean that it plays back
+      // most demos correctly.
+
+      gameversion := exe_final;
     End;
   End;
 
@@ -393,20 +378,19 @@ Begin
     deathmatch := 1;
   End;
 
-  //    // The original exe does not support retail - 4th episode not supported
-  //
-  //    if (gameversion < exe_ultimate && gamemode == retail)
-  //    {
-  //        gamemode = registered;
-  //    }
-  //
-  //    // EXEs prior to the Final Doom exes do not support Final Doom.
-  //
-  //    if (gameversion < exe_final && gamemode == commercial
-  //     && (gamemission == pack_tnt || gamemission == pack_plut))
-  //    {
-  //        gamemission = doom2;
-  //    }
+  // The original exe does not support retail - 4th episode not supported
+
+  If (gameversion < exe_ultimate) And (gamemode = retail) Then Begin
+    gamemode := registered;
+  End;
+
+  // EXEs prior to the Final Doom exes do not support Final Doom.
+
+  If (gameversion < exe_final) And (gamemode = commercial)
+    And ((gamemission = pack_tnt) Or (gamemission = pack_plut))
+    Then Begin
+    gamemission := doom2;
+  End;
 End;
 
 //
@@ -1194,14 +1178,14 @@ Begin
 
   I_PrintStartupBanner(gamedescription);
   //    PrintDehackedBanners();
-  //
-  //    DEH_printf("I_Init: Setting up machine state.\n");
+
+  Writeln('I_Init: Setting up machine state.');
   //    I_CheckIsScreensaver();
-  //    I_InitTimer();
+  I_InitTimer();
   //    I_InitJoystick();
-  //    I_InitSound(doom);
-  //    I_InitMusic();
-  //
+  I_InitSound(doom);
+  I_InitMusic();
+
   //    // [crispy] check for SSG resources
   //    crispy->havessg =
   //    (
@@ -1214,218 +1198,218 @@ Begin
   //            I_GetSfxLumpNum(&S_sfx[sfx_dbcls])  != -1    // [crispy] closing sound
   //        )
   //    );
-  //
-  //    // [crispy] check for presence of a 5th episode
+
+      // [crispy] check for presence of a 5th episode
   //    crispy->haved1e5 = (gameversion == exe_ultimate) &&
   //                       (W_CheckNumForName("m_epi5") != -1) &&
   //                       (W_CheckNumForName("e5m1") != -1) &&
   //                       (W_CheckNumForName("wilv40") != -1);
-  //
-  //    // [crispy] check for presence of a 6th episode
+
+  //  [crispy]check For presence Of a 6 th episode
   //    crispy->haved1e6 = (gameversion == exe_ultimate) &&
   //                       (W_CheckNumForName("m_epi6") != -1) &&
   //                       (W_CheckNumForName("e6m1") != -1) &&
   //                       (W_CheckNumForName("wilv50") != -1);
-  //
-  //    // [crispy] check for presence of E1M10
+
+      // [crispy] check for presence of E1M10
   //    crispy->havee1m10 = (gamemode == retail) &&
   //                       (W_CheckNumForName("e1m10") != -1) &&
   //                       (W_CheckNumForName("sewers") != -1);
-  //
-  //    // [crispy] check for presence of MAP33
+
+      // [crispy] check for presence of MAP33
   //    crispy->havemap33 = (gamemode == commercial) &&
   //                       (W_CheckNumForName("map33") != -1) &&
   //                       (W_CheckNumForName("cwilv32") != -1);
-  //
-  //    // [crispy] change level name for MAP33 if not already changed
+
+      // [crispy] change level name for MAP33 if not already changed
   //    if (crispy->havemap33 && !DEH_HasStringReplacement(PHUSTR_1))
   //    {
   //        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
   //    }
-  //
-  //    printf ("NET_Init: Init network subsystem.\n");
-  //    NET_Init ();
-  //
-  //    // Initial netgame startup. Connect to server etc.
+
+  //    writeln('NET_Init: Init network subsystem.');
+  //    NET_Init (); // TODO: wenn mal nur noch das hier portiert werden muss ...
+
+      // Initial netgame startup. Connect to server etc.
   //    D_ConnectNetGame();
+
+      // get skill / episode / map from parms
+
+      // HMP (or skill #2) being the default, had to be placed at index 0 when drawn in the menu,
+      // so all difficulties 'real' positions had to be scaled by -2, hence +2 being added
+      // below in order to get the correct skill.
+  startskill := sk_medium; //(crispy.defaultskill + SKILL_HMP) Mod NUM_SKILLS;
+
+  startepisode := 1;
+  startmap := 1;
+  autostart := false;
+
+  //!
+  // @category game
+  // @arg <skill>
+  // @vanilla
   //
-  //    // get skill / episode / map from parms
+  // Set the game skill, 1-5 (1: easiest, 5: hardest).  A skill of
+  // 0 disables all monsters.
   //
-  //    // HMP (or skill #2) being the default, had to be placed at index 0 when drawn in the menu,
-  //    // so all difficulties 'real' positions had to be scaled by -2, hence +2 being added
-  //    // below in order to get the correct skill.
-  //    startskill = (crispy->defaultskill + SKILL_HMP) % NUM_SKILLS;
+
+//    p = M_CheckParmWithArgs("-skill", 1);
+//
+//    if (p)
+//    {
+//	startskill = myargv[p+1][0]-'1';
+//	autostart = true;
+//    }
+
+  //!
+  // @category game
+  // @arg <n>
+  // @vanilla
   //
-  //    startepisode = 1;
-  //    startmap = 1;
-  //    autostart = false;
+  // Start playing on episode n (1-4)
   //
-  //    //!
-  //    // @category game
-  //    // @arg <skill>
-  //    // @vanilla
-  //    //
-  //    // Set the game skill, 1-5 (1: easiest, 5: hardest).  A skill of
-  //    // 0 disables all monsters.
-  //    //
+
+//    p = M_CheckParmWithArgs("-episode", 1);
+//
+//    if (p)
+//    {
+//	startepisode = myargv[p+1][0]-'0';
+//	startmap = 1;
+//	autostart = true;
+//    }
+
+  timelimit := 0;
+
+  //!
+  // @arg <n>
+  // @category net
+  // @vanilla
   //
-  //    p = M_CheckParmWithArgs("-skill", 1);
+  // For multiplayer games: exit each level after n minutes.
   //
-  //    if (p)
-  //    {
-  //	startskill = myargv[p+1][0]-'1';
-  //	autostart = true;
-  //    }
-  //
-  //    //!
-  //    // @category game
-  //    // @arg <n>
-  //    // @vanilla
-  //    //
-  //    // Start playing on episode n (1-4)
-  //    //
-  //
-  //    p = M_CheckParmWithArgs("-episode", 1);
-  //
-  //    if (p)
-  //    {
-  //	startepisode = myargv[p+1][0]-'0';
-  //	startmap = 1;
-  //	autostart = true;
-  //    }
-  //
-  //    timelimit = 0;
-  //
-  //    //!
-  //    // @arg <n>
-  //    // @category net
-  //    // @vanilla
-  //    //
-  //    // For multiplayer games: exit each level after n minutes.
-  //    //
-  //
-  //    p = M_CheckParmWithArgs("-timer", 1);
-  //
-  //    if (p)
-  //    {
-  //	timelimit = atoi(myargv[p+1]);
-  //    }
-  //
-  //    //!
-  //    // @category net
-  //    // @vanilla
-  //    //
-  //    // Austin Virtual Gaming: end levels after 20 minutes.
-  //    //
-  //
-  //    p = M_CheckParm ("-avg");
-  //
-  //    if (p)
-  //    {
-  //	timelimit = 20;
-  //    }
-  //
-  //    //!
-  //    // @category game
-  //    // @arg [<x> <y> | <xy>]
-  //    // @vanilla
-  //    //
-  //    // Start a game immediately, warping to ExMy (Doom 1) or MAPxy
-  //    // (Doom 2)
-  //    //
-  //
-  //    p = M_CheckParmWithArgs("-warp", 1);
-  //
-  //    if (p)
-  //    {
-  //        if (gamemode == commercial)
-  //            startmap = atoi (myargv[p+1]);
-  //        else
-  //        {
-  //            startepisode = myargv[p+1][0]-'0';
-  //
-  //            // [crispy] only if second argument is not another option
-  //            if (p + 2 < myargc && myargv[p+2][0] != '-')
-  //            {
-  //                startmap = myargv[p+2][0]-'0';
-  //            }
-  //            else
-  //            {
-  //                // [crispy] allow second digit without space in between for Doom 1
-  //                startmap = myargv[p+1][1]-'0';
-  //            }
-  //        }
-  //        autostart = true;
-  //        // [crispy] if used with -playdemo, fast-forward demo up to the desired map
-  //        crispy->demowarp = startmap;
-  //    }
-  //
-  //    // Undocumented:
-  //    // Invoked by setup to test the controls.
-  //
-  //    p = M_CheckParm("-testcontrols");
-  //
-  //    if (p > 0)
-  //    {
-  //        startepisode = 1;
-  //        startmap = 1;
-  //        autostart = true;
-  //        testcontrols = true;
-  //    }
-  //
-  //    // [crispy] port level flipping feature over from Strawberry Doom
-  //#ifdef ENABLE_APRIL_1ST_JOKE
-  //    {
-  //        time_t curtime = time(NULL);
-  //        struct tm *curtm = localtime(&curtime);
-  //
-  //        if (curtm && curtm->tm_mon == 3 && curtm->tm_mday == 1)
-  //            crispy->fliplevels = true;
-  //    }
-  //#endif
-  //
-  //    p = M_CheckParm("-fliplevels");
-  //
-  //    if (p > 0)
-  //    {
-  //        crispy->fliplevels = !crispy->fliplevels;
-  //        crispy->flipweapons = !crispy->flipweapons;
-  //    }
-  //
-  //    p = M_CheckParm("-flipweapons");
-  //
-  //    if (p > 0)
-  //    {
-  //        crispy->flipweapons = !crispy->flipweapons;
-  //    }
-  //
-  //    // Check for load game parameter
-  //    // We do this here and save the slot number, so that the network code
-  //    // can override it or send the load slot to other players.
-  //
-  //    //!
-  //    // @category game
-  //    // @arg <s>
-  //    // @vanilla
-  //    //
-  //    // Load the game in slot s.
-  //    //
-  //
-  //    p = M_CheckParmWithArgs("-loadgame", 1);
-  //
-  //    if (p)
-  //    {
-  //        startloadgame = atoi(myargv[p+1]);
-  //    }
-  //    else
-  //    {
-  //        // Not loading a game
-  //        startloadgame = -1;
-  //    }
-  //
-  //    DEH_printf("M_Init: Init miscellaneous info.\n");
-  //    M_Init ();
-  //
+
+//    p = M_CheckParmWithArgs("-timer", 1);
+//
+//    if (p)
+//    {
+//	timelimit = atoi(myargv[p+1]);
+//    }
+
+    //!
+    // @category net
+    // @vanilla
+    //
+    // Austin Virtual Gaming: end levels after 20 minutes.
+    //
+
+//    p = M_CheckParm ("-avg");
+//
+//    if (p)
+//    {
+//	timelimit = 20;
+//    }
+
+    //!
+    // @category game
+    // @arg [<x> <y> | <xy>]
+    // @vanilla
+    //
+    // Start a game immediately, warping to ExMy (Doom 1) or MAPxy
+    // (Doom 2)
+    //
+
+//    p = M_CheckParmWithArgs("-warp", 1);
+//
+//    if (p)
+//    {
+//        if (gamemode == commercial)
+//            startmap = atoi (myargv[p+1]);
+//        else
+//        {
+//            startepisode = myargv[p+1][0]-'0';
+//
+//            // [crispy] only if second argument is not another option
+//            if (p + 2 < myargc && myargv[p+2][0] != '-')
+//            {
+//                startmap = myargv[p+2][0]-'0';
+//            }
+//            else
+//            {
+//                // [crispy] allow second digit without space in between for Doom 1
+//                startmap = myargv[p+1][1]-'0';
+//            }
+//        }
+//        autostart = true;
+//        // [crispy] if used with -playdemo, fast-forward demo up to the desired map
+//        crispy->demowarp = startmap;
+//    }
+
+    // Undocumented:
+    // Invoked by setup to test the controls.
+
+//    p = M_CheckParm("-testcontrols");
+//
+//    if (p > 0)
+//    {
+//        startepisode = 1;
+//        startmap = 1;
+//        autostart = true;
+//        testcontrols = true;
+//    }
+
+//    // [crispy] port level flipping feature over from Strawberry Doom
+//#ifdef ENABLE_APRIL_1ST_JOKE
+//    {
+//        time_t curtime = time(NULL);
+//        struct tm *curtm = localtime(&curtime);
+//
+//        if (curtm && curtm->tm_mon == 3 && curtm->tm_mday == 1)
+//            crispy->fliplevels = true;
+//    }
+//#endif
+
+//    p = M_CheckParm("-fliplevels");
+//
+//    if (p > 0)
+//    {
+//        crispy->fliplevels = !crispy->fliplevels;
+//        crispy->flipweapons = !crispy->flipweapons;
+//    }
+
+//    p = M_CheckParm("-flipweapons");
+//
+//    if (p > 0)
+//    {
+//        crispy->flipweapons = !crispy->flipweapons;
+//    }
+
+    // Check for load game parameter
+    // We do this here and save the slot number, so that the network code
+    // can override it or send the load slot to other players.
+
+    //!
+    // @category game
+    // @arg <s>
+    // @vanilla
+    //
+    // Load the game in slot s.
+    //
+
+//    p = M_CheckParmWithArgs("-loadgame", 1);
+//
+//    if (p)
+//    {
+//        startloadgame = atoi(myargv[p+1]);
+//    }
+//    else
+//    {
+//        // Not loading a game
+//        startloadgame = -1;
+//    }
+
+  writeln('M_Init: Init miscellaneous info.');
+  M_Init();
+
   //    DEH_printf("R_Init: Init DOOM refresh daemon - ");
   //    R_Init ();
   //
@@ -1522,4 +1506,5 @@ Begin
 End;
 
 End.
+
 
