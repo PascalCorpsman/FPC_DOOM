@@ -7,6 +7,10 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils;
 
+Const
+  ORIGWIDTH = 320; // [crispy]
+  ORIGHEIGHT = 200; // [crispy]
+
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
 
@@ -14,16 +18,23 @@ Procedure I_InitGraphics();
 
 Procedure I_DisplayFPSDots(dots_on: boolean);
 
+Var
+  SCREENWIDTH: int;
+  SCREENHEIGHT: int;
+
 Implementation
 
 Uses Graphics, config
+  , v_video
   , usdl_wrapper
+  , doomtype
   ;
 
 Var
   screen: SDL_Window = Nil;
   window_title: String = '';
 
+  argbbuffer: Array[0..ORIGWIDTH - 1, 0..ORIGHEIGHT - 1] Of pixel_t;
 
   // If true, we display dots at the bottom of the screen to
   // indicate FPS.
@@ -51,6 +62,60 @@ Begin
 
   SDL_SetWindowIcon(screen, surface);
   SDL_FreeSurface(surface);
+End;
+
+Procedure I_GetScreenDimensions();
+Begin
+  //  SDL_DisplayMode mode;
+  //	int w = 16, h = 10;
+  //	int ah;
+  //
+  SCREENWIDTH := ORIGWIDTH Shl 0; // crispy->hires; ist eigentlich 1
+  SCREENHEIGHT := ORIGHEIGHT Shl 0; // crispy->hires; ist eigentlich 1
+  //
+  //	NONWIDEWIDTH = SCREENWIDTH;
+  //
+  //	ah = (aspect_ratio_correct == 1) ? (6 * SCREENHEIGHT / 5) : SCREENHEIGHT;
+  //
+  //	if (SDL_GetCurrentDisplayMode(video_display, &mode) == 0)
+  //	{
+  //		// [crispy] sanity check: really widescreen display?
+  //		if (mode.w * ah >= mode.h * SCREENWIDTH)
+  //		{
+  //			w = mode.w;
+  //			h = mode.h;
+  //		}
+  //	}
+  //
+  //	// [crispy] widescreen rendering makes no sense without aspect ratio correction
+  //	if (crispy->widescreen && aspect_ratio_correct == 1)
+  //	{
+  //		switch(crispy->widescreen)
+  //		{
+  //			case RATIO_16_10:
+  //				w = 16;
+  //				h = 10;
+  //				break;
+  //			case RATIO_16_9:
+  //				w = 16;
+  //				h = 9;
+  //				break;
+  //			case RATIO_21_9:
+  //				w = 21;
+  //				h = 9;
+  //				break;
+  //			default:
+  //				break;
+  //		}
+  //
+  //		SCREENWIDTH = w * ah / h;
+  //		// [crispy] make sure SCREENWIDTH is an integer multiple of 4 ...
+  //		SCREENWIDTH = (SCREENWIDTH + (crispy->hires ? 0 : 3)) & (int)~3;
+  //		// [crispy] ... but never exceeds MAXWIDTH (array size!)
+  //		SCREENWIDTH = MIN(SCREENWIDTH, MAXWIDTH);
+  //	}
+  //
+  //	WIDESCREENDELTA = ((SCREENWIDTH - NONWIDEWIDTH) >> crispy->hires) / 2;
 End;
 
 Procedure SetVideoMode();
@@ -356,10 +421,10 @@ Begin
   //    {
   //        fullscreen = true;
   //    }
-  //
-  //    // [crispy] run-time variable high-resolution rendering
-  //    I_GetScreenDimensions();
-  //
+
+  // [crispy] run-time variable high-resolution rendering
+  I_GetScreenDimensions();
+
   //#ifndef CRISPY_TRUECOLOR
   //    blit_rect.w = SCREENWIDTH;
   //    blit_rect.h = SCREENHEIGHT;
@@ -407,16 +472,16 @@ Begin
   //    {
   //        SDL_Delay(startup_delay);
   //    }
-  //
-  //    // The actual 320x200 canvas that we draw to. This is the pixel buffer of
-  //    // the 8-bit paletted screen buffer that gets blit on an intermediate
-  //    // 32-bit RGBA screen buffer that gets loaded into a texture that gets
-  //    // finally rendered into our window or full screen in I_FinishUpdate().
-  //
+
+      // The actual 320x200 canvas that we draw to. This is the pixel buffer of
+      // the 8-bit paletted screen buffer that gets blit on an intermediate
+      // 32-bit RGBA screen buffer that gets loaded into a texture that gets
+      // finally rendered into our window or full screen in I_FinishUpdate().
+
   //#ifndef CRISPY_TRUECOLOR
-  //    I_VideoBuffer = screenbuffer->pixels;
+//  I_VideoBuffer := screenbuffer[0];
   //#else
-  //    I_VideoBuffer = argbbuffer->pixels;
+  I_VideoBuffer := argbbuffer[0];
   //#endif
   //    V_RestoreBuffer();
   //
