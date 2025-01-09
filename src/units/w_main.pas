@@ -40,7 +40,6 @@ Var
   i: Integer;
   lumpnum: lumpindex_t;
 Begin
-  //    lumpnum;
   For i := 0 To high(unique_lumps) Do Begin
 
     If (mission <> unique_lumps[i].mission) Then Begin

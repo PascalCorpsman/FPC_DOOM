@@ -277,6 +277,7 @@ Begin
   p := M_CheckParmWithArgs('-gameversion', 1);
 
   If (p <> 0) Then Begin
+    raise exception.create('portieren');
     //        for (i=0; gameversions[i].description != NULL; ++i)
     //        {
     //            if (!strcmp(myargv[p+1], gameversions[i].cmdline))
@@ -767,25 +768,21 @@ Begin
   // we're playing and which version of Vanilla Doom we need to emulate.
   D_IdentifyVersion();
   InitGameVersion();
-  //
-  //    // Check which IWAD variant we are using.
-  //
-  //    if (W_CheckNumForName("FREEDOOM") >= 0)
-  //    {
-  //        if (W_CheckNumForName("FREEDM") >= 0)
-  //        {
-  //            gamevariant = freedm;
-  //        }
-  //        else
-  //        {
-  //            gamevariant = freedoom;
-  //        }
-  //    }
-  //    else if (W_CheckNumForName("DMENUPIC") >= 0)
-  //    {
-  //        gamevariant = bfgedition;
-  //    }
-  //
+
+  // Check which IWAD variant we are using.
+
+  If (W_CheckNumForName('FREEDOOM') >= 0) Then Begin
+    If (W_CheckNumForName('FREEDM') >= 0) Then Begin
+      gamevariant := freedm;
+    End
+    Else Begin
+      gamevariant := freedoom;
+    End;
+  End
+  Else If (W_CheckNumForName('DMENUPIC') >= 0) Then Begin
+    gamevariant := bfgedition;
+  End;
+
   //    //!
   //    // @category mod
   //    //
