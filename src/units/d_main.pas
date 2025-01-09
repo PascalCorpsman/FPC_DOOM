@@ -13,12 +13,13 @@ Implementation
 
 Uses
   config
-  , i_system, i_video, i_timer, i_sound
-  , g_game
   , doom_icon, doomstat
-  , m_misc, m_config, m_argv, m_menu
-  , v_video
   , d_iwad, d_mode, d_englsh
+  , g_game
+  , i_system, i_video, i_timer, i_sound
+  , m_misc, m_config, m_argv, m_menu
+  , r_main
+  , v_video
   , w_wad, w_main
   , z_zone
   ;
@@ -1407,13 +1408,15 @@ Begin
 //        startloadgame = -1;
 //    }
 
-  writeln('M_Init: Init miscellaneous info.');
+  write('M_Init: Init miscellaneous info.');
   M_Init();
+  writeln('');
 
-  //    DEH_printf("R_Init: Init DOOM refresh daemon - ");
-  //    R_Init ();
-  //
-  //    DEH_printf("\nP_Init: Init Playloop state.\n");
+  Write('R_Init: Init DOOM refresh daemon - ');
+  R_Init();
+  writeln('');
+
+  Writeln('P_Init: Init Playloop state.');
   //    P_Init ();
   //
   //    DEH_printf("S_Init: Setting up sound.\n");

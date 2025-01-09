@@ -112,10 +112,8 @@ Begin
   // [crispy] force status bar refresh
 //  inhelpscreens := true;
 
-  V_DrawPatchDirect(96, 14, W_CacheLumpName('M_DOOM', PU_CACHE)); // TODO: Debug - Remove
-
-  //  V_DrawPatchDirect(96, 14, W_CacheLumpName('M_NEWG', PU_CACHE));
-  //  V_DrawPatchDirect(54, 38, W_CacheLumpName('M_SKILL', PU_CACHE));
+  V_DrawPatchDirect(96, 14, W_CacheLumpName('M_NEWG', PU_CACHE));
+  V_DrawPatchDirect(54, 38, W_CacheLumpName('M_SKILL', PU_CACHE));
 End;
 
 Procedure M_NewGame(choice: int);

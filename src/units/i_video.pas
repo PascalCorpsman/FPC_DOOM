@@ -8,8 +8,8 @@ Uses
   ufpc_doom_types, Classes, SysUtils;
 
 Const
-  ORIGWIDTH = 320; // [crispy]
-  ORIGHEIGHT = 200; // [crispy]
+  ORIGWIDTH = 320;
+  ORIGHEIGHT = 200;
 
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
@@ -19,8 +19,8 @@ Procedure I_InitGraphics();
 Procedure I_DisplayFPSDots(dots_on: boolean);
 
 Var
-  SCREENWIDTH: int;
-  SCREENHEIGHT: int;
+  SCREENWIDTH: int; // Eigentlich unnötig Redundant
+  SCREENHEIGHT: int; // Eigentlich unnötig Redundant
 
 Implementation
 
@@ -34,7 +34,7 @@ Var
   screen: SDL_Window = Nil;
   window_title: String = '';
 
-  argbbuffer: Array[0..ORIGWIDTH - 1, 0..ORIGHEIGHT - 1] Of pixel_t;
+  //  argbbuffer: Array[0..ORIGWIDTH - 1, 0..ORIGHEIGHT - 1] Of pixel_t; --> Brauchen wir nicht wir schreiben direkt in I_VideoBuffer da OpenGL das alles für uns Scalliert ;)
 
   // If true, we display dots at the bottom of the screen to
   // indicate FPS.
@@ -70,8 +70,8 @@ Begin
   //	int w = 16, h = 10;
   //	int ah;
   //
-  SCREENWIDTH := ORIGWIDTH Shl 0; // crispy->hires; ist eigentlich 1
-  SCREENHEIGHT := ORIGHEIGHT Shl 0; // crispy->hires; ist eigentlich 1
+  SCREENWIDTH := ORIGWIDTH Shl 0; // crispy->hires; ist eigentlich 1 -> Brauchen wir aber nicht, da das OpenGL macht ;)
+  SCREENHEIGHT := ORIGHEIGHT Shl 0; // crispy->hires; ist eigentlich 1 -> Brauchen wir aber nicht, da das OpenGL macht ;)
   //
   //	NONWIDEWIDTH = SCREENWIDTH;
   //
@@ -473,16 +473,12 @@ Begin
   //        SDL_Delay(startup_delay);
   //    }
 
-      // The actual 320x200 canvas that we draw to. This is the pixel buffer of
-      // the 8-bit paletted screen buffer that gets blit on an intermediate
-      // 32-bit RGBA screen buffer that gets loaded into a texture that gets
-      // finally rendered into our window or full screen in I_FinishUpdate().
+  // The actual 320x200 canvas that we draw to. This is the pixel buffer of
+  // the 8-bit paletted screen buffer that gets blit on an intermediate
+  // 32-bit RGBA screen buffer that gets loaded into a texture that gets
+  // finally rendered into our window or full screen in I_FinishUpdate().
 
-  //#ifndef CRISPY_TRUECOLOR
-//  I_VideoBuffer := screenbuffer[0];
-  //#else
-  I_VideoBuffer := argbbuffer[0];
-  //#endif
+  setlength(I_VideoBuffer, ORIGWIDTH * ORIGHEIGHT);
   //    V_RestoreBuffer();
   //
   //    // Clear the screen to black.
