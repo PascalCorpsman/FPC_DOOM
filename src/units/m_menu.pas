@@ -110,8 +110,7 @@ Var
 Procedure M_DrawNewGame();
 Begin
   // [crispy] force status bar refresh
-//  inhelpscreens := true;
-
+  //  inhelpscreens := true;
   V_DrawPatchDirect(96, 14, W_CacheLumpName('M_NEWG', PU_CACHE));
   V_DrawPatchDirect(54, 38, W_CacheLumpName('M_SKILL', PU_CACHE));
 End;

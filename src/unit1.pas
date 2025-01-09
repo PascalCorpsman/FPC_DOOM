@@ -74,8 +74,8 @@ Implementation
 Uses
   m_argv
   , d_main
-  , m_menu // TODO: Debug muss wieder raus
-  , v_video // TODO: Debug muss wieder raus
+  //  , m_menu // TODO: Debug muss wieder raus
+  //  , v_video // TODO: Debug muss wieder raus
   ;
 
 { TForm1 }
@@ -129,9 +129,9 @@ Begin
     // Der Anwendung erlauben zu Rendern.
     Initialized := True;
     OpenGLControl1Resize(Nil);
-    D_DoomMain(); // TODO: das muss noch wo "Besseres" hin, aber vorerst ist es mal ein Einstieg ;)
-    V_UseBuffer(I_VideoBuffer); // TODO: Debugg muss wieder raus ..
-    M_DrawNewGame(); // TODO: Debugg muss wieder raus ..
+    D_DoomMain(); // Initialisiert die Gesamte Spiel Engine
+    //    V_UseBuffer(I_VideoBuffer); // TODO: Debugg muss wieder raus ..
+    //    M_DrawNewGame(); // TODO: Debugg muss wieder raus ..
   End;
   Form1.Invalidate;
 End;
@@ -143,17 +143,9 @@ Begin
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
-  // gluLookAt(5, 11, -20, 5, 5, 0, 0, 1, 0);
-  // { Render etwas ---
   go2d;
-  glcolor3f(1, 0, 0);
-  glbegin(gl_lines);
-  glvertex3f(10, 10, 0);
-  glvertex3f(100, 100, 0);
-  glend;
-  //}
+  D_DoomLoop(); // Sollte mindestens alle 35ms aufgerufen werden !
   exit2d;
-
   OpenGLControl1.SwapBuffers;
 End;
 

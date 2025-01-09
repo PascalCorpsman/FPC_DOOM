@@ -7,7 +7,8 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils;
 
-Procedure D_DoomMain(); // <-- Hier gehts los ;)
+Procedure D_DoomMain(); // Init und alles was geladen werden muss
+Procedure D_DoomLoop(); // Main Loop -> Rendert die Frames
 
 Implementation
 
@@ -207,62 +208,46 @@ End;
 
 Procedure D_SetGameDescription();
 Begin
-  //   if (logical_gamemission == doom)
-  //    {
-  //        // Doom 1.  But which version?
-  //
-  //        if (gamevariant == freedoom)
-  //        {
-  //            gamedescription = GetGameName("Freedoom: Phase 1");
-  //        }
-  //        else if (gamemode == retail)
-  //        {
-  //            // Ultimate Doom
-  //
-  //            gamedescription = GetGameName("The Ultimate DOOM");
-  //        }
-  //        else if (gamemode == registered)
-  //        {
-  //            gamedescription = GetGameName("DOOM Registered");
-  //        }
-  //        else if (gamemode == shareware)
-  //        {
-  //            gamedescription = GetGameName("DOOM Shareware");
-  //        }
-  //    }
-  //    else
-  //    {
-  //        // Doom 2 of some kind.  But which mission?
-  //
-  //        if (gamevariant == freedm)
-  //        {
-  //            gamedescription = GetGameName("FreeDM");
-  //        }
-  //        else if (gamevariant == freedoom)
-  //        {
-  //            gamedescription = GetGameName("Freedoom: Phase 2");
-  //        }
-  //        else if (logical_gamemission == doom2)
-  //        {
-  gamedescription := GetGameName('DOOM 2: Hell On Earth');
-  //        }
-  //        else if (logical_gamemission == pack_plut)
-  //        {
-  //            gamedescription = GetGameName("DOOM 2: Plutonia Experiment");
-  //        }
-  //        else if (logical_gamemission == pack_tnt)
-  //        {
-  //            gamedescription = GetGameName("DOOM 2: TNT - Evilution");
-  //        }
-  //        else if (logical_gamemission == pack_nerve)
-  //        {
-  //            gamedescription = GetGameName("DOOM 2: No Rest For The Living");
-  //        }
-  //        else if (logical_gamemission == pack_master)
-  //        {
-  //            gamedescription = GetGameName("Master Levels for DOOM 2");
-  //        }
-  //    }
+  If (logical_gamemission() = doom) Then Begin
+    // Doom 1.  But which version?
+    If (gamevariant = freedoom) Then Begin
+      gamedescription := GetGameName('Freedoom: Phase 1');
+    End
+    Else If (gamemode = retail) Then Begin
+      // Ultimate Doom
+      gamedescription := GetGameName('The Ultimate DOOM');
+    End
+    Else If (gamemode = registered) Then Begin
+      gamedescription := GetGameName('DOOM Registered');
+    End
+    Else If (gamemode = shareware) Then Begin
+      gamedescription := GetGameName('DOOM Shareware');
+    End;
+  End
+  Else Begin
+    // Doom 2 of some kind.  But which mission?
+    If (gamevariant = freedm) Then Begin
+      gamedescription := GetGameName('FreeDM');
+    End
+    Else If (gamevariant = freedoom) Then Begin
+      gamedescription := GetGameName('Freedoom: Phase 2');
+    End
+    Else If (logical_gamemission = doom2) Then Begin
+      gamedescription := GetGameName('DOOM 2: Hell On Earth');
+    End
+    Else If (logical_gamemission = pack_plut) Then Begin
+      gamedescription := GetGameName('DOOM 2: Plutonia Experiment');
+    End
+    Else If (logical_gamemission = pack_tnt) Then Begin
+      gamedescription := GetGameName('DOOM 2: TNT - Evilution');
+    End
+    Else If (logical_gamemission = pack_nerve) Then Begin
+      gamedescription := GetGameName('DOOM 2: No Rest For The Living');
+    End
+    Else If (logical_gamemission = pack_master) Then Begin
+      gamedescription := GetGameName('Master Levels for DOOM 2');
+    End;
+  End;
 
   If gamedescription = '' Then Begin
     gamedescription := M_StringDuplicate('Unknown');
@@ -438,21 +423,16 @@ Begin
 
   If (logical_gamemission = doom) Then Begin
     // Doom 1.  But which version?
-    Raise exception.create('Missing porting.');
-    //        if (W_CheckNumForName("E4M1") > 0)
-    //        {
-    //            // Ultimate Doom
-    //
-    //            gamemode = retail;
-    //        }
-    //        else if (W_CheckNumForName("E3M1") > 0)
-    //        {
-    //            gamemode = registered;
-    //        }
-    //        else
-    //        {
-    //            gamemode = shareware;
-    //        }
+    If (W_CheckNumForName('E4M1') > 0) Then Begin
+      // Ultimate Doom
+      gamemode := retail;
+    End
+    Else If (W_CheckNumForName('E3M1') > 0) Then Begin
+      gamemode := registered;
+    End
+    Else Begin
+      gamemode := shareware;
+    End;
   End
   Else Begin
     // Doom 2 of some kind.
@@ -478,45 +458,78 @@ Begin
   End;
 End;
 
+//
+//  D_RunFrame
+//
+
+Procedure D_RunFrame();
+Begin
+  //    int nowtime;
+  //    int tics;
+  //    static int wipestart;
+  //    static boolean wipe;
+  //    static int oldgametic;
+  //
+  //    if (wipe)
+  //    {
+  //        do
+  //        {
+  //            nowtime = I_GetTime ();
+  //            tics = nowtime - wipestart;
+  //            I_Sleep(1);
+  //        } while (tics <= 0);
+  //
+  //        wipestart = nowtime;
+  //        wipe = !wipe_ScreenWipe(wipe_Melt
+  //                               , 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
+  //        I_UpdateNoBlit ();
+  //        M_Drawer ();                            // menu is drawn even on top of wipes
+  //        I_FinishUpdate ();                      // page flip or blit buffer
+  //        return;
+  //    }
+  //
+  //    // frame syncronous IO operations
+  //    I_StartFrame ();
+  //
+  //    TryRunTics (); // will run at least one tic
+  //
+  //    if (oldgametic < gametic)
+  //    {
+  //        S_UpdateSounds (players[displayplayer].mo);// move positional sounds
+  //        oldgametic = gametic;
+  //    }
+  //
+  //    // Update display, next frame, with current state if no profiling is on
+  //    if (screenvisible && !nodrawers)
+  //    {
+  //        if ((wipe = D_Display ()))
+  //        {
+  //            // start wipe on this frame
+  //            wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+  //
+  //            wipestart = I_GetTime () - 1;
+  //        } else {
+  //            // normal update
+  //            I_FinishUpdate ();              // page flip or blit buffer
+  //        }
+  //    }
+  //
+  //	// [crispy] post-rendering function pointer to apply config changes
+  //	// that affect rendering and that are better applied after the current
+  //	// frame has finished rendering
+  //	if (crispy->post_rendering_hook && !wipe)
+  //	{
+  //		crispy->post_rendering_hook();
+  //		crispy->post_rendering_hook = NULL;
+  //	}
+End;
+
 Procedure D_DoomLoop();
 Begin
-  //  if (gamevariant == bfgedition &&
-  //         (demorecording || (gameaction == ga_playdemo) || netgame))
-  //     {
-  //         printf(" WARNING: You are playing using one of the Doom Classic\n"
-  //                " IWAD files shipped with the Doom 3: BFG Edition. These are\n"
-  //                " known to be incompatible with the regular IWAD files and\n"
-  //                " may cause demos and network games to get out of sync.\n");
-  //     }
-  //
-  //     // [crispy] no need to write a demo header in demo continue mode
-  //     if (demorecording && gameaction != ga_playdemo)
-  // 	G_BeginRecording ();
-  //
-  //     main_loop_started = true;
-  //
-  I_SetWindowTitle(gamedescription);
-  //     I_GraphicsCheckCommandLine();
-  //     I_SetGrabMouseCallback(D_GrabMouseCallback);
-  I_RegisterWindowIcon(doom_icon_data, doom_icon_w, doom_icon_h);
-  I_InitGraphics();
-  //     EnableLoadingDisk();
-  //
-  //     TryRunTics();
-  //
-  //     V_RestoreBuffer();
-  //     R_ExecuteSetViewSize();
-  //
-  //     D_StartGameLoop();
-  //
-  //     if (testcontrols)
-  //     {
-  //         wipegamestate = gamestate;
-  //     }
   //
   //     while (1)
   //     {
-  //         D_RunFrame();
+  D_RunFrame();
   //     }
 End;
 
@@ -1504,8 +1517,43 @@ Begin
   //	else
   //	    D_StartTitle ();                // start up intro loop
   //    }
+
+  // D_DoomLoop(); // never returns -- Wird aus Paintbox1.Invalidate heraus aufgerufen !
+
+  // Dieser Code hier steht noch am Anfang von DoomLoop bevor die While Schleife los geht, muss natürlich auch irgendwie gemacht werden ;)
+  //  if (gamevariant == bfgedition &&
+  //         (demorecording || (gameaction == ga_playdemo) || netgame))
+  //     {
+  //         printf(" WARNING: You are playing using one of the Doom Classic\n"
+  //                " IWAD files shipped with the Doom 3: BFG Edition. These are\n"
+  //                " known to be incompatible with the regular IWAD files and\n"
+  //                " may cause demos and network games to get out of sync.\n");
+  //     }
   //
-  D_DoomLoop(); // never returns
+  //     // [crispy] no need to write a demo header in demo continue mode
+  //     if (demorecording && gameaction != ga_playdemo)
+  // 	G_BeginRecording ();
+  //
+  //     main_loop_started = true;
+  //
+  I_SetWindowTitle(gamedescription);
+  //     I_GraphicsCheckCommandLine();
+  //     I_SetGrabMouseCallback(D_GrabMouseCallback);
+  I_RegisterWindowIcon(doom_icon_data, doom_icon_w, doom_icon_h);
+  I_InitGraphics();
+  //     EnableLoadingDisk();
+  //
+  //     TryRunTics();
+  //
+  //     V_RestoreBuffer();
+  //     R_ExecuteSetViewSize();
+  //
+  //     D_StartGameLoop();
+  //
+  //     if (testcontrols)
+  //     {
+  //         wipegamestate = gamestate;
+  //     }
 End;
 
 End.
