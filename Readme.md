@@ -33,8 +33,8 @@ ports, but that version only supports DirectX :/.
 ## actual Progress:
 - got crispy-doom compiled
 - created initial FPC_DOOM Lazarus project
-- stored everything on Github (2025.01.03)
+- (2025.01.03) stored everything on Github
 - able to extract icon from doom_icon.pas
 - w_wad.pas can now "load" the .wad file
-- able to store "patches" when drawn and store them as .bmp files very first extracted image from above shareware: ![](documentation/doom.png) (2025.01.09)
+- (2025.01.09) able to store "patches" when drawn as .bmp filesto harddisc, very first extracted image from above shareware .wad file: ![](documentation/doom.png)
 
