@@ -26,13 +26,15 @@ ports, but that version only supports DirectX :/.
 - download [dglOpenGL.pas](https://github.com/saschawillems/dglopengl) and store it in the units folder
 
 ## What needs to be done to play the game
-- get a valid .wad file and copy it where the binary is beeing created
+- get a valid .wad file and copy it where the binary is beeing created (or use this [shareware](https://www.doomworld.com/3ddownloads/ports/shareware_doom_iwad.zip) version)
+- wait until this repository has have enough progress to be a playable game
 - start the application
 
-Progress:
+## actual Progress:
 - got crispy-doom compiled
 - created initial FPC_DOOM Lazarus project
-- stored everything on Github
+- stored everything on Github (2025.01.03)
 - able to extract icon from doom_icon.pas
 - w_wad.pas can now "load" the .wad file
+- able to store "patches" when drawn and store them as .bmp files very first extracted image from above shareware: ![](documentation/doom.png) (2025.01.09)
 
