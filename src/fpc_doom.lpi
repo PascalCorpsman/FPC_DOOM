@@ -205,7 +205,7 @@
     <Version Value="11"/>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../Graphik;../../DatenSteuerung;../Sample/OpenGL;units"/>
+      <OtherUnitFiles Value="../../Graphik;../../DatenSteuerung;../Sample/OpenGL;units;../Sample/DatenSteuerung"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

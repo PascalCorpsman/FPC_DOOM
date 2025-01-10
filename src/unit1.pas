@@ -30,6 +30,11 @@ Unit Unit1;
 {$MODE objfpc}{$H+}
 {$DEFINE DebuggMode}
 
+(*
+ * Enable to see how much time is actually taken to "render" a frame
+ *)
+{.$DEFINE SHOW_RENDERTIME_IN_MS}
+
 Interface
 
 Uses
@@ -76,6 +81,10 @@ Uses
   , d_main
   , i_video
   , v_video
+{$IFDEF SHOW_RENDERTIME_IN_MS}
+  // If you get a Error that the following unit is not found, please disable the define !
+  , uOpenGL_ASCII_Font
+{$ENDIF}
   ;
 
 { TForm1 }
@@ -127,11 +136,20 @@ Begin
     Initialized := True;
     OpenGLControl1Resize(Nil);
     D_DoomMain(); // Initialisiert die Gesamte Spiel Engine
+{$IFDEF SHOW_RENDERTIME_IN_MS}
+    Create_ASCII_Font();
+{$ENDIF}
   End;
   Form1.Invalidate;
 End;
 
 Procedure TForm1.OpenGLControl1Paint(Sender: TObject);
+{$IFDEF SHOW_RENDERTIME_IN_MS}
+Const
+  MaxRenderTime: integer = 0;
+Var
+  t: QWord;
+{$ENDIF}
 Begin
   If Not Initialized Then Exit;
   // Render Szene
@@ -139,7 +157,21 @@ Begin
   glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
   go2d;
+{$IFDEF SHOW_RENDERTIME_IN_MS}
+  t := GetTickCount64;
+{$ENDIF}
   D_DoomLoop(); // Sollte mindestens alle 35ms aufgerufen werden !
+{$IFDEF SHOW_RENDERTIME_IN_MS}
+  t := GetTickCount64 - t;
+  If t > MaxRenderTime Then MaxRenderTime := t;
+  glBindTexture(GL_TEXTURE_2D, 0);
+  (*
+   * Das Spiel erwartet alle 35 ms gerendert zu werden
+   * Der Aktuelle Rendertimer steht auf 17ms -> Also alles gut
+   * Interessant wird es wenn MaxRenderTime > 35ms / 17ms wird !
+   *)
+  OpenGL_ASCII_Font.Textout(1, 1, format('%d' + LineEnding + '%d', [t, MaxRenderTime]));
+{$ENDIF}
   exit2d;
   OpenGLControl1.SwapBuffers;
 End;
