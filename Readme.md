@@ -36,5 +36,5 @@ ports, but that version only supports DirectX :/.
 - (2025.01.03) stored everything on Github
 - able to extract icon from doom_icon.pas
 - w_wad.pas can now "load" the .wad file
-- (2025.01.09) able to store "patches" when drawn as .bmp filesto harddisc, very first extracted image from above shareware .wad file: ![](documentation/doom.png)
+- (2025.01.09) able to store "patches" when drawn as .bmp files to harddisc, very first extracted image from above shareware .wad file: ![](documentation/doom.png)
 
