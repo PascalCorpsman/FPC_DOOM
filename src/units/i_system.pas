@@ -18,6 +18,7 @@ Uses config;
 Procedure I_Error(Error: String);
 Begin
   Raise Exception.Create(error);
+  halt;
 End;
 
 Procedure I_PrintDivider();

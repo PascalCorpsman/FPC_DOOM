@@ -5,10 +5,15 @@ Unit g_game;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , doomdef
+  ;
 
 Var
   timelimit: int;
+
+  nodrawers: boolean = false; // for comparative timing purposes
+  gamestate: gamestate_t;
 
 Implementation
 

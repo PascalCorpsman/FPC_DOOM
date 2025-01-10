@@ -24,6 +24,8 @@ Procedure V_Init();
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
 
+Procedure V_RestoreBuffer();
+
 Var
   // The screen buffer; this is modified to draw things to the screen
   I_VideoBuffer: pixel_tArray; // Der ist quasi immer ORIGWIDTH * ORIGHEIGHT
@@ -48,6 +50,11 @@ Var
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
 Begin
   dest_screen := buffer;
+End;
+
+Procedure V_RestoreBuffer();
+Begin
+  dest_screen := I_VideoBuffer;
 End;
 
 Procedure V_Init;

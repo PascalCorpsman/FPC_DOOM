@@ -49,7 +49,7 @@ Const
     (name: 'heretic.wad'; mission: heretic; mode: retail; description: 'Heretic'),
     (name: 'heretic1.wad'; mission: heretic; mode: shareware; description: 'Heretic Shareware'),
     (name: 'hexen.wad'; mission: hexen; mode: commercial; description: 'Hexen'),
-    //{ 'strife0.wad',  strife,    commercial, 'Strife' }, // haleyjd: STRIFE-FIXME
+    // (name: 'strife0.wad'; mission: strife; mode: commercial; description: 'Strife'), // haleyjd: STRIFE-FIXME
     (name: 'strife1.wad'; mission: strife; mode: commercial; description: 'Strife')
     );
 

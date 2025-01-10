@@ -40,7 +40,7 @@ Uses
    * Kommt ein Linkerfehler wegen OpenGL dann: sudo apt-get install freeglut3-dev
    *)
   dglOpenGL // http://wiki.delphigl.com/index.php/dglOpenGL.pas
-  //, uopengl_graphikengine // Die OpenGLGraphikengine ist eine Eigenproduktion von www.Corpsman.de, und kann getrennt auf https://github.com/PascalCorpsman/Examples/tree/master/OpenGL geladen werden.
+  , config // Wird eigentlich nicht benötigt, ist nur dazu da um schnell an die Deklaration der Version zu springen
   ;
 
 Type
@@ -74,8 +74,8 @@ Implementation
 Uses
   m_argv
   , d_main
-  //  , m_menu // TODO: Debug muss wieder raus
-  //  , v_video // TODO: Debug muss wieder raus
+  , i_video
+  , v_video
   ;
 
 { TForm1 }
@@ -90,6 +90,8 @@ Begin
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix(); // Store old Modelview Matrix
   glLoadIdentity(); // Reset The Modelview Matrix
+  OpenGLControlWidth := OpenGLControl1.Width;
+  OpenGLControlHeight := OpenGLControl1.Height;
 End;
 
 Procedure Tform1.Exit2d();
@@ -120,18 +122,11 @@ Begin
     Man bedenke, jedesmal wenn der Renderingcontext neu erstellt wird, müssen sämtliche Graphiken neu Geladen werden.
     Bei Nutzung der TOpenGLGraphikengine, bedeutet dies, das hier ein clear durchgeführt werden mus !!
     *)
-    {
-    OpenGL_GraphikEngine.clear;
     glenable(GL_TEXTURE_2D); // Texturen
-    glEnable(GL_DEPTH_TEST); // Tiefentest
-    glDepthFunc(gl_less);
-    }
     // Der Anwendung erlauben zu Rendern.
     Initialized := True;
     OpenGLControl1Resize(Nil);
     D_DoomMain(); // Initialisiert die Gesamte Spiel Engine
-    //    V_UseBuffer(I_VideoBuffer); // TODO: Debugg muss wieder raus ..
-    //    M_DrawNewGame(); // TODO: Debugg muss wieder raus ..
   End;
   Form1.Invalidate;
 End;
@@ -164,6 +159,8 @@ Procedure TForm1.FormCreate(Sender: TObject);
 Var
   i: Integer;
 Begin
+  Constraints.MinWidth := ORIGWIDTH;
+  Constraints.MinHeight := ORIGHEIGHT;
   // Init dglOpenGL.pas , Teil 1
   If Not InitOpenGl Then Begin
     showmessage('Error, could not init dglOpenGL.pas');

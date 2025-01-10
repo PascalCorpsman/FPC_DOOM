@@ -10,12 +10,15 @@ Uses
 Procedure D_DoomMain(); // Init und alles was geladen werden muss
 Procedure D_DoomLoop(); // Main Loop -> Rendert die Frames
 
+Procedure D_ProcessEvents();
+
 Implementation
 
 Uses
   config
-  , doom_icon, doomstat
-  , d_iwad, d_mode, d_englsh
+  , doom_icon, doomstat, doomdef
+  , d_iwad, d_mode, d_englsh, d_loop, d_net
+  , f_wipe
   , g_game
   , i_system, i_video, i_timer, i_sound
   , m_misc, m_config, m_argv, m_menu
@@ -24,6 +27,28 @@ Uses
   , w_wad, w_main
   , z_zone
   ;
+
+Type
+  TGameVersion_info = Record
+    description: String;
+    cmdline: String;
+    version: GameVersion_t;
+  End;
+
+Const
+  gameversions: Array Of TGameVersion_info = (
+    (description: 'Doom 1.2'; cmdline: '1.2'; version: exe_doom_1_2),
+    (description: 'Doom 1.5'; cmdline: '1.5'; version: exe_doom_1_5),
+    (description: 'Doom 1.666'; cmdline: '1.666'; version: exe_doom_1_666),
+    (description: 'Doom 1.7/1.7a'; cmdline: '1.7'; version: exe_doom_1_7),
+    (description: 'Doom 1.8'; cmdline: '1.8'; version: exe_doom_1_8),
+    (description: 'Doom 1.9'; cmdline: '1.9'; version: exe_doom_1_9),
+    (description: 'Hacx'; cmdline: 'hacx'; version: exe_hacx),
+    (description: 'Ultimate Doom'; cmdline: 'ultimate'; version: exe_ultimate),
+    (description: 'Final Doom'; cmdline: 'final'; version: exe_final),
+    (description: 'Final Doom (alt)'; cmdline: 'final2'; version: exe_final2),
+    (description: 'Chex Quest'; cmdline: 'chex'; version: exe_chex)
+    );
 
 Var
   gamedescription: String = '';
@@ -41,6 +66,9 @@ Var
   startepisode: int;
   startmap: int;
   autostart: Boolean;
+
+  // Store demo, do not accept any inputs
+  storedemo: boolean = false;
 
 Function D_AddFile(filename: String): boolean;
 Begin
@@ -277,7 +305,6 @@ Begin
   p := M_CheckParmWithArgs('-gameversion', 1);
 
   If (p <> 0) Then Begin
-    raise exception.create('portieren');
     //        for (i=0; gameversions[i].description != NULL; ++i)
     //        {
     //            if (!strcmp(myargv[p+1], gameversions[i].cmdline))
@@ -286,19 +313,19 @@ Begin
     //                break;
     //            }
     //        }
-    //
-    //        if (gameversions[i].description == NULL)
-    //        {
-    //            printf("Supported game versions:\n");
-    //
-    //            for (i=0; gameversions[i].description != NULL; ++i)
-    //            {
-    //                printf("\t%s (%s)\n", gameversions[i].cmdline,
-    //                        gameversions[i].description);
-    //            }
-    //
-    //            I_Error("Unknown game version '%s'", myargv[p+1]);
-    //        }
+
+    //        if (gameversions[i].description == NULL) // Ist das Eklig, wenn oben nichts gefunden werden konnte steht i auf dem letzten Element dessen Description NIL ist -> das muss mit einem "Found" Flag realisiert werden..
+    Begin
+      //            printf("Supported game versions:\n");
+      //
+      //            for (i=0; gameversions[i].description != NULL; ++i)
+      //            {
+      //                printf("\t%s (%s)\n", gameversions[i].cmdline,
+      //                        gameversions[i].description);
+      //            }
+      //
+      I_Error(format('Unknown game version ''%s''', [myargv[p + 1]])); // Der Code so, erzeugt erst mal einen Fehler, weil das aktuell nicht unterstützt wird !
+    End;
   End
   Else Begin
     // Determine automatically
@@ -377,6 +404,18 @@ Begin
     And ((gamemission = pack_tnt) Or (gamemission = pack_plut))
     Then Begin
     gamemission := doom2;
+  End;
+End;
+
+Procedure PrintGameVersion();
+Var
+  i: int;
+Begin
+  For i := 0 To high(gameversions) Do Begin
+    If (gameversions[i].version = gameversion) Then Begin
+      writeln(format('Emulating the behavior of the ''%s'' executable.', [gameversions[i].description]));
+      break;
+    End;
   End;
 End;
 
@@ -459,62 +498,245 @@ Begin
   End;
 End;
 
+// wipegamestate can be set to -1 to force a wipe on the next draw
+Var
+  wipegamestate: gamestate_t = GS_DEMOSCREEN;
+
+Function D_Display(): Boolean;
+Const
+  //    static  boolean		viewactivestate = false;
+  //    static  boolean		menuactivestate = false;
+  //    static  boolean		inhelpscreensstate = false;
+  //    static  gamestate_t		oldgamestate = -1;
+  //    static  int			borderdrawcount;
+  fullscreen: boolean = false;
+Var
+  wipe: Boolean;
+  //    int				y;
+  //    boolean			redrawsbar;
+Begin
+
+  //    redrawsbar = false;
+
+  //    if (crispy->uncapped)
+  //    {
+  //        I_StartDisplay();
+  //        G_FastResponder();
+  //        G_PrepTiccmd();
+  //    }
+
+  //    // change the view size if needed
+  //    if (setsizeneeded)
+  //    {
+  //	R_ExecuteSetViewSize ();
+  //	oldgamestate = -1;                      // force background redraw
+  //	borderdrawcount = 3;
+  //    }
+
+  //    // save the current screen if about to wipe
+  If (gamestate <> wipegamestate) Then Begin
+    wipe := true;
+    //    wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+  End
+  Else Begin
+    wipe := false;
+  End;
+  //    if (gamestate == GS_LEVEL && gametic)
+  //	HU_Erase();
+  //
+  //    // do buffered drawing
+  //    switch (gamestate)
+  //    {
+  //      case GS_LEVEL:
+  //	if (!gametic)
+  //	    break;
+  //	if (automapactive && !crispy->automapoverlay)
+  //	{
+  //	    // [crispy] update automap while playing
+  //	    R_RenderPlayerView (&players[displayplayer]);
+  //	    AM_Drawer ();
+  //	}
+  //	if (wipe || (viewheight != SCREENHEIGHT && fullscreen))
+  //	    redrawsbar = true;
+  //	if (inhelpscreensstate && !inhelpscreens)
+  //	    redrawsbar = true;              // just put away the help screen
+  //	ST_Drawer (viewheight == SCREENHEIGHT, redrawsbar );
+  //	fullscreen = viewheight == SCREENHEIGHT;
+  //	break;
+  //
+  //      case GS_INTERMISSION:
+  //	WI_Drawer ();
+  //	break;
+  //
+  //      case GS_FINALE:
+  //	F_Drawer ();
+  //	break;
+  //
+  //      case GS_DEMOSCREEN:
+  //	D_PageDrawer ();
+  //	break;
+  //    }
+  //
+  //    // draw buffered stuff to screen
+  //    I_UpdateNoBlit ();
+  //
+  //    // draw the view directly
+  //    if (gamestate == GS_LEVEL && (!automapactive || crispy->automapoverlay) && gametic)
+  //    {
+  //	R_RenderPlayerView (&players[displayplayer]);
+  //
+  //        // [crispy] Crispy HUD
+  //        if (screenblocks >= CRISPY_HUD)
+  //            ST_Drawer(false, true);
+  //    }
+
+  //    // [crispy] in automap overlay mode,
+  //    // the HUD is drawn on top of everything else
+  //    if (gamestate == GS_LEVEL && gametic && !(automapactive && crispy->automapoverlay))
+  //	HU_Drawer ();
+
+  //    // clean up border stuff
+  //    if (gamestate != oldgamestate && gamestate != GS_LEVEL)
+  //#ifndef CRISPY_TRUECOLOR
+  //	I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
+  //#else
+  //	I_SetPalette (0);
+  //#endif
+
+
+//    // see if the border needs to be initially drawn
+//    if (gamestate == GS_LEVEL && oldgamestate != GS_LEVEL)
+//    {
+//	viewactivestate = false;        // view was not active
+//	R_FillBackScreen ();    // draw the pattern into the back screen
+//    }
+//
+//    // see if the border needs to be updated to the screen
+//    if (gamestate == GS_LEVEL && (!automapactive || crispy->automapoverlay) && scaledviewwidth != SCREENWIDTH)
+//    {
+//	if (menuactive || menuactivestate || !viewactivestate)
+//	    borderdrawcount = 3;
+//	if (borderdrawcount)
+//	{
+//	    R_DrawViewBorder ();    // erase old menu stuff
+//	    borderdrawcount--;
+//	}
+//
+//    }
+//
+//    if (testcontrols)
+//    {
+//        // Box showing current mouse speed
+//
+//        V_DrawMouseSpeedBox(testcontrols_mousespeed);
+//    }
+//
+//    menuactivestate = menuactive;
+//    viewactivestate = viewactive;
+//    inhelpscreensstate = inhelpscreens;
+//    oldgamestate = wipegamestate = gamestate;
+//
+//    // [crispy] in automap overlay mode,
+//    // draw the automap and HUD on top of everything else
+//    if (automapactive && crispy->automapoverlay)
+//    {
+//	AM_Drawer ();
+//	HU_Drawer ();
+//
+//	// [crispy] force redraw of status bar and border
+//	viewactivestate = false;
+//	inhelpscreensstate = true;
+//    }
+//
+//    // [crispy] Snow
+//    if (crispy->snowflakes)
+//    {
+//	V_SnowDraw();
+//
+//	// [crispy] force redraw of status bar and border
+//	viewactivestate = false;
+//	inhelpscreensstate = true;
+//    }
+//
+//    // [crispy] draw neither pause pic nor menu when taking a clean screenshot
+//    if (crispy->cleanscreenshot)
+//    {
+//	return false;
+//    }
+//
+//    // draw pause pic
+//    if (paused)
+//    {
+//	if (automapactive && !crispy->automapoverlay)
+//	    y = 4;
+//	else
+//	    y = (viewwindowy >> crispy->hires)+4;
+//	V_DrawPatchDirect((viewwindowx >> crispy->hires) + ((scaledviewwidth >> crispy->hires) - 68) / 2 - WIDESCREENDELTA, y,
+//                          W_CacheLumpName (DEH_String("M_PAUSE"), PU_CACHE));
+//    }
+//
+//
+    // menus go directly to the screen
+  M_Drawer(); // menu is drawn even on top of everything
+  // NetUpdate(); // send out any new accumulation
+
+  result := wipe;
+End;
+
 //
 //  D_RunFrame
 //
 
 Procedure D_RunFrame();
+Const
+  wipestart: int = 0;
+  wipe: boolean = false;
+  oldgametic: int = 0;
+Var
+  nowtime: int;
+  tics: int;
+
 Begin
-  //    int nowtime;
-  //    int tics;
-  //    static int wipestart;
-  //    static boolean wipe;
-  //    static int oldgametic;
-  //
-  //    if (wipe)
-  //    {
-  //        do
-  //        {
-  //            nowtime = I_GetTime ();
-  //            tics = nowtime - wipestart;
-  //            I_Sleep(1);
-  //        } while (tics <= 0);
-  //
-  //        wipestart = nowtime;
-  //        wipe = !wipe_ScreenWipe(wipe_Melt
-  //                               , 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
-  //        I_UpdateNoBlit ();
-  //        M_Drawer ();                            // menu is drawn even on top of wipes
-  //        I_FinishUpdate ();                      // page flip or blit buffer
-  //        return;
-  //    }
-  //
-  //    // frame syncronous IO operations
-  //    I_StartFrame ();
-  //
-  //    TryRunTics (); // will run at least one tic
-  //
+  If (wipe) Then Begin
+    Repeat
+      nowtime := I_GetTime();
+      tics := nowtime - wipestart;
+      I_Sleep(1);
+    Until tics > 0;
+
+    wipestart := nowtime;
+    //    wipe := Not wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
+    //    I_UpdateNoBlit();
+    M_Drawer(); // menu is drawn even on top of wipes
+    I_FinishUpdate(); // page flip or blit buffer
+    exit;
+  End;
+
+  // frame syncronous IO operations
+  I_StartFrame();
+
+  TryRunTics(); // will run at least one tic
+
   //    if (oldgametic < gametic)
   //    {
   //        S_UpdateSounds (players[displayplayer].mo);// move positional sounds
   //        oldgametic = gametic;
   //    }
-  //
-  //    // Update display, next frame, with current state if no profiling is on
-  //    if (screenvisible && !nodrawers)
-  //    {
-  //        if ((wipe = D_Display ()))
-  //        {
-  //            // start wipe on this frame
-  //            wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
-  //
-  //            wipestart = I_GetTime () - 1;
-  //        } else {
-  //            // normal update
-  //            I_FinishUpdate ();              // page flip or blit buffer
-  //        }
-  //    }
-  //
+
+      // Update display, next frame, with current state if no profiling is on
+  If (screenvisible And (Not nodrawers)) Then Begin
+    If ((wipe = D_Display())) Then Begin
+      // start wipe on this frame
+      // wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+      wipestart := I_GetTime() - 1;
+    End
+    Else Begin
+      // normal update
+      I_FinishUpdate(); // page flip or blit buffer
+    End;
+  End;
+
   //	// [crispy] post-rendering function pointer to apply config changes
   //	// that affect rendering and that are better applied after the current
   //	// frame has finished rendering
@@ -532,6 +754,16 @@ Begin
   //     {
   D_RunFrame();
   //     }
+End;
+
+//
+// D_ProcessEvents
+// Send all the events of the given timestamp down the responder chain
+//
+
+Procedure D_ProcessEvents();
+Begin
+
 End;
 
 Procedure D_DoomMain();
@@ -1426,30 +1658,30 @@ Begin
   R_Init();
   writeln('');
 
-  Writeln('P_Init: Init Playloop state.');
-  //    P_Init ();
-  //
-  //    DEH_printf("S_Init: Setting up sound.\n");
-  //    S_Init (sfxVolume * 8, musicVolume * 8);
-  //
-  //    DEH_printf("D_CheckNetGame: Checking network game status.\n");
-  //    D_CheckNetGame ();
-  //
-  //    PrintGameVersion();
-  //
-  //    DEH_printf("HU_Init: Setting up heads up display.\n");
-  //    HU_Init ();
-  //
-  //    DEH_printf("ST_Init: Init status bar.\n");
-  //    ST_Init ();
-  //
-  //    // If Doom II without a MAP01 lump, this is a store demo.
-  //    // Moved this here so that MAP01 isn't constantly looked up
-  //    // in the main loop.
-  //
-  //    if (gamemode == commercial && W_CheckNumForName("map01") < 0)
-  //        storedemo = true;
-  //
+  // Writeln('P_Init: Init Playloop state.');
+  // P_Init ();
+
+  // Writeln('S_Init: Setting up sound.');
+  // S_Init(sfxVolume * 8, musicVolume * 8);
+
+  writeln('D_CheckNetGame: Checking network game status.');
+  D_CheckNetGame();
+
+  PrintGameVersion();
+
+  // writeln('HU_Init: Setting up heads up display.');
+  // HU_Init ();
+
+  //  writeln('ST_Init: Init status bar.');
+  //  ST_Init();
+
+  // If Doom II without a MAP01 lump, this is a store demo.
+  // Moved this here so that MAP01 isn't constantly looked up
+  // in the main loop.
+
+  If (gamemode = commercial) And (W_CheckNumForName('map01') < 0) Then
+    storedemo := true;
+
   //    if (M_CheckParmWithArgs("-statdump", 1))
   //    {
   //        I_AtExit(StatDump, true);

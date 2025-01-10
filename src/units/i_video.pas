@@ -17,14 +17,25 @@ Procedure I_SetWindowTitle(Const title: String);
 Procedure I_InitGraphics();
 
 Procedure I_DisplayFPSDots(dots_on: boolean);
+Procedure I_StartFrame();
+
+Procedure I_FinishUpdate();
 
 Var
   SCREENWIDTH: int; // Eigentlich unnötig Redundant
   SCREENHEIGHT: int; // Eigentlich unnötig Redundant
 
+  // Flag indicating whether the screen is currently visible:
+  // when the screen isnt visible, don't render the screen
+  screenvisible: boolean = true;
+
+  OpenGLTexture: Integer = 0;
+  OpenGLControlWidth: Integer = 0;
+  OpenGLControlHeight: Integer = 0;
+
 Implementation
 
-Uses Graphics, config
+Uses Graphics, config, dglOpenGL
   , v_video
   , usdl_wrapper
   , doomtype
@@ -384,7 +395,16 @@ Begin
 End;
 
 Procedure I_InitGraphics;
+Var
+  OpenGLData: Array[0..ORIGWIDTH * ORIGHEIGHT - 1] Of Array[0..2] Of Byte;
 Begin
+  // Create the Texture where we can render to ;)
+  glGenTextures(1, @OpenGLTexture);
+  glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, gl_RGB, ORIGWIDTH, ORIGHEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
+
   //   SDL_Event dummy;
   //#ifndef CRISPY_TRUECOLOR
   //    byte *doompal;
@@ -479,8 +499,8 @@ Begin
   // finally rendered into our window or full screen in I_FinishUpdate().
 
   setlength(I_VideoBuffer, ORIGWIDTH * ORIGHEIGHT);
-  //    V_RestoreBuffer();
-  //
+  V_RestoreBuffer();
+
   //    // Clear the screen to black.
   //
   //    memset(I_VideoBuffer, 0, SCREENWIDTH * SCREENHEIGHT * sizeof(*I_VideoBuffer));
@@ -502,6 +522,234 @@ End;
 Procedure I_DisplayFPSDots(dots_on: boolean);
 Begin
   display_fps_dots := dots_on;
+End;
+
+Procedure I_StartFrame();
+Begin
+
+End;
+
+Procedure I_FinishUpdate();
+Var
+  OpenGLData: Array[0..ORIGWIDTH * ORIGHEIGHT - 1] Of Array[0..2] Of Byte;
+  rgb, i: Integer;
+Begin
+  //   static int lasttic;
+  //    int tics;
+  //    int i;
+  //
+  //    if (!initialized)
+  //        return;
+  //
+  //    if (noblit)
+  //        return;
+  //
+  //    if (need_resize)
+  //    {
+  //        if (SDL_GetTicks() > last_resize_time + RESIZE_DELAY)
+  //        {
+  //            int flags;
+  //            // When the window is resized (we're not in fullscreen mode),
+  //            // save the new window size.
+  //            flags = SDL_GetWindowFlags(screen);
+  //            if ((flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == 0)
+  //            {
+  //                SDL_GetWindowSize(screen, &window_width, &window_height);
+  //
+  //                // Adjust the window by resizing again so that the window
+  //                // is the right aspect ratio.
+  //                AdjustWindowSize();
+  //                SDL_SetWindowSize(screen, window_width, window_height);
+  //            }
+  //            CreateUpscaledTexture(false);
+  //            need_resize = false;
+  //            palette_to_set = true;
+  //        }
+  //        else
+  //        {
+  //            return;
+  //        }
+  //    }
+  //
+  //    UpdateGrab();
+  //
+  //#if 0 // SDL2-TODO
+  //    // Don't update the screen if the window isn't visible.
+  //    // Not doing this breaks under Windows when we alt-tab away
+  //    // while fullscreen.
+  //
+  //    if (!(SDL_GetAppState() & SDL_APPACTIVE))
+  //        return;
+  //#endif
+  //
+  //    // draws little dots on the bottom of the screen
+  //
+  //    if (display_fps_dots)
+  //    {
+  //	i = I_GetTime();
+  //	tics = i - lasttic;
+  //	lasttic = i;
+  //	if (tics > 20) tics = 20;
+  //
+  //	for (i=0 ; i<tics*4 ; i+=4)
+  //#ifndef CRISPY_TRUECOLOR
+  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
+  //#else
+  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0xff];
+  //#endif
+  //	for ( ; i<20*4 ; i+=4)
+  //#ifndef CRISPY_TRUECOLOR
+  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
+  //#else
+  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0x0];
+  //#endif
+  //    }
+  //
+  //	// [crispy] [AM] Real FPS counter
+  //	{
+  //		static int lastmili;
+  //		static int fpscount;
+  //		int mili;
+  //
+  //		fpscount++;
+  //
+  //		i = SDL_GetTicks();
+  //		mili = i - lastmili;
+  //
+  //		// Update FPS counter every second
+  //		if (mili >= 1000)
+  //		{
+  //			crispy->fps = (fpscount * 1000) / mili;
+  //			fpscount = 0;
+  //			lastmili = i;
+  //		}
+  //	}
+  //
+  //    // Draw disk icon before blit, if necessary.
+  //    V_DrawDiskIcon();
+  //
+  //#ifndef CRISPY_TRUECOLOR
+  //    if (palette_to_set)
+  //    {
+  //        SDL_SetPaletteColors(screenbuffer->format->palette, palette, 0, 256);
+  //        palette_to_set = false;
+  //
+  //        if (vga_porch_flash)
+  //        {
+  //            // "flash" the pillars/letterboxes with palette changes, emulating
+  //            // VGA "porch" behaviour (GitHub issue #832)
+  //            SDL_SetRenderDrawColor(renderer, palette[0].r, palette[0].g,
+  //                palette[0].b, SDL_ALPHA_OPAQUE);
+  //        }
+  //    }
+  //
+  //    // Blit from the paletted 8-bit screen buffer to the intermediate
+  //    // 32-bit RGBA buffer and update the intermediate texture with the
+  //    // contents of the RGBA buffer.
+  //
+  //    SDL_LockTexture(texture, &blit_rect, &argbbuffer->pixels,
+  //                    &argbbuffer->pitch);
+  //    SDL_LowerBlit(screenbuffer, &blit_rect, argbbuffer, &blit_rect);
+  //    SDL_UnlockTexture(texture);
+  //#else
+  //    SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
+  //#endif
+  //
+  //    // Make sure the pillarboxes are kept clear each frame.
+  //
+  //    SDL_RenderClear(renderer);
+  //
+  //    if (crispy->smoothscaling && !force_software_renderer)
+  //    {
+  //    // Render this intermediate texture into the upscaled texture
+  //    // using "nearest" integer scaling.
+  //
+  //    SDL_SetRenderTarget(renderer, texture_upscaled);
+  //    SDL_RenderCopy(renderer, texture, NULL, NULL);
+  //
+  //    // Finally, render this upscaled texture to screen using linear scaling.
+  //
+  //    SDL_SetRenderTarget(renderer, NULL);
+  //    SDL_RenderCopy(renderer, texture_upscaled, NULL, NULL);
+  //    }
+  //    else
+  //    {
+  //	SDL_SetRenderTarget(renderer, NULL);
+  //	SDL_RenderCopy(renderer, texture, NULL, NULL);
+  //    }
+  //
+  //#ifdef CRISPY_TRUECOLOR
+  //    if (curpane)
+  //    {
+  //	SDL_SetTextureAlphaMod(curpane, pane_alpha);
+  //	SDL_RenderCopy(renderer, curpane, NULL, NULL);
+  //    }
+  //#endif
+
+  // Draw!
+  glPushMatrix;
+  // 1. Umkopieren der DOOM Puffer nach OpenGL
+  glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
+  For i := 0 To high(I_VideoBuffer) Do Begin
+    rgb := Doom8BitTo24RGBBit[I_VideoBuffer[i]];
+    OpenGLData[i][0] := (rgb) And $FF;
+    OpenGLData[i][1] := (rgb Shr 8) And $FF;
+    OpenGLData[i][2] := (rgb Shr 16) And $FF;
+  End;
+
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ORIGWIDTH, ORIGHEIGHT, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
+
+  // 2. Anpassen des Screens
+  // TODO: Da kann man später das Aspectratio zeug mit einbaun ...
+  glScalef(OpenGLControlWidth / ORIGWIDTH, OpenGLControlHeight / ORIGHEIGHT, 1); // TODO: das könnte man Theoretisch aus aus OpenGL auslesen ..
+
+  // 3. Rendern
+  // Render the texture to the OpenGL Buffer
+  // TODO: Das könnte man auch mit einer OpenGL-Liste machen, dann wirds schneller ;)
+  glbegin(gl_quads);
+  glTexCoord2f(0, 0);
+  glvertex3f(0, 0, 0);
+  glTexCoord2f(1, 0);
+  glvertex3f(ORIGWIDTH, 0, 0);
+  glTexCoord2f(1, 1);
+  glvertex3f(ORIGWIDTH, ORIGHEIGHT, 0);
+  glTexCoord2f(0, 1);
+  glvertex3f(0, ORIGHEIGHT, 0);
+  glend;
+  glPopMatrix;
+
+  //    if (crispy->uncapped && !singletics)
+  //    {
+  //        // Limit framerate
+  //        if (crispy->fpslimit >= TICRATE)
+  //        {
+  //            uint64_t target_time = 1000000ull / crispy->fpslimit;
+  //            static uint64_t start_time;
+  //
+  //            while (1)
+  //            {
+  //                uint64_t current_time = I_GetTimeUS();
+  //                uint64_t elapsed_time = current_time - start_time;
+  //                uint64_t remaining_time = 0;
+  //
+  //                if (elapsed_time >= target_time)
+  //                {
+  //                    start_time = current_time;
+  //                    break;
+  //                }
+  //
+  //                remaining_time = target_time - elapsed_time;
+  //
+  //                if (remaining_time > 1000)
+  //                {
+  //                    I_Sleep((remaining_time - 1000) / 1000);
+  //                }
+  //            }
+  //        }
+  //    }
+  //
+  //    // Restore background and undo the disk indicator, if it was drawn.
+  //    V_RestoreDiskBackground();
 End;
 
 //Finalization
