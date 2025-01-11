@@ -24,8 +24,16 @@ Type
   unsigned_int = uint32;
   P_unsigned_int = ^unsigned_int;
   int64_t = Int64;
+  float = single;
+
+Procedure Nop(); // Just for debugging to have a breakpoint position ;)
 
 Implementation
+
+Procedure Nop();
+Begin
+
+End;
 
 End.
 

@@ -17,11 +17,12 @@ Implementation
 Uses
   config
   , doom_icon, doomstat, doomdef
-  , d_iwad, d_mode, d_englsh, d_loop, d_net
+  , d_iwad, d_mode, d_englsh, d_loop, d_net, d_event
   , f_wipe
   , g_game
+  , hu_stuff
   , i_system, i_video, i_timer, i_sound
-  , m_misc, m_config, m_argv, m_menu
+  , m_misc, m_config, m_argv, m_menu, m_controls
   , r_main
   , v_video
   , w_wad, w_main
@@ -87,12 +88,12 @@ Begin
   //    I_BindJoystickVariables();
   //    I_BindSoundVariables();
   //
-  //    M_BindBaseControls();
-  //    M_BindWeaponControls();
-  //    M_BindMapControls();
-  //    M_BindMenuControls();
+  M_BindBaseControls();
+  M_BindWeaponControls();
+  M_BindMapControls();
+  M_BindMenuControls();
   //    M_BindChatControls(MAXPLAYERS);
-  //
+
   //    key_multi_msgplayer[0] = HUSTR_KEYGREEN;
   //    key_multi_msgplayer[1] = HUSTR_KEYINDIGO;
   //    key_multi_msgplayer[2] = HUSTR_KEYBROWN;
@@ -762,8 +763,19 @@ End;
 //
 
 Procedure D_ProcessEvents();
+Var
+  ev: Pevent_t;
 Begin
-
+  // IF STORE DEMO, DO NOT ACCEPT INPUT
+  If (storedemo) Then exit;
+  ev := D_PopEvent();
+  While assigned(ev) Do Begin
+    If Not (M_Responder(ev)) Then Begin // menu ate the event
+      G_Responder(ev);
+    End;
+    Dispose(ev);
+    ev := D_PopEvent();
+  End;
 End;
 
 Procedure D_DoomMain();
@@ -912,7 +924,7 @@ Begin
   If (M_CheckParm('-dm3') <> 0) Then deathmatch := 3;
 
   If (devparm) Then Begin
-    writeln(D_DEVSTR);
+    writeln(StringReplace(D_DEVSTR, '\n', LineEnding, [rfReplaceAll]));
   End;
 
   // find which dir to use for config files
@@ -1669,8 +1681,8 @@ Begin
 
   PrintGameVersion();
 
-  // writeln('HU_Init: Setting up heads up display.');
-  // HU_Init ();
+  writeln('HU_Init: Setting up heads up display.');
+  HU_Init();
 
   //  writeln('ST_Init: Init status bar.');
   //  ST_Init();

@@ -17,6 +17,23 @@ Uses
 Type
   lumpindex_t = int;
 
+  //  typedef struct lumpinfo_s ;
+
+
+  lumpinfo_s = Record
+
+    //    char	name[8];
+    wad_file: String;
+    //    int		position;
+    //    int		size;
+    //    void       *cache;
+
+    // Used for hash table lookups
+//    next: lumpindex_t;
+  End;
+
+  lumpinfo_t = lumpinfo_s;
+
   (*
    * Alle Functionen aus der .h Datei sind schon mal "Portiert" aber nicht alle
    * implementiert
@@ -32,7 +49,7 @@ Function W_CheckNumForName(name: String): lumpindex_t;
 Function W_LumpLength(lump: lumpindex_t): int;
 //Procedure W_ReadLump(lump: lumpindex_t Var dest: Pointer);
 
-//Function W_CacheLumpNum(lump: lumpindex_t; tag: int): Pointer;
+Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
 Function W_CacheLumpName(name: String; tag: int): Pointer;
 
 //Procedure W_GenerateHashTable();
@@ -43,9 +60,12 @@ Procedure W_ReleaseLumpNum(lump: lumpindex_t);
 Procedure W_ReleaseLumpName(Const name: String);
 
 //Function W_WadNameForLump(Const lump: lumpinfo_t): String;
-//Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
+Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
 
 //function W_GetWADFileNames():TStrings;
+
+Var
+  lumpinfo: Array Of lumpinfo_t; // Wird für jeden Lum mit angelegt
 
 Implementation
 
@@ -114,7 +134,9 @@ Begin
   m.Position := Header.infotableofs;
   m.Read(lumps[0], sizeof(TLump) * Header.numlumps);
   // Alle auf Lowercase, dann muss das nicht jedes mal gemacht werden, wenn zugrgriffen wird
+  setlength(lumpinfo, length(Lumps));
   For i := 0 To high(Lumps) Do Begin
+    lumpinfo[i].wad_file := filename;
     Lumps[i].name := LowerCase(Lumps[i].name);
   End;
   m.free;
@@ -177,6 +199,17 @@ Begin
   End;
 End;
 
+Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
+Begin
+  result := Nil;
+  If (lumpnum >= 0) And (lumpnum <= High(Lumps)) Then Begin
+    result := @Lumps[lumpnum];
+  End
+  Else Begin
+    I_Error(format('W_CacheLumpNum: %i >= numlumps', [lumpnum]));
+  End;
+End;
+
 Procedure W_ReleaseLumpNum(lump: lumpindex_t);
 Begin
   // Nichts zu tun
@@ -185,6 +218,11 @@ End;
 Procedure W_ReleaseLumpName(Const name: String);
 Begin
   // Nichts zu tun
+End;
+
+Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
+Begin
+  result := lump.wad_file = lumpinfo[0].wad_file;
 End;
 
 End.

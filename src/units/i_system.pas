@@ -10,15 +10,36 @@ Uses
 Procedure I_PrintStartupBanner(gamedescription: String);
 Procedure I_PrintBanner(msg: String);
 Procedure I_Error(Error: String);
+Procedure I_Quit(); // Wenn Aufgerufen beendet sich die Anwending ohne weiteres Nachfragen
 
 Implementation
 
-Uses config;
+Uses config, Forms;
 
 Procedure I_Error(Error: String);
 Begin
   Raise Exception.Create(error);
   halt;
+End;
+
+Procedure I_Quit();
+Begin
+  //   atexit_listentry_t *entry;
+  //
+  //    // Run through all exit functions
+  //
+  //    entry = exit_funcs;
+  //
+  //    while (entry != NULL)
+  //    {
+  //        entry->func();
+  //        entry = entry->next;
+  //    }
+  //
+  //    SDL_Quit();
+  //
+
+  Application.Terminate;
 End;
 
 Procedure I_PrintDivider();

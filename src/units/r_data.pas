@@ -17,7 +17,7 @@ Implementation
 Uses
   r_main
   , w_wad
-  , v_video
+  , v_video, v_trans
   , z_zone
   ;
 
@@ -39,6 +39,52 @@ Begin
   // TODO: Theoretisch werden hier auch noch irgend welche Lightings erzeugt ..
 End;
 
+Procedure R_InitHSVColors();
+Var
+  i, j: Integer;
+  playpal: PByte;
+  keepgray: Boolean;
+Begin
+  playpal := W_CacheLumpName('PLAYPAL', PU_STATIC);
+  // [crispy] check for status bar graphics replacements
+  i := W_CheckNumForName('sttnum0'); // [crispy] Status Bar '0'
+  keepgray := (i >= 0) And W_IsIWADLump(lumpinfo[i]);
+
+  If Not assigned(crstr) Then setlength(crstr, CRMAX);
+
+  // [crispy] CRMAX - 2: don't override the original GREN and BLUE2 Boom tables
+
+  For i := 0 To CRMAX - 3 Do Begin
+    For j := 0 To 255 Do Begin
+
+      cr[i][j] := V_Colorize(playpal, i, j, keepgray);
+    End;
+    crstr[i] := cr_esc + chr(ord('0') + i);
+  End;
+  // Der Original Crispy Code initialisiert das nicht, aber wir machen das ordentlich hier !
+  crstr[CR_RED2BLUE] := cr_esc + chr(ord('0') + CR_RED2BLUE);
+  crstr[CR_RED2GREEN] := cr_esc + chr(ord('0') + CR_RED2GREEN);
+
+  W_ReleaseLumpName('PLAYPAL');
+
+  i := W_CheckNumForName('CRGREEN');
+  If (i >= 0) Then Begin
+    playpal := W_CacheLumpNum(i, PU_STATIC);
+    For j := 0 To 255 Do Begin
+      cr[CR_RED2GREEN][j] := playpal[j];
+    End;
+  End;
+
+  i := W_CheckNumForName('CRBLUE2');
+  If (i = -1) Then i := W_CheckNumForName('CRBLUE');
+  If (i >= 0) Then Begin
+    playpal := W_CacheLumpNum(i, PU_STATIC);
+    For j := 0 To 255 Do Begin
+      cr[CR_RED2BLUE][j] := playpal[j];
+    End;
+  End;
+End;
+
 Procedure R_InitData();
 Begin
   // [crispy] Moved R_InitFlats() to the top, because it sets firstflat/lastflat
@@ -57,8 +103,8 @@ Begin
 //    // [crispy] Initialize and generate gamma-correction levels.
 //    I_SetGammaTable ();
   R_InitColormaps();
-  //    // [crispy] Initialize color translation and color string tables.
-  //    R_InitHSVColors ();
+  // [crispy] Initialize color translation and color string tables.
+  R_InitHSVColors();
   //#ifndef CRISPY_TRUECOLOR
   //    R_InitTranMap(); // [crispy] prints a mark itself
   //#endif

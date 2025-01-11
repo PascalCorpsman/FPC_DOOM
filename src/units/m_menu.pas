@@ -5,7 +5,9 @@ Unit m_menu;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , d_event
+  ;
 
 //
 // MENUS
@@ -15,8 +17,7 @@ Uses
 // Even when the menu is not displayed,
 // this can resize the view and change game parameters.
 // Does all the real work of the menu interaction.
-//boolean M_Responder (event_t *ev);
-
+Function M_Responder(Const ev: Pevent_t): Boolean;
 
 // Called by main loop,
 // only used for menu (skull cursor) animation.
@@ -50,10 +51,24 @@ Procedure M_StartControlPanel();
 Implementation
 
 Uses
-  z_zone,
-  v_video,
-  w_wad
+  doomkey, dstrings, doomstat,
+  math,
+  sounds,
+  d_mode, d_loop, d_englsh,
+  g_game,
+  hu_stuff,
+  i_timer, i_system,
+  m_controls,
+  s_sound,
+  v_video, v_trans,
+  w_wad,
+  z_zone
   ;
+
+Const
+  LINEHEIGHT = 16;
+  SKULLXOFF = -32;
+  skullName: Array Of String = ('M_SKULL1', 'M_SKULL2');
 
 Type
 
@@ -80,14 +95,14 @@ Type
     //    alttext: String; // [crispy] alternative text for menu items
   End;
 
-  Pmenuitem_t = ^menuitem_t;
+  menuitems_t = Array Of menuitem_t;
 
   Pmenu_t = ^menu_t;
 
   menu_t = Record
     numitems: short; // # of menu items
     prevMenu: Pmenu_t; // previous menu
-    menuitems: Pmenuitem_t; // menu items
+    menuitems: menuitems_t; // menu items
     routine: TRoutine; // draw routine
     x: short;
     y: short; // x,y of menu
@@ -97,13 +112,154 @@ Type
 
 Var
   itemOn: short; // menu item skull is on
+  whichSkull: short; // which skull to draw
   currentMenu: Pmenu_t;
   menuactive: Boolean;
+  endstring: String;
 
   // 1 = message to be printed
   messageToPrint: int;
   // ...and here is the message string!
   messageString: String;
+  messageLastMenuActive: Boolean;
+  messageRoutine: TIntRoutine;
+  // timed message = no input from user
+  messageNeedsInput: Boolean;
+
+  numeric_entry_str: String;
+  numeric_entry_index: integer; // Braucht man Wahrscheinlich gar nicht, da FPC ja saubere Strings hat ;)
+
+  MainDef: menu_t; // Wird im Initialiserungsteil definiert
+  //  CrispnessMenus: Array Of menu_t; // Wird im Initialiserungsteil definiert
+  //  crispness_cur: int = 0;
+
+  //
+  //      Find string height from hu_font chars
+  //
+  //      nutzt \n als LineEnding !
+
+Function M_StringHeight(str: String): int;
+Var
+  h, height: int;
+  i: integer;
+Begin
+  height := hu_font[0]^.height;
+  h := height;
+  i := 1;
+  While i < length(str) - 1 Do Begin
+    If (str[i] = '\') And (str[i + 1] = 'n') Then Begin
+      h := h + height;
+      inc(i);
+    End;
+    inc(i);
+  End;
+  result := h;
+End;
+
+//
+// Find string width from hu_font chars
+//
+//      nutzt \n als LineEnding !
+
+Function M_StringWidth(str: String): int;
+Var
+  c, w: int;
+  i: integer;
+Begin
+  w := 0;
+  str := UpperCase(str);
+  str := StringReplace(str, '\n', '', [rfReplaceAll]);
+  i := 1;
+  While i <= length(Str) Do Begin
+    // [crispy] correctly center colorized strings
+    If (str[i] = cr_esc) And (i + 1 <= length(str)) Then Begin
+      //	    if (string[i+1] >= '0' && string[i+1] <= '0' + CRMAX - 1)
+      If ord(str[i + 1]) In [ord('0')..ord('0') + CRMAX - 1] Then Begin
+        inc(i, 2);
+        continue;
+      End;
+    End;
+    c := ord(str[i]) - ord(HU_FONTSTART);
+    If (c < 0) Or (c >= HU_FONTSIZE) Then Begin
+      w := w + 4; // WTF: warum ist das kein Define ?
+    End
+    Else Begin
+      w := w + hu_font[c]^.width;
+    End;
+    inc(i);
+  End;
+  result := w;
+End;
+
+//
+//      Write a string using the hu_font
+//
+//      nutzt \n als LineEnding !
+
+Procedure M_WriteText(x, y: int; str: String);
+Var
+  w, cx, cy: int;
+  i: integer;
+  c: int;
+Begin
+  cx := x;
+  cy := y;
+  i := 1;
+  While i <= length(str) Do Begin
+    If (str[i] = '\') And (i + 1 <= length(str)) And (str[i + 1] = 'n') Then Begin
+      cx := x;
+      cy := cy + 12; // WTF: eigentlich sollte das doch hu_font[0]^.height sein ??
+      inc(i, 2);
+      continue;
+    End;
+    // [crispy] support multi-colored text
+    If (str[i] = cr_esc) And (i < length(str)) Then Begin
+      If (ord(str[i + 1]) In [ord('0')..ord('0') + CRMAX - 1]) Then Begin
+        dp_translation := cr[ord(str[i + 1]) - ord('0')];
+        inc(i, 2);
+        continue;
+      End;
+    End;
+    c := ord(uppercase(str[i])[1]) - ord(HU_FONTSTART);
+    If (c < 0) Or (c >= HU_FONTSIZE) Then Begin
+      cx := cx + 4; // WTF: warum ist das kein Define ?
+      inc(i);
+      continue;
+    End;
+    w := hu_font[c]^.width;
+    If (cx + w > ORIGWIDTH) Then exit; // Wir würden über den Rechten Rand heraus malen
+    V_DrawPatchDirect(cx, cy, hu_font[c]);
+    cx := cx + w;
+    inc(i);
+  End;
+End;
+
+Procedure M_StartMessage(msg: String; routine: TIntRoutine; input: boolean);
+Begin
+  messageLastMenuActive := menuactive;
+  messageToPrint := 1;
+  messageString := msg;
+  messageRoutine := routine;
+  messageNeedsInput := input;
+  menuactive := true;
+  // [crispy] entering menus while recording demos pauses the game
+  If (demorecording) And (Not paused) Then Begin
+    sendpause := true;
+  End;
+End;
+
+Function M_SelectEndMessage(): String;
+Begin
+  If (logical_gamemission = doom) Then Begin
+    // Doom 1
+    result := doom1_endmsg[gametic Mod NUM_QUITMESSAGES];
+  End
+  Else Begin
+    // Doom 2
+    result := doom2_endmsg[gametic Mod NUM_QUITMESSAGES];
+  End;
+End;
+
 
 Procedure M_DrawNewGame();
 Begin
@@ -140,6 +296,23 @@ Begin
 //	M_SetupNextMenu(&NewDef);
 //    else
 //	M_SetupNextMenu(&EpiDef);
+End;
+
+Procedure M_QuitResponse(key: int);
+Begin
+  //    extern int show_endoom;
+  // [crispy] allow to confirm by pressing Enter key
+  If (key <> key_menu_confirm) And (key <> key_menu_forward) Then exit;
+  // [crispy] play quit sound only if the ENDOOM screen is also shown
+  //    if (!netgame && show_endoom)
+  //    {
+  //	if (gamemode == commercial)
+  //	    S_StartSound(NULL,quitsounds2[(gametic>>2)&7]);
+  //	else
+  //	    S_StartSound(NULL,quitsounds[(gametic>>2)&7]);
+  //	I_WaitVBL(105);
+  //    }
+  I_Quit();
 End;
 
 Procedure M_Options(choice: int);
@@ -196,19 +369,792 @@ End;
 Procedure M_QuitDOOM(choice: int);
 Begin
   // [crispy] fast exit if "run" key is held down
-//    if (speedkeydown())
-//	I_Quit();
-//
-//    DEH_snprintf(endstring, sizeof(endstring), "%s\n\n" DOSY,
-//                 DEH_String(M_SelectEndMessage()));
-//
-//    M_StartMessage(endstring,M_QuitResponse,true);
+  If (speedkeydown()) Then I_Quit();
+
+  endstring := M_SelectEndMessage() + '\n\n' + dosy;
+
+  M_StartMessage(endstring, @M_QuitResponse, true);
 End;
+
+
+// These keys evaluate to a "null" key in Vanilla Doom that allows weird
+// jumping in the menus. Preserve this behavior for accuracy.
+
+Function IsNullKey(key: int): Boolean;
+Begin
+  result := (key = KEY_PAUSE) Or (key = KEY_CAPSLOCK)
+    Or (key = KEY_SCRLCK) Or (key = KEY_NUMLOCK);
+End;
+
+//
+// M_Responder
+//
+
+Function M_Responder(Const ev: Pevent_t): Boolean;
+Const
+  mousewait: int = 0;
+  //    static  int     mousey = 0;
+  //    static  int     lasty = 0;
+  //    static  int     mousex = 0;
+  //    static  int     lastx = 0;
+
+Var
+  ch: int;
+  key: int;
+  //    int             i;
+  //    boolean mousextobutton = false;
+  //    int dir;
+Begin
+
+  //    // In testcontrols mode, none of the function keys should do anything
+  //    // - the only key is escape to quit.
+  //
+  //    if (testcontrols)
+  //    {
+  //        if (ev->type == ev_quit
+  //         || (ev->type == ev_keydown
+  //          && (ev->data1 == key_menu_activate || ev->data1 == key_menu_quit)))
+  //        {
+  //            I_Quit();
+  //            return true;
+  //        }
+  //
+  //        return false;
+  //    }
+
+      // "close" button pressed on window?
+  If (ev^._type = ev_quit) Then Begin
+    // First click on close button = bring up quit confirm message.
+    // Second click on close button = confirm quit
+
+    If (menuactive) And (messageToPrint <> 0) And (messageRoutine = @M_QuitResponse) Then Begin
+      M_QuitResponse(key_menu_confirm);
+    End
+    Else Begin
+      S_StartSoundOptional(Nil, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+      M_QuitDOOM(0);
+    End;
+
+    result := true;
+    exit;
+  End;
+
+  // key is the key pressed, ch is the actual character typed
+
+  ch := 0;
+  key := -1;
+
+  If (ev^._type = ev_joystick) Then Begin
+    // Simulate key presses from joystick events to interact with the menu.
+
+//        if (menuactive)
+//        {
+//            if (JOY_GET_DPAD(ev->data6) != JOY_DIR_NONE)
+//            {
+//                dir = JOY_GET_DPAD(ev->data6);
+//            }
+//            else if (JOY_GET_LSTICK(ev->data6) != JOY_DIR_NONE)
+//            {
+//                dir = JOY_GET_LSTICK(ev->data6);
+//            }
+//            else
+//            {
+//                dir = JOY_GET_RSTICK(ev->data6);
+//            }
+//
+//            if (dir & JOY_DIR_UP)
+//            {
+//                key = key_menu_up;
+//                joywait = I_GetTime() + 5;
+//            }
+//            else if (dir & JOY_DIR_DOWN)
+//            {
+//                key = key_menu_down;
+//                joywait = I_GetTime() + 5;
+//            }
+//            if (dir & JOY_DIR_LEFT)
+//            {
+//                key = key_menu_left;
+//                joywait = I_GetTime() + 5;
+//            }
+//            else if (dir & JOY_DIR_RIGHT)
+//            {
+//                key = key_menu_right;
+//                joywait = I_GetTime() + 5;
+//            }
+//
+//#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
+//#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
+//
+//            if (JOY_BUTTON_PRESSED(joybfire))
+//            {
+//                // Simulate a 'Y' keypress when Doom show a Y/N dialog with Fire button.
+//                if (messageToPrint && messageNeedsInput)
+//                {
+//                    key = key_menu_confirm;
+//                }
+//                // Simulate pressing "Enter" when we are supplying a save slot name
+//                else if (saveStringEnter)
+//                {
+//                    key = KEY_ENTER;
+//                }
+//                else
+//                {
+//                    // if selecting a save slot via joypad, set a flag
+//                    if (currentMenu == &SaveDef)
+//                    {
+//                        joypadSave = true;
+//                    }
+//                    key = key_menu_forward;
+//                }
+//                joywait = I_GetTime() + 5;
+//            }
+//            if (JOY_BUTTON_PRESSED(joybuse))
+//            {
+//                // Simulate a 'N' keypress when Doom show a Y/N dialog with Use button.
+//                if (messageToPrint && messageNeedsInput)
+//                {
+//                    key = key_menu_abort;
+//                }
+//                // If user was entering a save name, back out
+//                else if (saveStringEnter)
+//                {
+//                    key = KEY_ESCAPE;
+//                }
+//                else
+//                {
+//                    key = key_menu_back;
+//                }
+//                joywait = I_GetTime() + 5;
+//            }
+//        }
+//        if (JOY_BUTTON_PRESSED(joybmenu))
+//        {
+//            key = key_menu_activate;
+//            joywait = I_GetTime() + 5;
+//        }
+  End
+  Else Begin
+    If (ev^._type = ev_mouse) And (mousewait < I_GetTime()) And (menuactive) Then Begin
+      //	    // [crispy] novert disables controlling the menus with the mouse
+      //	    if (!novert)
+      //	    {
+      //	    mousey += ev->data3;
+      //	    }
+      //	    if (mousey < lasty-30)
+      //	    {
+      //		key = key_menu_down;
+      //		mousewait = I_GetTime() + 5;
+      //		mousey = lasty -= 30;
+      //	    }
+      //	    else if (mousey > lasty+30)
+      //	    {
+      //		key = key_menu_up;
+      //		mousewait = I_GetTime() + 5;
+      //		mousey = lasty += 30;
+      //	    }
+      //
+      //	    mousex += ev->data2;
+      //	    if (mousex < lastx-30)
+      //	    {
+      //		key = key_menu_left;
+      //		mousewait = I_GetTime() + 5;
+      //		mousex = lastx -= 30;
+      //		mousextobutton = true;
+      //	    }
+      //	    else if (mousex > lastx+30)
+      //	    {
+      //		key = key_menu_right;
+      //		mousewait = I_GetTime() + 5;
+      //		mousex = lastx += 30;
+      //		mousextobutton = true;
+      //	    }
+      //
+      //	    if (ev->data1&1)
+      //	    {
+      //		key = key_menu_forward;
+      //		mousewait = I_GetTime() + 5;
+      //	    }
+      //
+      //	    if (ev->data1&2)
+      //	    {
+      //		key = key_menu_back;
+      //		mousewait = I_GetTime() + 5;
+      //	    }
+      //
+      //	    // [crispy] scroll menus with mouse wheel
+      //	    if (mousebprevweapon >= 0 && ev->data1 & (1 << mousebprevweapon))
+      //	    {
+      //		key = key_menu_down;
+      //		mousewait = I_GetTime() + 1;
+      //	    }
+      //	    else
+      //	    if (mousebnextweapon >= 0 && ev->data1 & (1 << mousebnextweapon))
+      //	    {
+      //		key = key_menu_up;
+      //		mousewait = I_GetTime() + 1;
+      //	    }
+    End
+    Else Begin
+      If (ev^._type = ev_keydown) Then Begin
+        key := ev^.data1;
+        ch := ev^.data2;
+      End;
+    End;
+  End;
+
+  If (key = -1) Then Begin
+    result := false;
+    exit;
+  End;
+  //    // Save Game string input
+  //    if (saveStringEnter)
+  //    {
+  //	switch(key)
+  //	{
+  //	  case KEY_BACKSPACE:
+  //	    if (saveCharIndex > 0)
+  //	    {
+  //		saveCharIndex--;
+  //		savegamestrings[saveSlot][saveCharIndex] = 0;
+  //	    }
+  //	    break;
+  //
+  //          case KEY_ESCAPE:
+  //            saveStringEnter = 0;
+  //            I_StopTextInput();
+  //            M_StringCopy(savegamestrings[saveSlot], saveOldString,
+  //                         SAVESTRINGSIZE);
+  //            break;
+  //
+  //	  case KEY_ENTER:
+  //	    saveStringEnter = 0;
+  //            I_StopTextInput();
+  //	    if (savegamestrings[saveSlot][0])
+  //		M_DoSave(saveSlot);
+  //	    break;
+  //
+  //	  default:
+  //            // Savegame name entry. This is complicated.
+  //            // Vanilla has a bug where the shift key is ignored when entering
+  //            // a savegame name. If vanilla_keyboard_mapping is on, we want
+  //            // to emulate this bug by using ev->data1. But if it's turned off,
+  //            // it implies the user doesn't care about Vanilla emulation:
+  //            // instead, use ev->data3 which gives the fully-translated and
+  //            // modified key input.
+  //
+  //            if (ev->type != ev_keydown)
+  //            {
+  //                break;
+  //            }
+  //            if (vanilla_keyboard_mapping)
+  //            {
+  //                ch = ev->data1;
+  //            }
+  //            else
+  //            {
+  //                ch = ev->data3;
+  //            }
+  //
+  //            ch = toupper(ch);
+  //
+  //            if (ch != ' '
+  //             && (ch - HU_FONTSTART < 0 || ch - HU_FONTSTART >= HU_FONTSIZE))
+  //            {
+  //                break;
+  //            }
+  //
+  //	    if (ch >= 32 && ch <= 127 &&
+  //		saveCharIndex < SAVESTRINGSIZE-1 &&
+  //		M_StringWidth(savegamestrings[saveSlot]) <
+  //		(SAVESTRINGSIZE-2)*8)
+  //	    {
+  //		savegamestrings[saveSlot][saveCharIndex++] = ch;
+  //		savegamestrings[saveSlot][saveCharIndex] = 0;
+  //	    }
+  //	    break;
+  //	}
+  //	return true;
+  //    }
+  //
+  //    // [crispy] Enter numeric value
+  //    if (numeric_enter)
+  //    {
+  //        switch(key)
+  //        {
+  //            case KEY_BACKSPACE:
+  //                if (numeric_entry_index > 0)
+  //                {
+  //                    numeric_entry_index--;
+  //                    numeric_entry_str[numeric_entry_index] = '\0';
+  //                }
+  //                break;
+  //            case KEY_ESCAPE:
+  //                numeric_enter = false;
+  //                I_StopTextInput();
+  //                break;
+  //            case KEY_ENTER:
+  //                if (numeric_entry_str[0] != '\0')
+  //                {
+  //                    numeric_entry = atoi(numeric_entry_str);
+  //                    currentMenu->menuitems[itemOn].routine(2);
+  //                }
+  //                else
+  //                {
+  //                    numeric_enter = false;
+  //                    I_StopTextInput();
+  //                }
+  //                break;
+  //            default:
+  //                if (ev->type != ev_keydown)
+  //                {
+  //                    break;
+  //                }
+  //
+  //                if (vanilla_keyboard_mapping)
+  //                {
+  //                    ch = ev->data1;
+  //                }
+  //                else
+  //                {
+  //                    ch = ev->data3;
+  //                }
+  //
+  //                if (ch >= '0' && ch <= '9' &&
+  //                        numeric_entry_index < NUMERIC_ENTRY_NUMDIGITS)
+  //                {
+  //                    numeric_entry_str[numeric_entry_index++] = ch;
+  //                    numeric_entry_str[numeric_entry_index] = '\0';
+  //                }
+  //                else
+  //                {
+  //                    break;
+  //                }
+  //        }
+  //        return true;
+  //    }
+
+  //    // Take care of any messages that need input
+  //    if (messageToPrint)
+  //    {
+  //	if (messageNeedsInput)
+  //        {
+  //            if (key != ' ' && key != KEY_ESCAPE
+  //             && key != key_menu_confirm && key != key_menu_abort
+  //             // [crispy] allow to confirm nightmare, end game and quit by pressing Enter key
+  //             && key != key_menu_forward)
+  //            {
+  //                return false;
+  //            }
+  //	}
+
+  menuactive := messageLastMenuActive;
+  If assigned(messageRoutine) Then
+    messageRoutine(key);
+
+  //	// [crispy] stay in menu
+  //	if (messageToPrint < 2)
+  //	{
+  //	menuactive = false;
+  //	}
+  //	messageToPrint = 0; // [crispy] moved here
+  //	S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
+  //	return true;
+  //    }
+
+  //    // [crispy] take screen shot without weapons and HUD
+  //    if (key != 0 && key == key_menu_cleanscreenshot)
+  //    {
+  //	crispy->cleanscreenshot = (screenblocks > 10) ? 2 : 1;
+  //    }
+
+  //    if ((devparm && key == key_menu_help) ||
+  //        (key != 0 && (key == key_menu_screenshot || key == key_menu_cleanscreenshot)))
+  //    {
+  //	G_ScreenShot ();
+  //	return true;
+  //    }
+
+  //    // F-Keys
+  //    if (!menuactive)
+  //    {
+  //	if (key == key_menu_decscreen)      // Screen size down
+  //        {
+  //	    if (automapactive || chat_on)
+  //		return false;
+  //	    M_SizeDisplay(0);
+  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //	    return true;
+  //	}
+  //        else if (key == key_menu_incscreen) // Screen size up
+  //        {
+  //	    if (automapactive || chat_on)
+  //		return false;
+  //	    M_SizeDisplay(1);
+  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //	    return true;
+  //	}
+  //        else if (key == key_menu_help)     // Help key
+  //        {
+  //	    M_StartControlPanel ();
+  //
+  //	    if (gameversion >= exe_ultimate)
+  //	      currentMenu = &ReadDef2;
+  //	    else
+  //	      currentMenu = &ReadDef1;
+  //
+  //	    itemOn = 0;
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    return true;
+  //	}
+  //        else if (key == key_menu_save)     // Save
+  //        {
+  //	    M_StartControlPanel();
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_SaveGame(0);
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_load)     // Load
+  //        {
+  //	    M_StartControlPanel();
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_LoadGame(0);
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_volume)   // Sound Volume
+  //        {
+  //	    M_StartControlPanel ();
+  //	    currentMenu = &SoundDef;
+  //	    itemOn = currentMenu->lastOn; // [crispy] remember cursor position
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    return true;
+  //	}
+  //        else if (key == key_menu_detail)   // Detail toggle
+  //        {
+  //	    M_ChangeDetail(0);
+  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_qsave)    // Quicksave
+  //        {
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_QuickSave();
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_endgame)  // End game
+  //        {
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_EndGame(0);
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_messages) // Toggle messages
+  //        {
+  //	    M_ChangeMessages(0);
+  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_qload)    // Quickload
+  //        {
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_QuickLoad();
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_quit)     // Quit DOOM
+  //        {
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    M_QuitDOOM(0);
+  //	    return true;
+  //        }
+  //        else if (key == key_menu_gamma)    // gamma toggle
+  //        {
+  //	    crispy->gamma++;
+  //	    if (crispy->gamma > 4+13) // [crispy] intermediate gamma levels
+  //		crispy->gamma = 0;
+  //	    players[consoleplayer].message = DEH_String(gammamsg[crispy->gamma]);
+  //#ifndef CRISPY_TRUECOLOR
+  //            I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
+  //#else
+  //            {
+  //		I_SetPalette (0);
+  //		R_InitColormaps();
+  //		inhelpscreens = true;
+  //		R_FillBackScreen();
+  //		viewactive = false;
+  //            }
+  //#endif
+  //	    return true;
+  //	}
+
+  //        // [crispy] those two can be considered as shortcuts for the IDCLEV cheat
+  //        // and should be treated as such, i.e. add "if (!netgame)"
+  //        // hovewer, allow while multiplayer demos
+  //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_reloadlevel)
+  //        {
+  //	    if (demoplayback)
+  //	    {
+  //		if (crispy->demowarp)
+  //		{
+  //		// [crispy] enable screen render back before replaying
+  //		nodrawers = false;
+  //		singletics = false;
+  //		}
+  //		// [crispy] replay demo lump or file
+  //		G_DoPlayDemo();
+  //		return true;
+  //	    }
+  //	    else
+  //	    if (G_ReloadLevel())
+  //		return true;
+  //        }
+  //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_nextlevel)
+  //        {
+  //	    if (demoplayback)
+  //	    {
+  //		// [crispy] go to next level
+  //		demo_gotonextlvl = true;
+  //		G_DemoGotoNextLevel(true);
+  //		return true;
+  //	    }
+  //	    else
+  //	    if (G_GotoNextLevel())
+  //		return true;
+  //        }
+  //
+  //    }
+
+  //    // Pop-up menu?
+  //    if (!menuactive)
+  //    {
+  //	if (key == key_menu_activate)
+  //	{
+  //	    M_StartControlPanel ();
+  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+  //	    return true;
+  //	}
+  //	return false;
+  //    }
+
+  // Keys usable within menu
+
+  If (key = key_menu_down) Then Begin
+    // Move down to next item
+    Repeat
+      If (itemOn + 1 > currentMenu^.numitems - 1) Then
+        itemOn := 0
+      Else
+        itemOn := itemOn + 1;
+      // S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+    Until (currentMenu^.menuitems[itemOn].status <> -1);
+    result := true;
+    exit;
+  End
+  Else If (key = key_menu_up) Then Begin
+    // Move back up to previous item
+    Repeat
+      If (itemOn = 0) Then
+        itemOn := currentMenu^.numitems - 1
+      Else
+        itemOn := itemOn - 1;
+      // S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+    Until (currentMenu^.menuitems[itemOn].status <> -1);
+    result := true;
+    exit;
+  End
+  Else If (key = key_menu_left) Then Begin
+    //        // Slide slider left
+    //
+    //	if (currentMenu->menuitems[itemOn].routine &&
+    //	    currentMenu->menuitems[itemOn].status)
+    //	{
+    //            if (currentMenu->menuitems[itemOn].status == 2)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(0);
+    //            }
+    //            // [crispy] LR non-slider
+    //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(0);
+    //            }
+    //            // [crispy] Numeric entry
+    //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(0);
+    //            }
+    //        }
+    //	return true;
+  End
+  Else If (key = key_menu_right) Then Begin
+    //        // Slide slider right
+    //
+    //	if (currentMenu->menuitems[itemOn].routine &&
+    //	    currentMenu->menuitems[itemOn].status)
+    //	{
+    //            if (currentMenu->menuitems[itemOn].status == 2)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(1);
+    //            }
+    //            // [crispy] LR non-slider
+    //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(1);
+    //            }
+    //            // [crispy] Numeric entry
+    //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+    //            {
+    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //                currentMenu->menuitems[itemOn].routine(1);
+    //            }
+    //        }
+    //	return true;
+
+  End
+  Else If (key = key_menu_forward) Then Begin
+    // Activate menu item
+    If assigned(currentMenu^.menuitems[itemOn].routine) And
+      (currentMenu^.menuitems[itemOn].status <> 0) Then Begin
+      currentMenu^.lastOn := itemOn;
+      If (currentMenu^.menuitems[itemOn].status = 2) Then Begin
+        currentMenu^.menuitems[itemOn].routine(1); // right arrow
+        //		S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+      End
+      Else If (currentMenu^.menuitems[itemOn].status = 3) Then Begin
+        currentMenu^.menuitems[itemOn].routine(1); // right arrow
+        //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+      End
+      Else If (currentMenu^.menuitems[itemOn].status = 4) Then Begin // [crispy]
+        currentMenu^.menuitems[itemOn].routine(2); // enter key
+        numeric_entry_index := 0;
+        numeric_entry_str := '';
+        //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol);
+      End
+      Else Begin
+        currentMenu^.menuitems[itemOn].routine(itemOn);
+        //		S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+      End;
+    End;
+    result := true;
+    exit;
+  End
+  Else If (key = key_menu_activate) Then Begin
+
+    // Deactivate menu
+
+    //	currentMenu->lastOn = itemOn;
+    //	M_ClearMenus ();
+    //	S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
+    //	return true;
+  End
+  Else If (key = key_menu_back) Then Begin
+    //        // Go back to previous menu
+    //
+    //	currentMenu->lastOn = itemOn;
+    //	if (currentMenu->prevMenu)
+    //	{
+    //	    currentMenu = currentMenu->prevMenu;
+    //	    itemOn = currentMenu->lastOn;
+    //	    S_StartSoundOptional(NULL, sfx_mnubak, sfx_swtchn); // [NS] Optional menu sounds.
+    //	}
+    //	return true;
+  End
+    // [crispy] delete a savegame
+  Else If (key = key_menu_del) Then Begin
+    //	if (currentMenu == &LoadDef || currentMenu == &SaveDef)
+    //	{
+    //	    if (LoadMenu[itemOn].status)
+    //	    {
+    //		currentMenu->lastOn = itemOn;
+    //		M_ConfirmDeleteGame();
+    //		return true;
+    //	    }
+    //	    else
+    //	    {
+    //		S_StartSoundOptional(NULL, sfx_mnuerr, sfx_oof); // [NS] Optional menu sounds.
+    //	    }
+    //	}
+  End
+    // [crispy] next/prev Crispness menu
+  Else If (key = KEY_PGUP) Then Begin
+
+    //	currentMenu->lastOn = itemOn;
+    //	if (currentMenu == CrispnessMenus[crispness_cur])
+    //	{
+    //	    M_CrispnessPrev(0);
+    //	    S_StartSoundOptional(NULL, sfx_mnuact, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //	else if (currentMenu == &LoadDef || currentMenu == &SaveDef)
+    //	{
+    //	    if (savepage > 0)
+    //	    {
+    //		savepage--;
+    //		quickSaveSlot = -1;
+    //		M_ReadSaveStrings();
+    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop);
+    //	    }
+    //	    return true;
+    //	}
+  End
+  Else If (key = KEY_PGDN) Then Begin
+
+    //	currentMenu->lastOn = itemOn;
+    //	if (currentMenu == CrispnessMenus[crispness_cur])
+    //	{
+    //	    M_CrispnessNext(0);
+    //	    S_StartSoundOptional(NULL, sfx_mnuact, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //	else if (currentMenu == &LoadDef || currentMenu == &SaveDef)
+    //	{
+    //	    if (savepage < savepage_max)
+    //	    {
+    //		savepage++;
+    //		quickSaveSlot = -1;
+    //		M_ReadSaveStrings();
+    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop);
+    //	    }
+    //	    return true;
+    //	}
+  End
+
+    // Keyboard shortcut?
+    // Vanilla Doom has a weird behavior where it jumps to the scroll bars
+    // when the certain keys are pressed, so emulate this.
+
+  Else If ((ch <> 0) Or IsNullKey(key)) Then Begin
+    //	for (i = itemOn+1;i < currentMenu->numitems;i++)
+    //        {
+    //	    if (currentMenu->menuitems[i].alphaKey == ch)
+    //	    {
+    //		itemOn = i;
+    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+    //		return true;
+    //	    }
+    //        }
+    //
+    //	for (i = 0;i <= itemOn;i++)
+    //        {
+    //	    if (currentMenu->menuitems[i].alphaKey == ch)
+    //	    {
+    //		itemOn = i;
+    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+    //		return true;
+    //	    }
+    //        }
+  End;
+
+  result := false;
+End;
+
 //
 // M_Ticker
 //
 
-Procedure M_Ticker();
+Procedure M_Ticker;
 Begin
   //    if (--skullAnimCounter <= 0)
   //    {
@@ -217,110 +1163,74 @@ Begin
   //    }
 End;
 
-Const
-  MainMenu: Array Of menuitem_t =
-  (
-    (status: 1; Name: 'M_NGAME'; routine: @M_NewGame; alphaKey: 'n'),
-    (status: 1; Name: 'M_OPTION'; routine: @M_Options; alphaKey: 'o'),
-    (status: 1; Name: 'M_LOADG'; routine: @M_LoadGame; alphaKey: 'l'),
-    (status: 1; Name: 'M_SAVEG'; routine: @M_SaveGame; alphaKey: 's'),
-    // Another hickup with Special edition.
-    (status: 1; Name: 'M_RDTHIS'; routine: @M_ReadThis; alphaKey: 'r'),
-    (status: 1; Name: 'M_QUITG'; routine: @M_QuitDOOM; alphaKey: 'q')
-    );
+//
+// M_Drawer
+// Called after the view has been rendered,
+// but before it has been blitted.
+//
 
-  MainDef: menu_t =
-  (
-    numitems: 6; // main_end
-    prevMenu: Nil;
-    menuitems: @MainMenu;
-    routine: @M_DrawMainMenu; // draw routine
-    x: 97;
-    y: 64; // x,y of menu
-    lastOn: 0 // last item user was on in menu
-    );
-
-  //
-  // M_Drawer
-  // Called after the view has been rendered,
-  // but before it has been blitted.
-  //
-
-Procedure M_Drawer();
+Procedure M_Drawer;
 Const
   x: short = 0;
   y: short = 0;
 Var
   i: unsigned_int;
   max: unsigned_int;
+  str, s, name: String;
+  start: int;
+  nlIndex: integer;
 Begin
   //    char		string[80];
   //    const char          *name;
-  //    int			start;
+  //    int			;
 
   // inhelpscreens := false;
 
   //    // Horiz. & Vertically center string and print it.
   If (messageToPrint <> 0) Then Begin
 
-    //	// [crispy] draw a background for important questions
-    //	if (messageToPrint == 2)
-    //	{
-    //	    M_DrawCrispnessBackground();
-    //	}
+    // [crispy] draw a background for important questions
+    If (messageToPrint = 2) Then Begin
+      //	    M_DrawCrispnessBackground();
+    End;
 
-    //	start = 0;
-    //	y = ORIGHEIGHT/2 - M_StringHeight(messageString) / 2;
-    //	while (messageString[start] != '\0')
-    //	{
-    //	    boolean foundnewline = false;
-    //
-    //            for (i = 0; messageString[start + i] != '\0'; i++)
-    //            {
-    //                if (messageString[start + i] == '\n')
-    //                {
-    //                    M_StringCopy(string, messageString + start,
-    //                                 sizeof(string));
-    //                    if (i < sizeof(string))
-    //                    {
-    //                        string[i] = '\0';
-    //                    }
-    //
-    //                    foundnewline = true;
-    //                    start += i + 1;
-    //                    break;
-    //                }
-    //            }
-    //
-    //            if (!foundnewline)
-    //            {
-    //                M_StringCopy(string, messageString + start, sizeof(string));
-    //                start += strlen(string);
-    //            }
-    //
-    //	    x = ORIGWIDTH/2 - M_StringWidth(string) / 2;
-    //	    M_WriteText(x > 0 ? x : 0, y, string); // [crispy] prevent negative x-coords
-    //	    y += SHORT(hu_font[0]->height);
-    //	}
+    start := 0;
+    y := ORIGHEIGHT Div 2 - M_StringHeight(messageString) Div 2;
+    s := messageString;
+    While s <> '' Do Begin
+      nlIndex := pos('\n', s);
+      If nlIndex <> 0 Then Begin
+        str := copy(s, 1, nlIndex - 1);
+        Delete(s, 1, nlIndex + 1);
+      End
+      Else Begin
+        str := s;
+        s := '';
+      End;
+      x := ORIGWIDTH Div 2 - M_StringWidth(str) Div 2;
+      M_WriteText(math.max(0, x), y, str); // [crispy] prevent negative x-coords
+      // TODO: hier fehlt ein:
+      // dp_translation := nil;
+      y := y + hu_font[0]^.height;
+    End;
 
     exit;
   End;
 
-  //    if (opldev)
-  //    {
-  //        M_DrawOPLDev();
-  //    }
+  //  If (opldev) Then Begin
+  //    M_DrawOPLDev();
+  //  End;
 
-//  If (Not menuactive) Then exit;
+  //  If (Not menuactive) Then exit;
 
   If assigned(currentMenu^.routine) Then
     currentMenu^.routine(); // call Draw routine
 
-  //    // DRAW MENU
-  //    x = currentMenu->x;
-  //    y = currentMenu->y;
-  //    max = currentMenu->numitems;
-  //
+  // DRAW MENU
+  x := currentMenu^.x;
+  y := currentMenu^.y;
+  max := currentMenu^.numitems;
+
   //    // [crispy] check current menu for missing menu graphics lumps - only once
   //    if (currentMenu->lumps_missing == 0)
   //    {
@@ -333,35 +1243,28 @@ Begin
   //        if (currentMenu->lumps_missing == 0)
   //            currentMenu->lumps_missing = -1;
   //    }
-  //
+
   //    for (i=0;i<max;i++)
-  //    {
-  //        const char *alttext = currentMenu->menuitems[i].alttext;
-  //        name = DEH_String(currentMenu->menuitems[i].name);
-  //
-  //	if (name[0] && (W_CheckNumForName(name) > 0 || alttext))
-  //	{
-  //	    if (W_CheckNumForName(name) > 0 && currentMenu->lumps_missing == -1)
-  //	    V_DrawPatchDirect (x, y, W_CacheLumpName(name, PU_CACHE));
-  //	    else if (alttext)
-  //		M_WriteText(x, y+8-(M_StringHeight(alttext)/2), alttext);
-  //	}
-  //	y += LINEHEIGHT;
-  //    }
-  //
-  //
-  //    // DRAW SKULL
-  //    if (currentMenu == CrispnessMenus[crispness_cur])
-  //    {
-  //	char item[4];
-  //	M_snprintf(item, sizeof(item), "%s>", whichSkull ? crstr[CR_NONE] : crstr[CR_DARK]);
-  //	M_WriteText(currentMenu->x - 8, currentMenu->y + CRISPY_LINEHEIGHT * itemOn, item);
-  //	dp_translation = NULL;
-  //    }
-  //    else
-  //    V_DrawPatchDirect(x + SKULLXOFF, currentMenu->y - 5 + itemOn*LINEHEIGHT,
-  //		      W_CacheLumpName(DEH_String(skullName[whichSkull]),
-  //				      PU_CACHE));
+  For i := 0 To max - 1 Do Begin
+    // TODO: hier ist natürlich gewaltiges Potential drin den Lumindex zu Cachen
+    name := currentMenu^.menuitems[i].Name;
+    If (name <> '') And (W_CheckNumForName(name) > 0) Then Begin
+      V_DrawPatchDirect(x, y, W_CacheLumpName(name, PU_CACHE));
+    End;
+    y := y + LINEHEIGHT;
+  End;
+
+  // DRAW SKULL
+//  If (currentMenu = @CrispnessMenus[crispness_cur]) Then Begin
+    //	char item[4];
+    //	M_snprintf(item, sizeof(item), "%s>", whichSkull ? crstr[CR_NONE] : crstr[CR_DARK]);
+    //	M_WriteText(currentMenu->x - 8, currentMenu->y + CRISPY_LINEHEIGHT * itemOn, item);
+    //	dp_translation = NULL;
+//  End
+//  Else Begin
+  V_DrawPatchDirect(x + SKULLXOFF, currentMenu^.y - 5 + itemOn * LINEHEIGHT,
+    W_CacheLumpName(skullName[whichSkull], PU_CACHE));
+  //  End;
 End;
 
 Procedure M_Init;
@@ -369,12 +1272,13 @@ Begin
   currentMenu := @MainDef;
   menuactive := false;
   itemOn := currentMenu^.lastOn;
-  //    whichSkull = 0;
+  whichSkull := 0;
   //    skullAnimCounter = 10;
   //    screenSize = screenblocks - 3;
   messageToPrint := 0;
   messageString := '';
-  //    messageLastMenuActive = menuactive;
+  messageLastMenuActive := menuactive;
+  messageRoutine := Nil; // Besser ist das!
   //    quickSaveSlot = -1;
   //
   //    M_SetDefaultDifficulty(); // [crispy] pre-select default difficulty
@@ -578,7 +1482,7 @@ End;
 // M_StartControlPanel
 //
 
-Procedure M_StartControlPanel();
+Procedure M_StartControlPanel;
 Begin
   // intro might call this repeatedly
   If (menuactive) Then exit;
@@ -593,6 +1497,64 @@ Begin
   itemOn := currentMenu^.lastOn; // JDC
 End;
 
+Const
+  MainMenu: Array Of menuitem_t =
+  (
+    (status: 1; Name: 'M_NGAME'; routine: @M_NewGame; alphaKey: 'n'),
+    (status: 1; Name: 'M_OPTION'; routine: @M_Options; alphaKey: 'o'),
+    (status: 1; Name: 'M_LOADG'; routine: @M_LoadGame; alphaKey: 'l'),
+    (status: 1; Name: 'M_SAVEG'; routine: @M_SaveGame; alphaKey: 's'),
+    // Another hickup with Special edition.
+    (status: 1; Name: 'M_RDTHIS'; routine: @M_ReadThis; alphaKey: 'r'),
+    (status: 1; Name: 'M_QUITG'; routine: @M_QuitDOOM; alphaKey: 'q')
+    );
+
+  //  Crispness1Menu: Array Of menuitem_t =
+  //  (
+  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleHires; alphaKey: 'h'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleWidescreen; alphaKey: 'w'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleUncapped; alphaKey: 'u'),
+  //    (status: 4; Name: ''; Routine: @M_CrispyToggleFpsLimit; alphaKey: 'f'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleVsync; alphaKey: 'v'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleSmoothScaling; alphaKey: 's'),
+  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
+  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleColoredhud; alphaKey: 'c'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleTranslucency; alphaKey: 'e'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleSmoothLighting; alphaKey: 's'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleBrightmaps; alphaKey: 'b'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleColoredblood; alphaKey: 'c'),
+  //    (status: 3; Name: ''; Routine: @M_CrispyToggleFlipcorpses; alphaKey: 'r'),
+  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
+  //    (status: 1; Name: ''; Routine: @M_CrispnessNext; alphaKey: 'n'),
+  //    (status: 1; Name: ''; Routine: @M_CrispnessPrev; alphaKey: 'p'),
+  //    );
+
+//Var
+//  Crispness1Def: menu_t;
+//  Crispness2Def: menu_t;
+//  Crispness3Def: menu_t;
+//  Crispness4Def: menu_t;
+
+Initialization
+
+  With MainDef Do Begin
+    numitems := length(MainMenu);
+    prevMenu := Nil;
+    menuitems := MainMenu;
+    routine := @M_DrawMainMenu; // draw routine
+    x := 97;
+    y := 64; // x,y of menu
+    lastOn := 0 // last item user was on in menu
+  End;
+
+  //  CrispnessMenus := Nil;
+  //  setlength(CrispnessMenus, 4);
+  //  CrispnessMenus[0] := Crispness1Def;
+  //  CrispnessMenus[1] := Crispness2Def;
+  //  CrispnessMenus[2] := Crispness3Def;
+  //  CrispnessMenus[3] := Crispness4Def;
 
 
 End.

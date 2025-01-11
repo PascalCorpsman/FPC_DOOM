@@ -30,6 +30,8 @@ Var
   // The screen buffer; this is modified to draw things to the screen
   I_VideoBuffer: pixel_tArray; // Der ist quasi immer ORIGWIDTH * ORIGHEIGHT
 
+  dp_translation: Array Of Byte; // Übersetzt die Aktuellen Farben in "neue" -> Siehe v_trans.pas, Default = nil = Deaktiviert
+
   Doom8BitTo24RGBBit: Array[0..255] Of uint32; // Das ist im Prinzip die Farbpalette, welche Doom zur Darstellung der RGB Farben nutzt..
 
 Implementation
@@ -59,6 +61,7 @@ End;
 
 Procedure V_Init;
 Begin
+  dp_translation := Nil;
   dx := 1;
   dxi := 0;
   dy := 1;
@@ -106,6 +109,7 @@ Var
   row: integer;
   count: Byte;
   Pint: ^integer;
+  sc: byte;
 Begin
   y := y - patch^.topoffset;
   x := x + patch^.leftoffset;
@@ -127,10 +131,14 @@ Begin
       row := column^.topdelta;
       count := column^.length;
       While count > 0 Do Begin
+        sc := source^;
+        If assigned(dp_translation) Then Begin
+          sc := dp_translation[sc];
+        End;
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
-        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[source^];
+        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc];
 {$ENDIF}
-        dest_screen[(x + col) + (y + row) * SCREENWIDTH] := source^;
+        dest_screen[(x + col) + (y + row) * SCREENWIDTH] := sc;
         source := pointer(source) + 1;
         row := row + 1;
         dec(Count);

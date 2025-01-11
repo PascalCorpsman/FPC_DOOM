@@ -31,6 +31,10 @@ Type
 
   Ploop_interface_t = ^loop_interface_t;
 
+Var
+  // The number of tics that have been run (using RunTic) so far.
+  gametic: int;
+
 Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 
@@ -334,11 +338,11 @@ Begin
   //
   //            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
   //
-  //            loop_interface->RunTic(set->cmds, set->ingame);
-  //	    gametic++;
-  //
-  //	    // modify command for duplicated tics
-  //
+//              loop_interface^.RunTic(set^.cmds, set^.ingame);
+  gametic := gametic + 1;
+
+  	    // modify command for duplicated tics
+
   //            TicdupSquash(set);
   //	}
 
@@ -347,4 +351,9 @@ Begin
 End;
 
 End.
+
+
+
+
+
 

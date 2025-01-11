@@ -15,6 +15,8 @@ object Form1: TForm1
     Height = 136
     Top = 8
     Width = 168
+    OnKeyDown = OpenGLControl1KeyDown
+    OnKeyUp = OpenGLControl1KeyUp
     OnMakeCurrent = OpenGLControl1MakeCurrent
     OnPaint = OpenGLControl1Paint
     OnResize = OpenGLControl1Resize

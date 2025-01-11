@@ -16,7 +16,9 @@ Const
   //
   // D_Main.C
   //
-  D_DEVSTR = 'Development mode ON.' + LineEnding;
+  D_DEVSTR = 'Development mode ON.\n';
+
+  DOSY = '(press y to quit.)'; // [crispy] remove " to dos.)"
 
 Implementation
 

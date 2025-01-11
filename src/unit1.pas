@@ -33,7 +33,7 @@ Unit Unit1;
 (*
  * Enable to see how much time is actually taken to "render" a frame
  *)
-{.$DEFINE SHOW_RENDERTIME_IN_MS}
+{$DEFINE SHOW_RENDERTIME_IN_MS}
 
 Interface
 
@@ -56,6 +56,10 @@ Type
     OpenGLControl1: TOpenGLControl;
     Timer1: TTimer;
     Procedure FormCreate(Sender: TObject);
+    Procedure OpenGLControl1KeyDown(Sender: TObject; Var Key: Word;
+      Shift: TShiftState);
+    Procedure OpenGLControl1KeyUp(Sender: TObject; Var Key: Word;
+      Shift: TShiftState);
     Procedure OpenGLControl1MakeCurrent(Sender: TObject; Var Allow: boolean);
     Procedure OpenGLControl1Paint(Sender: TObject);
     Procedure OpenGLControl1Resize(Sender: TObject);
@@ -78,7 +82,7 @@ Implementation
 
 Uses
   m_argv
-  , d_main
+  , d_main, d_event
   , i_video
   , v_video
 {$IFDEF SHOW_RENDERTIME_IN_MS}
@@ -249,6 +253,30 @@ Begin
   // start doom
 
   //  D_DoomMain (); --> Wird in MakeCurrent gemacht.
+End;
+
+Procedure TForm1.OpenGLControl1KeyDown(Sender: TObject; Var Key: Word;
+  Shift: TShiftState);
+Var
+  ev: event_t;
+Begin
+  // See d_event.pas for descriptions
+  ev := GetTypedEmptyEvent(ev_keydown);
+  ev.data1 := Key; // doomkeys.h is made to be equal to lcl
+  ev.data2 := Key; // TODO: muss noch richtig gemacht werden ?
+  ev.data3 := Key; // TODO: muss noch richtig gemacht werden ?
+  PushEvent(ev);
+End;
+
+Procedure TForm1.OpenGLControl1KeyUp(Sender: TObject; Var Key: Word;
+  Shift: TShiftState);
+Var
+  ev: event_t;
+Begin
+  // See d_event.pas for descriptions
+  ev := GetTypedEmptyEvent(ev_keyup);
+  ev.data1 := Key; // doomkeys.h is made to be equal to lcl
+  PushEvent(ev);
 End;
 
 Procedure TForm1.Timer1Timer(Sender: TObject);

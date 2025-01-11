@@ -36,16 +36,13 @@ Var
 Implementation
 
 Uses Graphics, config, dglOpenGL
-  , v_video
+  , v_video, v_diskicon
   , usdl_wrapper
   , doomtype
   ;
 
 Var
-  screen: SDL_Window = Nil;
   window_title: String = '';
-
-  //  argbbuffer: Array[0..ORIGWIDTH - 1, 0..ORIGHEIGHT - 1] Of pixel_t; --> Brauchen wir nicht wir schreiben direkt in I_VideoBuffer da OpenGL das alles für uns Scalliert ;)
 
   // If true, we display dots at the bottom of the screen to
   // indicate FPS.
@@ -59,7 +56,7 @@ Var
 
 Procedure I_InitWindowTitle();
 Begin
-  SDL_SetWindowTitle(screen, window_title + ' - ' + PACKAGE_STRING)
+  SDL_SetWindowTitle(Nil, window_title + ' - ' + PACKAGE_STRING)
 End;
 
 Procedure I_InitWindowIcon;
@@ -71,7 +68,7 @@ Begin
     $FF Shl 24, $FF Shl 16,
     $FF Shl 8, $FF Shl 0);
 
-  SDL_SetWindowIcon(screen, surface);
+  SDL_SetWindowIcon(Nil, surface);
   SDL_FreeSurface(surface);
 End;
 
@@ -526,7 +523,9 @@ End;
 
 Procedure I_StartFrame();
 Begin
-
+  // TODO: Dieser Code kann sicher wieder Raus, wenn mal alles funktioniert
+  //       Aktuell sorgt er aber dafür, dass bei jedem Frame alles wieder gelöscht ist ;)
+  FillChar(I_VideoBuffer[0], length(I_VideoBuffer), 0);
 End;
 
 Procedure I_FinishUpdate();
@@ -747,9 +746,9 @@ Begin
   //            }
   //        }
   //    }
-  //
-  //    // Restore background and undo the disk indicator, if it was drawn.
-  //    V_RestoreDiskBackground();
+
+  // Restore background and undo the disk indicator, if it was drawn.
+  V_RestoreDiskBackground();
 End;
 
 //Finalization
