@@ -38,3 +38,4 @@ ports, but that version only supports DirectX and therefore only supports Window
 - w_wad.pas can now "load" the .wad file
 - (2025.01.09) able to store "patches" when drawn as .bmp files to harddisc, very first extracted image "M_DOOM" ![](documentation/doom.png)
 - (2025.01.10) activate OpenGL Rendering default upscale = 2 ![](documentation/first_app_rendering.png)
+- (2025.01.12) integrate keyboard event loop and main menu with quit button ![](documentation/Menu_first.gif)
