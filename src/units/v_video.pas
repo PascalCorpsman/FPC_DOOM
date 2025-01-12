@@ -22,7 +22,9 @@ Const
 
 Procedure V_Init();
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
+Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
+Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 
 Procedure V_RestoreBuffer();
 
@@ -54,7 +56,7 @@ Begin
   dest_screen := buffer;
 End;
 
-Procedure V_RestoreBuffer();
+Procedure V_RestoreBuffer;
 Begin
   dest_screen := I_VideoBuffer;
 End;
@@ -157,6 +159,68 @@ End;
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
 Begin
   V_DrawPatch(x, y, patch);
+End;
+
+Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);
+Var
+  x: int;
+Begin
+  //    int x = ((SCREENWIDTH >> crispy->hires) - SHORT(patch->width)) / 2 - WIDESCREENDELTA;
+  x := 0;
+  //    static int black = -1;
+
+  patch^.leftoffset := 0;
+  patch^.topoffset := 0;
+
+  //    if (black == -1)
+  //    {
+  //#ifndef CRISPY_TRUECOLOR
+  //        black = I_GetPaletteIndex(0x00, 0x00, 0x00);
+  //#else
+  //        black = I_MapRGB(0x00, 0x00, 0x00);
+  //#endif
+  //    }
+
+  //    // [crispy] fill pillarboxes in widescreen mode
+  //    if (SCREENWIDTH != NONWIDEWIDTH)
+  //    {
+  //        V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, black);
+  //    }
+
+  If (flipped) Then Begin
+
+    //        V_DrawPatchFlipped(x, 0, patch);
+  End
+  Else Begin
+    V_DrawPatch(x, 0, patch);
+  End;
+End;
+
+
+Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
+Begin
+  //     pixel_t *dest;
+  //
+  //#ifdef RANGECHECK
+  //    if (x < 0
+  //     || x + width >SCREENWIDTH
+  //     || y < 0
+  //     || y + height > SCREENHEIGHT)
+  //    {
+  //	I_Error ("Bad V_DrawBlock");
+  //    }
+  //#endif
+
+  V_MarkRect(x, y, width, height);
+
+  //    dest = dest_screen + (y << crispy->hires) * SCREENWIDTH + x;
+  //
+  //    while (height--)
+  //    {
+  //	memcpy (dest, src, width * sizeof(*dest));
+  //	src += width;
+  //	dest += SCREENWIDTH;
+  //    }
 End;
 
 End.

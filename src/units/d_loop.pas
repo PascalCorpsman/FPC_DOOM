@@ -5,10 +5,19 @@ Unit d_loop;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , m_fixed
+  , net_defs
+  ;
 
 Type
   TProcedure = Procedure();
+  TRunTic = Procedure({cmds: Array Of ticcmd_t; Var ingame: boolean});
+
+  // Callback function invoked while waiting for the netgame to start.
+  // The callback is invoked when new players are ready. The callback
+  // should return true, or return false to abort startup.
+  netgame_startup_callback_t = Function(ready_players: int; num_players: int): Boolean;
 
   loop_interface_t = Record
 
@@ -22,7 +31,7 @@ Type
 
     // Advance the game forward one tic, using the specified player input.
 
-//    void (*RunTic)(ticcmd_t *cmds, boolean *ingame);
+    RunTic: TRunTic;
 
     // Run the menu (runs independently of the game).
 
@@ -38,44 +47,182 @@ Var
 Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 
+Procedure D_StartNetGame(Var settings: net_gamesettings_t; callback: netgame_startup_callback_t);
+
 Implementation
 
-Uses net_client, net_defs;
+Uses net_client
+  , i_timer, i_system
+  , m_argv
+  ;
 
 Var
+
+
   // Current players in the multiplayer game.
   // This is distinct from playeringame[] used by the game code, which may
   // modify playeringame[] when playing back multiplayer demos.
 
-
   local_playeringame: Array[0..NET_MAXPLAYERS - 1] Of Boolean;
+
+  // Index of the local player.
+  localplayer: int;
+
+  // The number of complete tics received from the server so far.
+  recvtic: int;
 
   // When set to true, a single tic is run each time TryRunTics() is called.
   // This is used for -timedemo mode.
-
   singletics: boolean = false;
 
   // Used for original sync code.
-
   skiptics: int = 0;
 
   // Reduce the bandwidth needed by sampling game input less and transmitting
   // less.  If ticdup is 2, sample half normal, 3 = one third normal, etc.
-
   ticdup: int;
 
-
   // Callback functions for loop code.
-
   loop_interface: Ploop_interface_t = Nil;
+
+  // Use new client syncronisation code
+  new_sync: boolean = true;
+
+  // Amount to offset the timer for game sync.
+  offsetms: fixed_t = 0;
+
+  // Requested player class "sent" to the server on connect.
+  // If we are only doing a single player game then this needs to be remembered
+  // and saved in the game settings.
+  player_class: int = 0;
+
+  // 35 fps clock adjusted by offsetms milliseconds
+
+Function GetAdjustedTime(): int;
+Var
+  time_ms: int;
+Begin
+  time_ms := I_GetTimeMS();
+
+  If (new_sync) Then Begin
+
+    // Use the adjustments from net_client.c only if we are
+    // using the new sync mode.
+
+    time_ms := time_ms + (offsetms Div FRACUNIT);
+  End;
+
+  result := (time_ms * TICRATE) Div 1000;
+End;
 
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 Begin
   loop_interface := i;
 End;
 
+// Start game with specified settings. The structure will be updated
+// with the actual settings for the game.
+
+Procedure D_StartNetGame(Var settings: net_gamesettings_t;
+  callback: netgame_startup_callback_t);
+Var
+  i: int;
+Begin
+
+  offsetms := 0;
+  recvtic := 0;
+
+  settings.consoleplayer := 0;
+  settings.num_players := 1;
+  settings.player_classes[0] := player_class;
+
+  //!
+  // @category net
+  //
+  // Use original network client sync code rather than the improved
+  // sync code.
+  //
+  settings.new_sync := ord(Not M_ParmExists('-oldsync'));
+
+  //!
+  // @category net
+  // @arg <n>
+  //
+  // Send n extra tics in every packet as insurance against dropped
+  // packets.
+  //
+
+  i := M_CheckParmWithArgs('-extratics', 1);
+
+  If (i > 0) Then Begin
+    settings.extratics := strtoint(myargv[i + 1]);
+  End
+  Else Begin
+    settings.extratics := 1;
+  End;
+
+  //!
+  // @category net
+  // @arg <n>
+  //
+  // Reduce the resolution of the game by a factor of n, reducing
+  // the amount of network bandwidth needed.
+  //
+
+  i := M_CheckParmWithArgs('-dup', 1);
+
+  If (i > 0) Then Begin
+    settings.ticdup := strtoint(myargv[i + 1]);
+  End
+  Else Begin
+    settings.ticdup := 1;
+  End;
+
+  If (net_client_connected) Then Begin
+
+    // Send our game settings and block until game start is received
+    // from the server.
+//
+//        NET_CL_StartGame(settings);
+//        BlockUntilStart(settings, callback);
+
+   // Read the game settings that were received.
+
+//        NET_CL_GetSettings(settings);
+  End;
+
+  If (drone) Then Begin
+    settings.consoleplayer := 0;
+  End;
+
+  // Set the local player and playeringame[] values.
+
+  localplayer := settings.consoleplayer;
+
+
+  For i := 0 To NET_MAXPLAYERS - 1 Do Begin
+    local_playeringame[i] := i < settings.num_players;
+  End;
+
+  // Copy settings to global variables.
+
+  ticdup := settings.ticdup;
+  new_sync := odd(settings.new_sync);
+
+  If (ticdup < 1) Then Begin
+    I_Error(format('D_StartNetGame: invalid ticdup value (%d)', [ticdup]));
+  End;
+
+  // TODO: Message disabled until we fix new_sync.
+  //if (!new_sync)
+  //{
+  //    printf("Syncing netgames like Vanilla Doom.\n");
+  //}
+End;
+
 Function BuildNewTic(): Boolean;
 Begin
+  result := false;
   //      int	gameticdiv;
   //      ticcmd_t cmd;
   //
@@ -88,46 +235,39 @@ Begin
 
   loop_interface^.RunMenu();
 
-  //      if (drone)
-  //      {
-  //          // In drone mode, do not generate any ticcmds.
-  //
-  //          return false;
-  //      }
-  //
-  //      if (new_sync)
-  //      {
-  //         // If playing single player, do not allow tics to buffer
-  //         // up very far
-  //
-  //         if (!net_client_connected && maketic - gameticdiv > 2)
-  //             return false;
-  //
-  //         // Never go more than ~200ms ahead
-  //
-  //         if (maketic - gameticdiv > 8)
-  //             return false;
-  //      }
-  //      else
-  //      {
-  //         if (maketic - gameticdiv >= 5)
-  //             return false;
-  //      }
-  //
-  //      //printf ("mk:%i ",maketic);
+  If (drone) Then Begin
+    // In drone mode, do not generate any ticcmds.
+    exit;
+  End;
+
+  If (new_sync) Then Begin
+
+    // If playing single player, do not allow tics to buffer
+    // up very far
+
+//    If (Not net_client_connected) And (maketic - gameticdiv > 2) Then exit;
+
+    // Never go more than ~200ms ahead
+//    If (maketic - gameticdiv > 8) Then exit;
+  End
+  Else Begin
+    //    If (maketic - gameticdiv >= 5) Then exit;
+  End;
+
+  //      maketic := format('mk:%d ',[maketic]);
   //      memset(&cmd, 0, sizeof(ticcmd_t));
   //      loop_interface->BuildTiccmd(&cmd, maketic);
-  //
+
   //      if (net_client_connected)
   //      {
   //          NET_CL_SendTiccmd(&cmd, maketic);
   //      }
-  //
+
   //      ticdata[maketic % BACKUPTICS].cmds[localplayer] = cmd;
   //      ticdata[maketic % BACKUPTICS].ingame[localplayer] = true;
-  //
-  //      ++maketic;
-  //
+
+  //      maketic:=maketic +1;
+
   result := true;
 End;
 
@@ -157,7 +297,7 @@ Begin
 //    NET_SV_Run();
 
   // check time
-//  nowtime := GetAdjustedTime() Div ticdup;
+  nowtime := GetAdjustedTime() Div ticdup;
   newtics := nowtime - lasttime;
 
   lasttime := nowtime;
@@ -172,11 +312,11 @@ Begin
   End;
 
   // build new ticcmds for console player
-//  For i := 0 To newtics - 1 Do Begin
-  If (Not BuildNewTic()) Then Begin
-    //    break;
+  For i := 0 To newtics - 1 Do Begin
+    If (Not BuildNewTic()) Then Begin
+      break;
+    End;
   End;
-  //  End;
 End;
 
 // Returns true if there are players in the game:
@@ -204,7 +344,7 @@ Begin
   End;
 End;
 
-Procedure TryRunTics();
+Procedure TryRunTics;
 Begin
   //    int	i;
   //    int	lowtic;
@@ -338,22 +478,17 @@ Begin
   //
   //            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
   //
-//              loop_interface^.RunTic(set^.cmds, set^.ingame);
+  loop_interface^.RunTic({set^.cmds, set^.ingame});
   gametic := gametic + 1;
 
-  	    // modify command for duplicated tics
+  // modify command for duplicated tics
 
-  //            TicdupSquash(set);
-  //	}
+//            TicdupSquash(set);
+//	}
 
   NetUpdate(); // check for new console commands
 
 End;
 
 End.
-
-
-
-
-
 

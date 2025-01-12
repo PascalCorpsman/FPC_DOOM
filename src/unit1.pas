@@ -151,8 +151,9 @@ Procedure TForm1.OpenGLControl1Paint(Sender: TObject);
 {$IFDEF SHOW_RENDERTIME_IN_MS}
 Const
   MaxRenderTime: integer = 0;
+  Counter10s: QWord = 0;
 Var
-  t: QWord;
+  TimePerFrame: QWord;
 {$ENDIF}
 Begin
   If Not Initialized Then Exit;
@@ -162,19 +163,25 @@ Begin
   glLoadIdentity();
   go2d;
 {$IFDEF SHOW_RENDERTIME_IN_MS}
-  t := GetTickCount64;
+  TimePerFrame := GetTickCount64;
+  // Reset Max RenderTime Value every 10s
+  If Counter10s = 0 Then Counter10s := TimePerFrame;
+  If TimePerFrame - Counter10s > 10000 Then Begin
+    Counter10s := TimePerFrame;
+    MaxRenderTime := 0;
+  End;
 {$ENDIF}
   D_DoomLoop(); // Sollte mindestens alle 35ms aufgerufen werden !
 {$IFDEF SHOW_RENDERTIME_IN_MS}
-  t := GetTickCount64 - t;
-  If t > MaxRenderTime Then MaxRenderTime := t;
+  TimePerFrame := GetTickCount64 - TimePerFrame;
+  If TimePerFrame > MaxRenderTime Then MaxRenderTime := TimePerFrame;
   glBindTexture(GL_TEXTURE_2D, 0);
   (*
    * Das Spiel erwartet alle 35 ms gerendert zu werden
    * Der Aktuelle Rendertimer steht auf 17ms -> Also alles gut
    * Interessant wird es wenn MaxRenderTime > 35ms / 17ms wird !
    *)
-  OpenGL_ASCII_Font.Textout(1, 1, format('%d' + LineEnding + '%d', [t, MaxRenderTime]));
+  OpenGL_ASCII_Font.Textout(1, 1, format('%d' + LineEnding + '%d', [TimePerFrame, MaxRenderTime]));
 {$ENDIF}
   exit2d;
   OpenGLControl1.SwapBuffers;

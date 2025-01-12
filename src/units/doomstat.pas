@@ -22,6 +22,9 @@ Var
   // 0=Cooperative; 1=Deathmatch; 2=Altdeath
   deathmatch: int;
 
+  // Player taking events, and displaying.
+  consoleplayer: int;
+
   // Convenience macro.
   // 'gamemission' can be equal to pack_chex or pack_hacx, but these are
   // just modified versions of doom and doom2, and should be interpreted

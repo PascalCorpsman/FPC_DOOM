@@ -228,6 +228,7 @@ End;
 
 Procedure M_BindMenuControls();
 Begin
+  // ACHTUNG, Alle werte hier sind "Geraten"
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden
   key_menu_activate := 0;
   key_menu_up := VK_UP;

@@ -48,6 +48,10 @@ Procedure M_StartControlPanel();
 //extern boolean numeric_enter;
 //extern int numeric_entry;
 
+Var
+  menuactive: Boolean;
+  inhelpscreens: boolean;
+
 Implementation
 
 Uses
@@ -114,7 +118,7 @@ Var
   itemOn: short; // menu item skull is on
   whichSkull: short; // which skull to draw
   currentMenu: Pmenu_t;
-  menuactive: Boolean;
+
   endstring: String;
 
   // 1 = message to be printed
@@ -279,23 +283,22 @@ End;
 Procedure M_NewGame(choice: int);
 Begin
   // [crispy] forbid New Game while recording a demo
-//    if (demorecording)
-//    {
-//	return;
-//    }
-//
-//    if (netgame && !demoplayback)
-//    {
-//	M_StartMessage(DEH_String(NEWGAME),NULL,false);
-//	return;
-//    }
-//
-//    // Chex Quest disabled the episode select screen, as did Doom II.
-//
-//    if ((gamemode == commercial && !crispy->havenerve && !crispy->havemaster) || gameversion == exe_chex) // [crispy] NRFTL / The Master Levels
-//	M_SetupNextMenu(&NewDef);
-//    else
-//	M_SetupNextMenu(&EpiDef);
+  If (demorecording) Then Begin
+    exit;
+  End;
+
+  //    if (netgame && !demoplayback)
+  //    {
+  //	M_StartMessage(DEH_String(NEWGAME),NULL,false);
+  //	return;
+  //    }
+  //
+  //    // Chex Quest disabled the episode select screen, as did Doom II.
+  //
+  //    if ((gamemode == commercial && !crispy->havenerve && !crispy->havemaster) || gameversion == exe_chex) // [crispy] NRFTL / The Master Levels
+  //	M_SetupNextMenu(&NewDef);
+  //    else
+  //	M_SetupNextMenu(&EpiDef);
 End;
 
 Procedure M_QuitResponse(key: int);
@@ -405,7 +408,7 @@ Var
   //    boolean mousextobutton = false;
   //    int dir;
 Begin
-
+  result := false;
   //    // In testcontrols mode, none of the function keys should do anything
   //    // - the only key is escape to quit.
   //
@@ -604,163 +607,160 @@ Begin
   End;
 
   If (key = -1) Then Begin
-    result := false;
     exit;
   End;
-  //    // Save Game string input
-  //    if (saveStringEnter)
-  //    {
-  //	switch(key)
-  //	{
-  //	  case KEY_BACKSPACE:
-  //	    if (saveCharIndex > 0)
-  //	    {
-  //		saveCharIndex--;
-  //		savegamestrings[saveSlot][saveCharIndex] = 0;
-  //	    }
-  //	    break;
-  //
-  //          case KEY_ESCAPE:
-  //            saveStringEnter = 0;
-  //            I_StopTextInput();
-  //            M_StringCopy(savegamestrings[saveSlot], saveOldString,
-  //                         SAVESTRINGSIZE);
-  //            break;
-  //
-  //	  case KEY_ENTER:
-  //	    saveStringEnter = 0;
-  //            I_StopTextInput();
-  //	    if (savegamestrings[saveSlot][0])
-  //		M_DoSave(saveSlot);
-  //	    break;
-  //
-  //	  default:
-  //            // Savegame name entry. This is complicated.
-  //            // Vanilla has a bug where the shift key is ignored when entering
-  //            // a savegame name. If vanilla_keyboard_mapping is on, we want
-  //            // to emulate this bug by using ev->data1. But if it's turned off,
-  //            // it implies the user doesn't care about Vanilla emulation:
-  //            // instead, use ev->data3 which gives the fully-translated and
-  //            // modified key input.
-  //
-  //            if (ev->type != ev_keydown)
-  //            {
-  //                break;
-  //            }
-  //            if (vanilla_keyboard_mapping)
-  //            {
-  //                ch = ev->data1;
-  //            }
-  //            else
-  //            {
-  //                ch = ev->data3;
-  //            }
-  //
-  //            ch = toupper(ch);
-  //
-  //            if (ch != ' '
-  //             && (ch - HU_FONTSTART < 0 || ch - HU_FONTSTART >= HU_FONTSIZE))
-  //            {
-  //                break;
-  //            }
-  //
-  //	    if (ch >= 32 && ch <= 127 &&
-  //		saveCharIndex < SAVESTRINGSIZE-1 &&
-  //		M_StringWidth(savegamestrings[saveSlot]) <
-  //		(SAVESTRINGSIZE-2)*8)
-  //	    {
-  //		savegamestrings[saveSlot][saveCharIndex++] = ch;
-  //		savegamestrings[saveSlot][saveCharIndex] = 0;
-  //	    }
-  //	    break;
-  //	}
-  //	return true;
-  //    }
-  //
-  //    // [crispy] Enter numeric value
-  //    if (numeric_enter)
-  //    {
-  //        switch(key)
-  //        {
-  //            case KEY_BACKSPACE:
-  //                if (numeric_entry_index > 0)
-  //                {
-  //                    numeric_entry_index--;
-  //                    numeric_entry_str[numeric_entry_index] = '\0';
-  //                }
-  //                break;
-  //            case KEY_ESCAPE:
-  //                numeric_enter = false;
-  //                I_StopTextInput();
-  //                break;
-  //            case KEY_ENTER:
-  //                if (numeric_entry_str[0] != '\0')
-  //                {
-  //                    numeric_entry = atoi(numeric_entry_str);
-  //                    currentMenu->menuitems[itemOn].routine(2);
-  //                }
-  //                else
-  //                {
-  //                    numeric_enter = false;
-  //                    I_StopTextInput();
-  //                }
-  //                break;
-  //            default:
-  //                if (ev->type != ev_keydown)
-  //                {
-  //                    break;
-  //                }
-  //
-  //                if (vanilla_keyboard_mapping)
-  //                {
-  //                    ch = ev->data1;
-  //                }
-  //                else
-  //                {
-  //                    ch = ev->data3;
-  //                }
-  //
-  //                if (ch >= '0' && ch <= '9' &&
-  //                        numeric_entry_index < NUMERIC_ENTRY_NUMDIGITS)
-  //                {
-  //                    numeric_entry_str[numeric_entry_index++] = ch;
-  //                    numeric_entry_str[numeric_entry_index] = '\0';
-  //                }
-  //                else
-  //                {
-  //                    break;
-  //                }
-  //        }
-  //        return true;
-  //    }
+  // Save Game string input
+//    if (saveStringEnter)
+//    {
+//	switch(key)
+//	{
+//	  case KEY_BACKSPACE:
+//	    if (saveCharIndex > 0)
+//	    {
+//		saveCharIndex--;
+//		savegamestrings[saveSlot][saveCharIndex] = 0;
+//	    }
+//	    break;
+//
+//          case KEY_ESCAPE:
+//            saveStringEnter = 0;
+//            I_StopTextInput();
+//            M_StringCopy(savegamestrings[saveSlot], saveOldString,
+//                         SAVESTRINGSIZE);
+//            break;
+//
+//	  case KEY_ENTER:
+//	    saveStringEnter = 0;
+//            I_StopTextInput();
+//	    if (savegamestrings[saveSlot][0])
+//		M_DoSave(saveSlot);
+//	    break;
+//
+//	  default:
+//            // Savegame name entry. This is complicated.
+//            // Vanilla has a bug where the shift key is ignored when entering
+//            // a savegame name. If vanilla_keyboard_mapping is on, we want
+//            // to emulate this bug by using ev->data1. But if it's turned off,
+//            // it implies the user doesn't care about Vanilla emulation:
+//            // instead, use ev->data3 which gives the fully-translated and
+//            // modified key input.
+//
+//            if (ev->type != ev_keydown)
+//            {
+//                break;
+//            }
+//            if (vanilla_keyboard_mapping)
+//            {
+//                ch = ev->data1;
+//            }
+//            else
+//            {
+//                ch = ev->data3;
+//            }
+//
+//            ch = toupper(ch);
+//
+//            if (ch != ' '
+//             && (ch - HU_FONTSTART < 0 || ch - HU_FONTSTART >= HU_FONTSIZE))
+//            {
+//                break;
+//            }
+//
+//	    if (ch >= 32 && ch <= 127 &&
+//		saveCharIndex < SAVESTRINGSIZE-1 &&
+//		M_StringWidth(savegamestrings[saveSlot]) <
+//		(SAVESTRINGSIZE-2)*8)
+//	    {
+//		savegamestrings[saveSlot][saveCharIndex++] = ch;
+//		savegamestrings[saveSlot][saveCharIndex] = 0;
+//	    }
+//	    break;
+//	}
+//	return true;
+//    }
 
-  //    // Take care of any messages that need input
-  //    if (messageToPrint)
-  //    {
-  //	if (messageNeedsInput)
-  //        {
-  //            if (key != ' ' && key != KEY_ESCAPE
-  //             && key != key_menu_confirm && key != key_menu_abort
-  //             // [crispy] allow to confirm nightmare, end game and quit by pressing Enter key
-  //             && key != key_menu_forward)
-  //            {
-  //                return false;
-  //            }
-  //	}
+//    // [crispy] Enter numeric value
+//    if (numeric_enter)
+//    {
+//        switch(key)
+//        {
+//            case KEY_BACKSPACE:
+//                if (numeric_entry_index > 0)
+//                {
+//                    numeric_entry_index--;
+//                    numeric_entry_str[numeric_entry_index] = '\0';
+//                }
+//                break;
+//            case KEY_ESCAPE:
+//                numeric_enter = false;
+//                I_StopTextInput();
+//                break;
+//            case KEY_ENTER:
+//                if (numeric_entry_str[0] != '\0')
+//                {
+//                    numeric_entry = atoi(numeric_entry_str);
+//                    currentMenu->menuitems[itemOn].routine(2);
+//                }
+//                else
+//                {
+//                    numeric_enter = false;
+//                    I_StopTextInput();
+//                }
+//                break;
+//            default:
+//                if (ev->type != ev_keydown)
+//                {
+//                    break;
+//                }
+//
+//                if (vanilla_keyboard_mapping)
+//                {
+//                    ch = ev->data1;
+//                }
+//                else
+//                {
+//                    ch = ev->data3;
+//                }
+//
+//                if (ch >= '0' && ch <= '9' &&
+//                        numeric_entry_index < NUMERIC_ENTRY_NUMDIGITS)
+//                {
+//                    numeric_entry_str[numeric_entry_index++] = ch;
+//                    numeric_entry_str[numeric_entry_index] = '\0';
+//                }
+//                else
+//                {
+//                    break;
+//                }
+//        }
+//        return true;
+//    }
 
-  menuactive := messageLastMenuActive;
-  If assigned(messageRoutine) Then
-    messageRoutine(key);
+  // Take care of any messages that need input
+  If (messageToPrint <> 0) Then Begin
+    If (messageNeedsInput) Then Begin
+      If (key <> ord(' ')) And (key <> KEY_ESCAPE)
+        And (key <> key_menu_confirm) And (key <> key_menu_abort)
+        // [crispy] allow to confirm nightmare, end game and quit by pressing Enter key
+      And (key <> key_menu_forward)
+        Then Begin
+        exit;
+      End;
+    End;
 
-  //	// [crispy] stay in menu
-  //	if (messageToPrint < 2)
-  //	{
-  //	menuactive = false;
-  //	}
-  //	messageToPrint = 0; // [crispy] moved here
-  //	S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
-  //	return true;
-  //    }
+    menuactive := messageLastMenuActive;
+    If assigned(messageRoutine) Then
+      messageRoutine(key);
+
+    // [crispy] stay in menu
+    If (messageToPrint < 2) Then Begin
+      menuactive := false;
+    End;
+    messageToPrint := 0; // [crispy] moved here
+    S_StartSoundOptional(Nil, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
+    result := true;
+    exit;
+  End;
 
   //    // [crispy] take screen shot without weapons and HUD
   //    if (key != 0 && key == key_menu_cleanscreenshot)
@@ -922,17 +922,16 @@ Begin
   //
   //    }
 
-  //    // Pop-up menu?
-  //    if (!menuactive)
-  //    {
-  //	if (key == key_menu_activate)
-  //	{
-  //	    M_StartControlPanel ();
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    return true;
-  //	}
-  //	return false;
-  //    }
+  // Pop-up menu?
+  If (Not menuactive) Then Begin
+    If (key = key_menu_activate) Then Begin
+      M_StartControlPanel();
+      S_StartSoundOptional(Nil, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+      result := true;
+      exit;
+    End;
+    exit;
+  End;
 
   // Keys usable within menu
 
@@ -961,56 +960,56 @@ Begin
     exit;
   End
   Else If (key = key_menu_left) Then Begin
-    //        // Slide slider left
-    //
-    //	if (currentMenu->menuitems[itemOn].routine &&
-    //	    currentMenu->menuitems[itemOn].status)
-    //	{
-    //            if (currentMenu->menuitems[itemOn].status == 2)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(0);
-    //            }
-    //            // [crispy] LR non-slider
-    //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(0);
-    //            }
-    //            // [crispy] Numeric entry
-    //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(0);
-    //            }
-    //        }
-    //	return true;
+    // Slide slider left
+
+//	if (currentMenu->menuitems[itemOn].routine &&
+//	    currentMenu->menuitems[itemOn].status)
+//	{
+//            if (currentMenu->menuitems[itemOn].status == 2)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(0);
+//            }
+//            // [crispy] LR non-slider
+//            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(0);
+//            }
+//            // [crispy] Numeric entry
+//            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(0);
+//            }
+//        }
+//	return true;
   End
   Else If (key = key_menu_right) Then Begin
-    //        // Slide slider right
-    //
-    //	if (currentMenu->menuitems[itemOn].routine &&
-    //	    currentMenu->menuitems[itemOn].status)
-    //	{
-    //            if (currentMenu->menuitems[itemOn].status == 2)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(1);
-    //            }
-    //            // [crispy] LR non-slider
-    //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(1);
-    //            }
-    //            // [crispy] Numeric entry
-    //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
-    //            {
-    //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-    //                currentMenu->menuitems[itemOn].routine(1);
-    //            }
-    //        }
-    //	return true;
+    // Slide slider right
+
+//	if (currentMenu->menuitems[itemOn].routine &&
+//	    currentMenu->menuitems[itemOn].status)
+//	{
+//            if (currentMenu->menuitems[itemOn].status == 2)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(1);
+//            }
+//            // [crispy] LR non-slider
+//            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(1);
+//            }
+//            // [crispy] Numeric entry
+//            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+//            {
+//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+//                currentMenu->menuitems[itemOn].routine(1);
+//            }
+//        }
+//	return true;
 
   End
   Else If (key = key_menu_forward) Then Begin
@@ -1020,34 +1019,33 @@ Begin
       currentMenu^.lastOn := itemOn;
       If (currentMenu^.menuitems[itemOn].status = 2) Then Begin
         currentMenu^.menuitems[itemOn].routine(1); // right arrow
-        //		S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+        S_StartSoundOptional(Nil, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
       End
       Else If (currentMenu^.menuitems[itemOn].status = 3) Then Begin
         currentMenu^.menuitems[itemOn].routine(1); // right arrow
-        //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+        S_StartSoundOptional(Nil, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
       End
       Else If (currentMenu^.menuitems[itemOn].status = 4) Then Begin // [crispy]
         currentMenu^.menuitems[itemOn].routine(2); // enter key
         numeric_entry_index := 0;
         numeric_entry_str := '';
-        //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol);
+        S_StartSoundOptional(Nil, sfx_mnuact, sfx_pistol);
       End
       Else Begin
         currentMenu^.menuitems[itemOn].routine(itemOn);
-        //		S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+        S_StartSoundOptional(Nil, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
       End;
     End;
     result := true;
     exit;
   End
   Else If (key = key_menu_activate) Then Begin
-
     // Deactivate menu
-
-    //	currentMenu->lastOn = itemOn;
-    //	M_ClearMenus ();
-    //	S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
-    //	return true;
+    currentMenu^.lastOn := itemOn;
+    //    M_ClearMenus();
+    S_StartSoundOptional(Nil, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
+    result := true;
+    exit;
   End
   Else If (key = key_menu_back) Then Begin
     //        // Go back to previous menu
@@ -1146,8 +1144,6 @@ Begin
     //	    }
     //        }
   End;
-
-  result := false;
 End;
 
 //
@@ -1156,6 +1152,8 @@ End;
 
 Procedure M_Ticker;
 Begin
+  Hier gehts weiter, der Skull soll "Blinken"
+
   //    if (--skullAnimCounter <= 0)
   //    {
   //	whichSkull ^= 1;
@@ -1177,14 +1175,14 @@ Var
   i: unsigned_int;
   max: unsigned_int;
   str, s, name: String;
-  start: int;
+  //  start: int;
   nlIndex: integer;
 Begin
   //    char		string[80];
   //    const char          *name;
   //    int			;
 
-  // inhelpscreens := false;
+  inhelpscreens := false;
 
   //    // Horiz. & Vertically center string and print it.
   If (messageToPrint <> 0) Then Begin
@@ -1194,7 +1192,6 @@ Begin
       //	    M_DrawCrispnessBackground();
     End;
 
-    start := 0;
     y := ORIGHEIGHT Div 2 - M_StringHeight(messageString) Div 2;
     s := messageString;
     While s <> '' Do Begin
@@ -1221,7 +1218,7 @@ Begin
   //    M_DrawOPLDev();
   //  End;
 
-  //  If (Not menuactive) Then exit;
+  If (Not menuactive) Then exit;
 
   If assigned(currentMenu^.routine) Then
     currentMenu^.routine(); // call Draw routine
@@ -1270,6 +1267,12 @@ End;
 Procedure M_Init;
 Begin
   currentMenu := @MainDef;
+
+  // TODO: FIX: Default ist hier eigentlich False, aber wenn das Spiel startet ist
+  //       es im Main Menu und zeigt dieses auch an -> bliebe das false würde die
+  //       Tastatur direkt am Start nicht funktionieren.
+  //       Eigentlich sollte da irgendwo ein "M_StartControlPanel" kommen, aber noch konnte
+  //       der Entsprechende Aufruf nicht gefunden werden.
   menuactive := false;
   itemOn := currentMenu^.lastOn;
   whichSkull := 0;
@@ -1489,8 +1492,8 @@ Begin
 
 
   // [crispy] entering menus while recording demos pauses the game
-//    if (demorecording && !paused)
-//        sendpause = true;
+  If (demorecording) And (Not paused) Then
+    sendpause := true;
 
   menuactive := true;
   currentMenu := @MainDef; // JDC

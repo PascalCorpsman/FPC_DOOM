@@ -5,7 +5,9 @@ Unit i_video;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , doomtype
+  ;
 
 Const
   ORIGWIDTH = 320;
@@ -21,6 +23,8 @@ Procedure I_StartFrame();
 
 Procedure I_FinishUpdate();
 
+Procedure I_ReadScreen(Var scr: pixel_tArray);
+
 Var
   SCREENWIDTH: int; // Eigentlich unnötig Redundant
   SCREENHEIGHT: int; // Eigentlich unnötig Redundant
@@ -33,12 +37,14 @@ Var
   OpenGLControlWidth: Integer = 0;
   OpenGLControlHeight: Integer = 0;
 
+  // Joystick/gamepad hysteresis
+  joywait: unsigned_int = 0;
+
 Implementation
 
 Uses Graphics, config, dglOpenGL
-  , v_video, v_diskicon
   , usdl_wrapper
-  , doomtype
+  , v_video, v_diskicon
   ;
 
 Var
@@ -525,7 +531,7 @@ Procedure I_StartFrame();
 Begin
   // TODO: Dieser Code kann sicher wieder Raus, wenn mal alles funktioniert
   //       Aktuell sorgt er aber dafür, dass bei jedem Frame alles wieder gelöscht ist ;)
-  FillChar(I_VideoBuffer[0], length(I_VideoBuffer), 0);
+  //  FillChar(I_VideoBuffer[0], length(I_VideoBuffer), 0);
 End;
 
 Procedure I_FinishUpdate();
@@ -749,6 +755,11 @@ Begin
 
   // Restore background and undo the disk indicator, if it was drawn.
   V_RestoreDiskBackground();
+End;
+
+Procedure I_ReadScreen(Var scr: pixel_tArray);
+Begin
+  move(I_VideoBuffer[0], scr[0], sizeof(I_VideoBuffer) * sizeof(I_VideoBuffer[0]));
 End;
 
 //Finalization

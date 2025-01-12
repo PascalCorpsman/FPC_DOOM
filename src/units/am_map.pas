@@ -9,6 +9,9 @@ Uses
 
 Procedure AM_Ticker();
 
+Var
+  automapactive: boolean = false;
+
 Implementation
 
 //
@@ -18,9 +21,9 @@ Implementation
 Procedure AM_Ticker();
 Begin
 
-  //    if (!automapactive)
-  //	return;
-  //
+  If (Not automapactive) Then exit;
+
+
   //    amclock++;
   //
   //    // [crispy] sync up for interpolation
