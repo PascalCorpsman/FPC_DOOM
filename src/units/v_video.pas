@@ -108,7 +108,7 @@ Var
   w, col: int;
   column: Pcolumn_t;
   source: PByte;
-  row: integer;
+  row, index: integer;
   count: Byte;
   Pint: ^integer;
   sc: byte;
@@ -140,7 +140,10 @@ Begin
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
         b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc];
 {$ENDIF}
-        dest_screen[(x + col) + (y + row) * SCREENWIDTH] := sc;
+        index := (x + col) + (y + row) * SCREENWIDTH;
+        // If (index >= 0) And (index <= high(dest_screen)) Then Begin
+        dest_screen[index] := sc;
+        // End;
         source := pointer(source) + 1;
         row := row + 1;
         dec(Count);

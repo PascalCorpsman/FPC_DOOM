@@ -105,10 +105,9 @@ Var
   //extern int key_map_clearmark;
   //extern int key_map_overlay;
   //extern int key_map_rotate;
-  //
-  //// menu keys:
 
-  key_menu_activate: int; // Der Öffnet ein Menü im Spiel, wahrscheinlich ESC ?
+  // menu keys:
+  key_menu_activate: int;
   key_menu_up: int;
   key_menu_down: int;
   key_menu_left: int;
@@ -129,7 +128,7 @@ Var
   //extern int key_menu_qload;
   //extern int key_menu_quit;
   //extern int key_menu_gamma;
-  //
+
   //extern int key_menu_incscreen;
   //extern int key_menu_decscreen;
   //extern int key_menu_screenshot;
@@ -230,7 +229,7 @@ Procedure M_BindMenuControls();
 Begin
   // ACHTUNG, Alle werte hier sind "Geraten"
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden
-  key_menu_activate := 0;
+  key_menu_activate := VK_ESCAPE;
   key_menu_up := VK_UP;
   key_menu_down := vk_down;
   key_menu_left := VK_LEFT;
@@ -238,7 +237,7 @@ Begin
   key_menu_back := VK_BACK;
   key_menu_forward := VK_RETURN;
   key_menu_confirm := VK_Y; // Y oder Z je nach Land..
-  key_menu_abort := VK_ESCAPE;
+  key_menu_abort := VK_N;
 
   //    M_BindIntVariable("key_menu_help",      &key_menu_help);
   //    M_BindIntVariable("key_menu_save",      &key_menu_save);

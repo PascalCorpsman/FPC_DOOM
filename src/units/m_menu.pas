@@ -74,6 +74,12 @@ Const
   SKULLXOFF = -32;
   skullName: Array Of String = ('M_SKULL1', 'M_SKULL2');
 
+  e_killthings = 0;
+  e_toorough = 1;
+  e_hurtme = 2;
+  e_violence = 3;
+  e_nightmare = 4;
+
 Type
 
   TIntRoutine = Procedure(choice: int);
@@ -136,13 +142,23 @@ Var
   numeric_entry_index: integer; // Braucht man Wahrscheinlich gar nicht, da FPC ja saubere Strings hat ;)
 
   MainDef: menu_t; // Wird im Initialiserungsteil definiert
+  NewDef: menu_t; // Wird im Initialiserungsteil definiert
+  EpiDef: menu_t; // Wird im Initialiserungsteil definiert
+
+  epi: int = 0;
   //  CrispnessMenus: Array Of menu_t; // Wird im Initialiserungsteil definiert
   //  crispness_cur: int = 0;
 
-  //
-  //      Find string height from hu_font chars
-  //
-  //      nutzt \n als LineEnding !
+Procedure M_SetupNextMenu(menudef: Pmenu_t);
+Begin
+  currentMenu := menudef;
+  itemOn := currentMenu^.lastOn;
+End;
+
+//
+//      Find string height from hu_font chars
+//
+//      nutzt \n als LineEnding !
 
 Function M_StringHeight(str: String): int;
 Var
@@ -266,6 +282,19 @@ Begin
   End;
 End;
 
+Procedure M_DrawEpisode();
+Begin
+  // [crispy] force status bar refresh
+  inhelpscreens := true;
+
+  If (W_CheckNumForName('M_EPISOD') <> -1) Then Begin
+    V_DrawPatchDirect(54, 38, W_CacheLumpName('M_EPISOD', PU_CACHE));
+  End
+  Else Begin
+    M_WriteText(54, 38, 'Which Episode?');
+    // EpiDef.lumps_missing := 1;
+  End;
+End;
 
 Procedure M_DrawNewGame();
 Begin
@@ -289,18 +318,19 @@ Begin
     exit;
   End;
 
-  //    if (netgame && !demoplayback)
-  //    {
-  //	M_StartMessage(DEH_String(NEWGAME),NULL,false);
-  //	return;
-  //    }
-  //
-  //    // Chex Quest disabled the episode select screen, as did Doom II.
-  //
-  //    if ((gamemode == commercial && !crispy->havenerve && !crispy->havemaster) || gameversion == exe_chex) // [crispy] NRFTL / The Master Levels
-  //	M_SetupNextMenu(&NewDef);
-  //    else
-  //	M_SetupNextMenu(&EpiDef);
+  If (netgame) And (Not demoplayback) Then Begin
+    M_StartMessage(NEWGAME, Nil, false);
+    exit;
+  End;
+
+  // Chex Quest disabled the episode select screen, as did Doom II.
+
+  If (gamemode = commercial) And (true {!crispy->havenerve && !crispy->havemaster}) Or (gameversion = exe_chex) Then Begin // [crispy] NRFTL / The Master Levels
+    M_SetupNextMenu(@NewDef);
+  End
+  Else Begin
+    M_SetupNextMenu(@EpiDef);
+  End;
 End;
 
 Procedure M_QuitResponse(key: int);
@@ -381,6 +411,66 @@ Begin
   M_StartMessage(endstring, @M_QuitResponse, true);
 End;
 
+Function intToSkill(value: int): skill_t;
+Begin
+  Case value Of
+    e_killthings: result := sk_baby;
+    e_toorough: result := sk_easy;
+    e_hurtme: result := sk_medium;
+    e_violence: result := sk_hard;
+    e_nightmare: result := sk_nightmare;
+  End;
+End;
+
+//
+// M_ClearMenus
+//
+
+Procedure M_ClearMenus();
+Begin
+  menuactive := false;
+
+  // [crispy] entering menus while recording demos pauses the game
+  If (demorecording) And (paused) Then sendpause := true;
+
+  If (Not netgame) And (usergame) And (paused) Then sendpause := true;
+End;
+
+Procedure M_VerifyNightmare(key: int);
+Begin
+  // [crispy] allow to confirm by pressing Enter key
+  If (key <> key_menu_confirm) And (key <> key_menu_forward) Then Begin
+    exit;
+  End;
+
+  G_DeferedInitNew(intToSkill(e_nightmare), epi + 1, 1);
+  M_ClearMenus();
+End;
+
+Procedure M_ChooseSkill(choice: int);
+Begin
+  If (choice = e_nightmare) Then Begin
+    M_StartMessage(NIGHTMARE, @M_VerifyNightmare, true);
+    exit;
+  End;
+
+  G_DeferedInitNew(intToSkill(choice), epi + 1, 1);
+  M_ClearMenus();
+End;
+
+Procedure M_Episode(choice: int);
+Begin
+  If (gamemode = shareware) And (choice <> 0) Then Begin
+    M_StartMessage(SWSTRING, Nil, false);
+    //	M_SetupNextMenu(&ReadDef1);
+    exit;
+  End;
+  epi := choice;
+  // [crispy] have Sigil II loaded but not Sigil
+  If (epi = 4) And (false { crispy-> haved1e6 && !crispy-> haved1e5}) Then
+    epi := 5;
+  M_SetupNextMenu(@NewDef);
+End;
 
 // These keys evaluate to a "null" key in Vanilla Doom that allows weird
 // jumping in the menus. Preserve this behavior for accuracy.
@@ -404,9 +494,9 @@ Const
   //    static  int     lastx = 0;
 
 Var
-  ch: int;
+  ch: char;
   key: int;
-  //    int             i;
+  i: int;
   //    boolean mousextobutton = false;
   //    int dir;
 Begin
@@ -446,7 +536,7 @@ Begin
 
   // key is the key pressed, ch is the actual character typed
 
-  ch := 0;
+  ch := #0;
   key := -1;
 
   If (ev^._type = ev_joystick) Then Begin
@@ -603,7 +693,8 @@ Begin
     Else Begin
       If (ev^._type = ev_keydown) Then Begin
         key := ev^.data1;
-        ch := ev^.data2;
+        ch := chr(ev^.data2);
+        ch := LowerCase(ch);
       End;
     End;
   End;
@@ -1044,22 +1135,20 @@ Begin
   Else If (key = key_menu_activate) Then Begin
     // Deactivate menu
     currentMenu^.lastOn := itemOn;
-    //    M_ClearMenus();
+    M_ClearMenus();
     S_StartSoundOptional(Nil, sfx_mnucls, sfx_swtchx); // [NS] Optional menu sounds.
     result := true;
     exit;
   End
   Else If (key = key_menu_back) Then Begin
-    //        // Go back to previous menu
-    //
-    //	currentMenu->lastOn = itemOn;
-    //	if (currentMenu->prevMenu)
-    //	{
-    //	    currentMenu = currentMenu->prevMenu;
-    //	    itemOn = currentMenu->lastOn;
-    //	    S_StartSoundOptional(NULL, sfx_mnubak, sfx_swtchn); // [NS] Optional menu sounds.
-    //	}
-    //	return true;
+    // Go back to previous menu
+    currentMenu^.lastOn := itemOn;
+    If assigned(currentMenu^.prevMenu) Then Begin
+      currentMenu := currentMenu^.prevMenu;
+      itemOn := currentMenu^.lastOn;
+      S_StartSoundOptional(Nil, sfx_mnubak, sfx_swtchn); // [NS] Optional menu sounds.
+    End;
+    result := true;
   End
     // [crispy] delete a savegame
   Else If (key = key_menu_del) Then Begin
@@ -1125,26 +1214,25 @@ Begin
     // Vanilla Doom has a weird behavior where it jumps to the scroll bars
     // when the certain keys are pressed, so emulate this.
 
-  Else If ((ch <> 0) Or IsNullKey(key)) Then Begin
-    //	for (i = itemOn+1;i < currentMenu->numitems;i++)
-    //        {
-    //	    if (currentMenu->menuitems[i].alphaKey == ch)
-    //	    {
-    //		itemOn = i;
-    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
-    //		return true;
-    //	    }
-    //        }
-    //
-    //	for (i = 0;i <= itemOn;i++)
-    //        {
-    //	    if (currentMenu->menuitems[i].alphaKey == ch)
-    //	    {
-    //		itemOn = i;
-    //		S_StartSoundOptional(NULL, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
-    //		return true;
-    //	    }
-    //        }
+  Else If ((ch <> #0) Or IsNullKey(key)) Then Begin
+    // Sieht komisch aus in 2 Schleifen, macht aber Sinn, wenn man zum nächsten Punkt "hopsen" möchte der mit dem gleichen Buchstaben anfängt (y)
+    For i := itemOn + 1 To currentMenu^.numitems - 1 Do Begin
+      If (currentMenu^.menuitems[i].alphaKey = ch) Then Begin
+        itemOn := i;
+        S_StartSoundOptional(Nil, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+        result := true;
+        exit;
+      End;
+    End;
+
+    For i := 0 To itemOn Do Begin
+      If (currentMenu^.menuitems[i].alphaKey = ch) Then Begin
+        itemOn := i;
+        S_StartSoundOptional(Nil, sfx_mnumov, sfx_pstop); // [NS] Optional menu sounds.
+        result := true;
+        exit;
+      End;
+    End;
   End;
 End;
 
@@ -1512,6 +1600,25 @@ Const
     (status: 1; Name: 'M_QUITG'; routine: @M_QuitDOOM; alphaKey: 'q')
     );
 
+  NewGameMenu: Array Of menuitem_t =
+  (
+    (status: 1; Name: 'M_JKILL'; routine: @M_ChooseSkill; alphaKey: 'i'),
+    (status: 1; Name: 'M_ROUGH'; routine: @M_ChooseSkill; alphaKey: 'h'),
+    (status: 1; Name: 'M_HURT'; routine: @M_ChooseSkill; alphaKey: 'h'),
+    (status: 1; Name: 'M_ULTRA'; routine: @M_ChooseSkill; alphaKey: 'u'),
+    (status: 1; Name: 'M_NMARE'; routine: @M_ChooseSkill; alphaKey: 'n')
+    );
+
+  EpisodeMenu: Array Of menuitem_t =
+  (
+    (status: 1; Name: 'M_EPI1'; routine: @M_Episode; alphaKey: 'k'),
+    (status: 1; Name: 'M_EPI2'; routine: @M_Episode; alphaKey: 't'),
+    (status: 1; Name: 'M_EPI3'; routine: @M_Episode; alphaKey: 'i'),
+    (status: 1; Name: 'M_EPI4'; routine: @M_Episode; alphaKey: 't'),
+    (status: 1; Name: 'M_EPI5'; routine: @M_Episode; alphaKey: 's'), // [crispy] Sigil
+    (status: 1; Name: 'M_EPI6'; routine: @M_Episode; alphaKey: 's') // [crispy] Sigil II
+    );
+
   //  Crispness1Menu: Array Of menuitem_t =
   //  (
   //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
@@ -1549,7 +1656,25 @@ Initialization
     routine := @M_DrawMainMenu; // draw routine
     x := 97;
     y := 64; // x,y of menu
-    lastOn := 0 // last item user was on in menu
+    lastOn := 0; // newgame // last item user was on in menu
+  End;
+  With NewDef Do Begin
+    numitems := length(NewGameMenu); // # of menu items
+    prevMenu := @MainDef; // Corpsman: FIX, was EpiDef previous menu
+    menuitems := NewGameMenu; // menuitem_t ->
+    routine := @M_DrawNewGame; // drawing routine ->
+    x := 48;
+    y := 63; // x,y
+    lastOn := e_hurtme; // lastOn
+  End;
+  With EpiDef Do Begin
+    numitems := length(EpisodeMenu); // # of menu items
+    prevMenu := @MainDef; // previous menu
+    menuitems := EpisodeMenu; // menuitem_t ->
+    routine := @M_DrawEpisode; // drawing routine ->
+    x := 48;
+    y := 63; // x,y
+    lastOn := 0; // ep1 // lastOn
   End;
 
   //  CrispnessMenus := Nil;

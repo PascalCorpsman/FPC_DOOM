@@ -18,8 +18,11 @@ Var
   gameaction: gameaction_t = ga_nothing;
   demorecording: Boolean;
   demoplayback: boolean = false;
+
   paused: boolean;
-  sendpause: Boolean;
+  sendpause: Boolean; // send a pause event next tic
+  usergame: boolean; // ok to save / end game
+
   viewactive: boolean;
   singledemo: boolean = false; // quit after playing a demo from cmdline
   netgame: boolean; // only true if packets are broadcast
@@ -35,6 +38,11 @@ Function speedkeydown(): boolean;
 Procedure G_InitNew(skill: skill_t; episode: int; map: int);
 
 Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
+
+// Can be called by the startup code or M_Responder.
+// A normal game starts at map 1,
+// but a warp test can start elsewhere
+Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 
 Implementation
 
@@ -1196,6 +1204,11 @@ Begin
   //                            cmd->angleturn - desired_angleturn :
   //                            desired_angleturn - cmd->angleturn;
   //    }
+End;
+
+Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
+Begin
+
 End;
 
 End.
