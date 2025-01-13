@@ -43,6 +43,7 @@ Type
 Var
   // The number of tics that have been run (using RunTic) so far.
   gametic: int;
+  TicksPerSecond: integer; // Corpsman: DEBUG for Tick per second Measurement
 
 Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
@@ -222,6 +223,7 @@ End;
 
 Function BuildNewTic(): Boolean;
 Begin
+  TicksPerSecond := TicksPerSecond + 1; // Corpsman: DEBUG for Tick per second Measurement
   result := false;
   //      int	gameticdiv;
   //      ticcmd_t cmd;

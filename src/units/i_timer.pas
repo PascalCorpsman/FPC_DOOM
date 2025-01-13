@@ -37,32 +37,37 @@ Procedure I_WaitVBL(count: int);
 Implementation
 
 Var
-  basetime: Uint32 = 0;
+  basetime: QWord = 0;
   //  basecounter: uint64_t = 0; // [crispy]
   //  basefreq: uint64_t = 0; // [crispy]
 
 Function I_GetTime(): int;
 Var
-  ticks: Longword;
+  ticks: QWord;
 Begin
-  ticks := GetTickCount;
-  If basetime = 0 Then basetime := 0;
+  ticks := GetTickCount64();
+  If basetime = 0 Then Begin
+    basetime := ticks;
+  End;
   ticks := ticks - basetime;
   result := (ticks * TICRATE) Div 1000;
 End;
 
 Function I_GetTimeMS(): int;
 Var
-  ticks: Longword;
+  ticks: QWord;
 Begin
-  ticks := GetTickCount;
-  If basetime = 0 Then basetime := 0;
+  ticks := GetTickCount64();
+  If basetime = 0 Then Begin
+    basetime := ticks;
+  End;
   result := ticks - basetime;
 End;
 
 Procedure I_Sleep(ms: int);
 Begin
   Sleep(ms);
+  Raise exception.create('I_Sleep was called!');
 End;
 
 Procedure I_InitTimer();

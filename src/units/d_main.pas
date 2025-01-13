@@ -10,7 +10,7 @@ Uses
   ;
 
 Procedure D_DoomMain(); // Init und alles was geladen werden muss
-Procedure D_DoomLoop(); // Main Loop -> Rendert die Frames
+Function D_DoomLoop(): Boolean; // Main Loop -> Rendert die Frames
 
 Procedure D_ProcessEvents();
 
@@ -734,16 +734,22 @@ End;
 //  D_RunFrame
 //
 
-Procedure D_RunFrame();
+Function D_RunFrame(): Boolean;
 Const
   wipestart: int = 0;
   wipe: boolean = false;
-  //  oldgametic: int = 0;
+  oldgametic: int = 0;
 Var
   nowtime: int;
   tics: int;
-
 Begin
+  result := false;
+  tics := I_GetTime();
+  If tics = oldgametic Then Begin
+    result := true;
+    exit;
+  End;
+  oldgametic := tics;
   If (wipe) Then Begin
     //  TODO: Das Aufrufen von I_Sleep ist hier natürlich Tödlich, weil wir ja grad beim Rendern sind, das muss dann noch anders realisiert werden
     Repeat
@@ -796,13 +802,9 @@ Begin
   //	}
 End;
 
-Procedure D_DoomLoop();
+Function D_DoomLoop(): Boolean;
 Begin
-  //
-  //     while (1)
-  //     {
-  D_RunFrame();
-  //     }
+  result := D_RunFrame();
 End;
 
 //

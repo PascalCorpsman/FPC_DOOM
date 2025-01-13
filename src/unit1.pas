@@ -33,7 +33,13 @@ Unit Unit1;
 (*
  * Enable to see how much time is actually taken to "render" a frame
  *)
-{$DEFINE SHOW_RENDERTIME_IN_MS}
+{.$DEFINE SHOW_RENDERTIME_IN_MS}
+
+(*
+ * Enable to see how many ticks per Second are calculated (should be 35)
+ * -> Result will be shown in Form caption
+ *)
+{.$DEFINE CALC_TICKS_PER_SECOND}
 
 Interface
 
@@ -85,6 +91,9 @@ Uses
   , d_main, d_event
   , i_video
   , v_video
+{$IFDEF CALC_TICKS_PER_SECOND}
+  , d_loop
+{$ENDIF}
 {$IFDEF SHOW_RENDERTIME_IN_MS}
   // If you get a Error that the following unit is not found, please disable the define !
   , uOpenGL_ASCII_Font
@@ -148,6 +157,12 @@ Begin
 End;
 
 Procedure TForm1.OpenGLControl1Paint(Sender: TObject);
+{$IFDEF CALC_TICKS_PER_SECOND}
+Const
+  Counter1s: QWord = 0;
+Var
+  aTime: QWord;
+{$ENDIF}
 {$IFDEF SHOW_RENDERTIME_IN_MS}
 Const
   MaxRenderTime: integer = 0;
@@ -155,6 +170,8 @@ Const
 Var
   TimePerFrame: QWord;
 {$ENDIF}
+Var
+  SkipSwapBuffers: Boolean;
 Begin
   If Not Initialized Then Exit;
   // Render Szene
@@ -171,7 +188,13 @@ Begin
     MaxRenderTime := 0;
   End;
 {$ENDIF}
-  D_DoomLoop(); // Sollte mindestens alle 35ms aufgerufen werden !
+  (*
+   * Das Spiel läuft auf 35 Ticks pro Sekunde Normiert
+   * -> Also Rendert es nicht immer, wenn es nicht rendert darf der
+   *    Buffer nicht geswapped werden, sonst flackert alles, weil er oben schon
+   *    gelöscht wurde..
+   *)
+  SkipSwapBuffers := D_DoomLoop();
 {$IFDEF SHOW_RENDERTIME_IN_MS}
   TimePerFrame := GetTickCount64 - TimePerFrame;
   If TimePerFrame > MaxRenderTime Then MaxRenderTime := TimePerFrame;
@@ -184,7 +207,18 @@ Begin
   OpenGL_ASCII_Font.Textout(1, 1, format('%d' + LineEnding + '%d', [TimePerFrame, MaxRenderTime]));
 {$ENDIF}
   exit2d;
-  OpenGLControl1.SwapBuffers;
+  If Not SkipSwapBuffers Then Begin
+    OpenGLControl1.SwapBuffers;
+  End;
+{$IFDEF CALC_TICKS_PER_SECOND}
+  aTime := GetTickCount64;
+  If Counter1s = 0 Then Counter1s := aTime;
+  If aTime - Counter1s >= 1000 Then Begin
+    caption := Format('%0.1f', [TicksPerSecond * 1000 / (aTime - Counter1s)]);
+    TicksPerSecond := 0;
+    Counter1s := aTime;
+  End;
+{$ENDIF}
 End;
 
 Procedure TForm1.OpenGLControl1Resize(Sender: TObject);
