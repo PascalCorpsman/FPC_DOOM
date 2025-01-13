@@ -116,7 +116,9 @@ Type
 
 Var
   itemOn: short; // menu item skull is on
+  skullAnimCounter: short; // skull animation counter
   whichSkull: short; // which skull to draw
+
   currentMenu: Pmenu_t;
 
   endstring: String;
@@ -1152,13 +1154,11 @@ End;
 
 Procedure M_Ticker;
 Begin
-  Hier gehts weiter, der Skull soll "Blinken"
-
-  //    if (--skullAnimCounter <= 0)
-  //    {
-  //	whichSkull ^= 1;
-  //	skullAnimCounter = 8;
-  //    }
+  skullAnimCounter := skullAnimCounter - 1;
+  If (skullAnimCounter <= 0) Then Begin
+    whichSkull := whichSkull Xor 1;
+    skullAnimCounter := 8;
+  End;
 End;
 
 //

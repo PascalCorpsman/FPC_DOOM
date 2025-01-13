@@ -16,8 +16,8 @@ Const
   // the game final animation, or a demo.
 Type
   gamestate_t = (
-    GS_NEG_1, // die FPC Variante für -1
-    GS_LEVEL,
+    GS_NEG_1 = -1, // die FPC Variante für -1
+    GS_LEVEL = 0,
     GS_INTERMISSION,
     GS_FINALE,
     GS_DEMOSCREEN
