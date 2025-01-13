@@ -100,7 +100,7 @@ End;
 Const
   doom_loop_interface: loop_interface_t = (
     ProcessEvents: @D_ProcessEvents;
-    //   BuildTiccmd: @G_BuildTiccmd;
+    BuildTiccmd: @G_BuildTiccmd;
     RunTic: @RunTic;
     RunMenu: @M_Ticker
     )

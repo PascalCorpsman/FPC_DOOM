@@ -61,7 +61,11 @@ Type
   End;
   Pevent_t = ^event_t;
 
-Procedure PushEvent(Const ev: event_t); // So kann die Anwendung "events" im Spiel Auslösen ;)
+  //
+  // D_PostEvent
+  // Called by the I/O functions when input is detected
+  //
+Procedure D_PostEvent(Const ev: event_t);
 
 Function D_PopEvent(): Pevent_t;
 
@@ -72,6 +76,9 @@ Implementation
 Uses
   ufifo;
 
+Const
+  MAXEVENTS = 64;
+
 Type
 
   TEventFifo = specialize TBufferedFifo < Pevent_t > ;
@@ -79,7 +86,7 @@ Type
 Var
   EventFifo: TEventFifo = Nil;
 
-Procedure PushEvent(Const ev: event_t);
+Procedure D_PostEvent(Const ev: event_t);
 Var
   p: Pevent_t;
 Begin
@@ -105,7 +112,7 @@ Begin
 End;
 
 Initialization
-  EventFifo := TEventFifo.create(128);
+  EventFifo := TEventFifo.create(MAXEVENTS);
 
 Finalization
   EventFifo.free;

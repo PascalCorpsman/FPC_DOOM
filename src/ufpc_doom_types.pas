@@ -13,6 +13,8 @@ Const
 
 Type
 
+  signed_char = Int8;
+
   uint8_t = UInt8;
   uint16_t = UInt16;
   uint64_t = UInt64;

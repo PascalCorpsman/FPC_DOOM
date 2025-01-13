@@ -303,10 +303,11 @@ Var
 Begin
   // See d_event.pas for descriptions
   ev := GetTypedEmptyEvent(ev_keydown);
+  // Siehe i_input.c I_HandleKeyboardEvent
   ev.data1 := Key; // doomkeys.h is made to be equal to lcl
   ev.data2 := Key; // TODO: muss noch richtig gemacht werden ?
   ev.data3 := Key; // TODO: muss noch richtig gemacht werden ?
-  PushEvent(ev);
+  D_PostEvent(ev);
 End;
 
 Procedure TForm1.OpenGLControl1KeyUp(Sender: TObject; Var Key: Word;
@@ -316,8 +317,9 @@ Var
 Begin
   // See d_event.pas for descriptions
   ev := GetTypedEmptyEvent(ev_keyup);
+  // Siehe i_input.c I_HandleKeyboardEvent
   ev.data1 := Key; // doomkeys.h is made to be equal to lcl
-  PushEvent(ev);
+  D_PostEvent(ev);
 End;
 
 Procedure TForm1.Timer1Timer(Sender: TObject);

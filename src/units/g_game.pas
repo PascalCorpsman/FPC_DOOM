@@ -7,7 +7,7 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomdef
-  , d_event, d_mode
+  , d_event, d_mode, d_ticcmd
   ;
 
 Var
@@ -33,6 +33,8 @@ Function G_Responder(Const ev: Pevent_t): boolean;
 Function speedkeydown(): boolean;
 
 Procedure G_InitNew(skill: skill_t; episode: int; map: int);
+
+Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
 
 Implementation
 
@@ -639,6 +641,561 @@ Begin
   //    }
   //
   //    G_DoLoadLevel ();
+End;
+
+//
+// G_BuildTiccmd
+// Builds a ticcmd from all of the available inputs
+// or reads it from the demo buffer.
+// If recording a demo, write it out
+//
+
+Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
+Begin
+  //    int		i;
+  //    boolean	strafe;
+  //    boolean	bstrafe;
+  //    int		speed;
+  //    int		tspeed;
+  //    int		lspeed;
+  //    int		angle = 0; // [crispy]
+  //    short	mousex_angleturn; // [crispy]
+  //    int		forward;
+  //    int		side;
+  //    int		look;
+  //    player_t *const player = &players[consoleplayer];
+  //    static char playermessage[48];
+  //
+  //    // [crispy] For fast polling.
+  //    G_PrepTiccmd();
+  //    memcpy(cmd, &basecmd, sizeof(*cmd));
+  //    memset(&basecmd, 0, sizeof(ticcmd_t));
+  //
+  //    cmd->consistancy =
+  //	consistancy[consoleplayer][maketic%BACKUPTICS];
+  //
+  //    strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe]
+  //	|| joybuttons[joybstrafe];
+  //
+  //    // fraggle: support the old "joyb_speed = 31" hack which
+  //    // allowed an autorun effect
+  //
+  //    // [crispy] when "always run" is active,
+  //    // pressing the "run" key will result in walking
+  //    speed = (key_speed >= NUMKEYS
+  //         || joybspeed >= MAX_JOY_BUTTONS);
+  //    speed ^= speedkeydown();
+  //
+  //    forward = side = look = 0;
+  //
+  //    // use two stage accelerative turning
+  //    // on the keyboard and joystick
+  //    if (joyxmove < 0
+  //	|| joyxmove > 0
+  //	|| gamekeydown[key_right]
+  //	|| gamekeydown[key_left]
+  //	|| mousebuttons[mousebturnright]
+  //	|| mousebuttons[mousebturnleft])
+  //	turnheld += ticdup;
+  //    else
+  //	turnheld = 0;
+  //
+  //    if (turnheld < SLOWTURNTICS)
+  //	tspeed = 2;             // slow turn
+  //    else
+  //	tspeed = speed;
+  //
+  //    // [crispy] use two stage accelerative looking
+  //    if (gamekeydown[key_lookdown] || gamekeydown[key_lookup])
+  //    {
+  //        lookheld += ticdup;
+  //    }
+  //    else
+  //    {
+  //        lookheld = 0;
+  //    }
+  //    if (lookheld < SLOWTURNTICS)
+  //    {
+  //        lspeed = 1;
+  //    }
+  //    else
+  //    {
+  //        lspeed = 2;
+  //    }
+  //
+  //    // [crispy] add quick 180° reverse
+  //    if (gamekeydown[key_reverse] || mousebuttons[mousebreverse])
+  //    {
+  //        angle += ANG180 >> FRACBITS;
+  //        gamekeydown[key_reverse] = false;
+  //        mousebuttons[mousebreverse] = false;
+  //    }
+  //
+  //    // [crispy] toggle "always run"
+  //    if (gamekeydown[key_toggleautorun])
+  //    {
+  //        static int joybspeed_old = 2;
+  //
+  //        if (joybspeed >= MAX_JOY_BUTTONS)
+  //        {
+  //            joybspeed = joybspeed_old;
+  //        }
+  //        else
+  //        {
+  //            joybspeed_old = joybspeed;
+  //            joybspeed = MAX_JOY_BUTTONS;
+  //        }
+  //
+  //        M_snprintf(playermessage, sizeof(playermessage), "ALWAYS RUN %s%s",
+  //            crstr[CR_GREEN],
+  //            (joybspeed >= MAX_JOY_BUTTONS) ? "ON" : "OFF");
+  //        player->message = playermessage;
+  //        S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+  //
+  //        gamekeydown[key_toggleautorun] = false;
+  //    }
+  //
+  //    // [crispy] Toggle vertical mouse movement
+  //    if (gamekeydown[key_togglenovert])
+  //    {
+  //        novert = !novert;
+  //
+  //        M_snprintf(playermessage, sizeof(playermessage),
+  //            "vertical mouse movement %s%s",
+  //            crstr[CR_GREEN],
+  //            !novert ? "ON" : "OFF");
+  //        player->message = playermessage;
+  //        S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+  //
+  //        gamekeydown[key_togglenovert] = false;
+  //    }
+  //
+  //    // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
+  //    if (player->powers[pw_mapcoords])
+  //    {
+  //        M_snprintf(playermessage, sizeof(playermessage),
+  //            "X=%.10f Y=%.10f A=%d",
+  //            (double)player->mo->x/FRACUNIT,
+  //            (double)player->mo->y/FRACUNIT,
+  //            player->mo->angle >> 24);
+  //        player->message = playermessage;
+  //
+  //        player->powers[pw_mapcoords]--;
+  //
+  //        // [crispy] discard instead of going static
+  //        if (!player->powers[pw_mapcoords])
+  //        {
+  //            player->message = "";
+  //        }
+  //    }
+  //
+  //    // let movement keys cancel each other out
+  //    if (strafe)
+  //    {
+  //        if (!cmd->angleturn)
+  //        {
+  //            if (gamekeydown[key_right] || mousebuttons[mousebturnright])
+  //            {
+  //                // fprintf(stderr, "strafe right\n");
+  //                side += sidemove[speed];
+  //            }
+  //            if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
+  //            {
+  //                //	fprintf(stderr, "strafe left\n");
+  //                side -= sidemove[speed];
+  //            }
+  //            if (use_analog && joyxmove)
+  //            {
+  //                joyxmove = joyxmove * joystick_move_sensitivity / 10;
+  //                joyxmove = BETWEEN(-FRACUNIT, FRACUNIT, joyxmove);
+  //                side += FixedMul(sidemove[speed], joyxmove);
+  //            }
+  //            else if (joystick_move_sensitivity)
+  //            {
+  //                if (joyxmove > 0)
+  //                    side += sidemove[speed];
+  //                if (joyxmove < 0)
+  //                    side -= sidemove[speed];
+  //            }
+  //        }
+  //    }
+  //    else
+  //    {
+  //	if (gamekeydown[key_right] || mousebuttons[mousebturnright])
+  //	    angle -= angleturn[tspeed];
+  //	if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
+  //	    angle += angleturn[tspeed];
+  //        if (use_analog && joyxmove)
+  //        {
+  //            // Cubic response curve allows for finer control when stick
+  //            // deflection is small.
+  //            joyxmove = FixedMul(FixedMul(joyxmove, joyxmove), joyxmove);
+  //            joyxmove = joyxmove * joystick_turn_sensitivity / 10;
+  //            angle -= FixedMul(angleturn[1], joyxmove);
+  //        }
+  //        else if (joystick_turn_sensitivity)
+  //        {
+  //            if (joyxmove > 0)
+  //                angle -= angleturn[tspeed];
+  //            if (joyxmove < 0)
+  //                angle += angleturn[tspeed];
+  //        }
+  //    }
+  //
+  //    if (gamekeydown[key_up] || gamekeydown[key_alt_up]) // [crispy] add key_alt_*
+  //    {
+  //	// fprintf(stderr, "up\n");
+  //	forward += forwardmove[speed];
+  //    }
+  //    if (gamekeydown[key_down] || gamekeydown[key_alt_down]) // [crispy] add key_alt_*
+  //    {
+  //	// fprintf(stderr, "down\n");
+  //	forward -= forwardmove[speed];
+  //    }
+  //
+  //    if (use_analog && joyymove)
+  //    {
+  //        joyymove = joyymove * joystick_move_sensitivity / 10;
+  //        joyymove = BETWEEN(-FRACUNIT, FRACUNIT, joyymove);
+  //        forward -= FixedMul(forwardmove[speed], joyymove);
+  //    }
+  //    else if (joystick_move_sensitivity)
+  //    {
+  //        if (joyymove < 0)
+  //            forward += forwardmove[speed];
+  //        if (joyymove > 0)
+  //            forward -= forwardmove[speed];
+  //    }
+  //
+  //    if (gamekeydown[key_strafeleft] || gamekeydown[key_alt_strafeleft] // [crispy] add key_alt_*
+  //     || joybuttons[joybstrafeleft]
+  //     || mousebuttons[mousebstrafeleft])
+  //    {
+  //        side -= sidemove[speed];
+  //    }
+  //
+  //    if (gamekeydown[key_straferight] || gamekeydown[key_alt_straferight] // [crispy] add key_alt_*
+  //     || joybuttons[joybstraferight]
+  //     || mousebuttons[mousebstraferight])
+  //    {
+  //        side += sidemove[speed];
+  //    }
+  //
+  //    if (use_analog && joystrafemove)
+  //    {
+  //        joystrafemove = joystrafemove * joystick_move_sensitivity / 10;
+  //        joystrafemove = BETWEEN(-FRACUNIT, FRACUNIT, joystrafemove);
+  //        side += FixedMul(sidemove[speed], joystrafemove);
+  //    }
+  //    else if (joystick_move_sensitivity)
+  //    {
+  //        if (joystrafemove < 0)
+  //            side -= sidemove[speed];
+  //        if (joystrafemove > 0)
+  //            side += sidemove[speed];
+  //    }
+  //
+  //    // [crispy] look up/down/center keys
+  //    if (crispy->freelook)
+  //    {
+  //        static unsigned int kbdlookctrl = 0;
+  //
+  //        if (gamekeydown[key_lookup])
+  //        {
+  //            look = lspeed;
+  //            kbdlookctrl += ticdup;
+  //        }
+  //        else
+  //        if (gamekeydown[key_lookdown])
+  //        {
+  //            look = -lspeed;
+  //            kbdlookctrl += ticdup;
+  //        }
+  //        else
+  //        if (joylook && joystick_look_sensitivity)
+  //        {
+  //            if (use_analog)
+  //            {
+  //                joylook = joylook * joystick_look_sensitivity / 10;
+  //                joylook = BETWEEN(-FRACUNIT, FRACUNIT, joylook);
+  //                look = -FixedMul(2, joylook);
+  //            }
+  //            else
+  //            {
+  //                if (joylook < 0)
+  //                {
+  //                    look = lspeed;
+  //                }
+  //
+  //                if (joylook > 0)
+  //                {
+  //                    look = -lspeed;
+  //                }
+  //            }
+  //            kbdlookctrl += ticdup;
+  //        }
+  //        else
+  //        // [crispy] keyboard lookspring
+  //        if (gamekeydown[key_lookcenter] || (crispy->freelook == FREELOOK_SPRING && kbdlookctrl))
+  //        {
+  //            look = TOCENTER;
+  //            kbdlookctrl = 0;
+  //        }
+  //    }
+  //
+  //    // [crispy] jump keys
+  //    if (critical->jump)
+  //    {
+  //        if (gamekeydown[key_jump] || mousebuttons[mousebjump]
+  //            || joybuttons[joybjump])
+  //        {
+  //            cmd->arti |= AFLAG_JUMP;
+  //        }
+  //    }
+  //
+  //    // buttons
+  //    cmd->chatchar = HU_dequeueChatChar();
+  //
+  //    if (gamekeydown[key_fire] || mousebuttons[mousebfire]
+  //	|| joybuttons[joybfire])
+  //	cmd->buttons |= BT_ATTACK;
+  //
+  //    if (gamekeydown[key_use]
+  //     || joybuttons[joybuse]
+  //     || mousebuttons[mousebuse])
+  //    {
+  //	cmd->buttons |= BT_USE;
+  //	// clear double clicks if hit use button
+  //	dclicks = 0;
+  //    }
+  //
+  //    // If the previous or next weapon button is pressed, the
+  //    // next_weapon variable is set to change weapons when
+  //    // we generate a ticcmd.  Choose a new weapon.
+  //
+  //    if (gamestate == GS_LEVEL && next_weapon != 0)
+  //    {
+  //        i = G_NextWeapon(next_weapon);
+  //        cmd->buttons |= BT_CHANGE;
+  //        cmd->buttons |= i << BT_WEAPONSHIFT;
+  //    }
+  //    else
+  //    {
+  //        // Check weapon keys.
+  //
+  //        for (i=0; i<arrlen(weapon_keys); ++i)
+  //        {
+  //            int key = *weapon_keys[i];
+  //
+  //            if (gamekeydown[key])
+  //            {
+  //                cmd->buttons |= BT_CHANGE;
+  //                cmd->buttons |= i<<BT_WEAPONSHIFT;
+  //                break;
+  //            }
+  //        }
+  //    }
+  //
+  //    next_weapon = 0;
+  //
+  //    // mouse
+  //    if (mousebuttons[mousebforward])
+  //    {
+  //	forward += forwardmove[speed];
+  //    }
+  //    if (mousebuttons[mousebbackward])
+  //    {
+  //        forward -= forwardmove[speed];
+  //    }
+  //
+  //    if (dclick_use)
+  //    {
+  //        // forward double click
+  //        if (mousebuttons[mousebforward] != dclickstate && dclicktime > 1 )
+  //        {
+  //            dclickstate = mousebuttons[mousebforward];
+  //            if (dclickstate)
+  //                dclicks++;
+  //            if (dclicks == 2)
+  //            {
+  //                cmd->buttons |= BT_USE;
+  //                dclicks = 0;
+  //            }
+  //            else
+  //                dclicktime = 0;
+  //        }
+  //        else
+  //        {
+  //            dclicktime += ticdup;
+  //            if (dclicktime > 20)
+  //            {
+  //                dclicks = 0;
+  //                dclickstate = 0;
+  //            }
+  //        }
+  //
+  //        // strafe double click
+  //        bstrafe =
+  //            mousebuttons[mousebstrafe]
+  //            || joybuttons[joybstrafe];
+  //        if (bstrafe != dclickstate2 && dclicktime2 > 1 )
+  //        {
+  //            dclickstate2 = bstrafe;
+  //            if (dclickstate2)
+  //                dclicks2++;
+  //            if (dclicks2 == 2)
+  //            {
+  //                cmd->buttons |= BT_USE;
+  //                dclicks2 = 0;
+  //            }
+  //            else
+  //                dclicktime2 = 0;
+  //        }
+  //        else
+  //        {
+  //            dclicktime2 += ticdup;
+  //            if (dclicktime2 > 20)
+  //            {
+  //                dclicks2 = 0;
+  //                dclickstate2 = 0;
+  //            }
+  //        }
+  //    }
+  //
+  //    // [crispy] mouse look
+  //    if ((crispy->freelook && mousebuttons[mousebmouselook]) ||
+  //         crispy->mouselook)
+  //    {
+  //        const double vert = CalcMouseVert(mousey);
+  //        cmd->lookdir += mouse_y_invert ? CarryPitch(-vert) : CarryPitch(vert);
+  //    }
+  //    else
+  //    if (!novert)
+  //    {
+  //    forward += CarryMouseVert(CalcMouseVert(mousey));
+  //    }
+  //
+  //    // [crispy] single click on mouse look button centers view
+  //    if (crispy->freelook)
+  //    {
+  //        static unsigned int mbmlookctrl = 0;
+  //
+  //        // [crispy] single click view centering
+  //        if (mousebuttons[mousebmouselook]) // [crispy] clicked
+  //        {
+  //            mbmlookctrl += ticdup;
+  //        }
+  //        else
+  //        // [crispy] released
+  //        if (mbmlookctrl)
+  //        {
+  //            if (crispy->freelook == FREELOOK_SPRING || mbmlookctrl < SLOWTURNTICS) // [crispy] short click
+  //            {
+  //                look = TOCENTER;
+  //            }
+  //            mbmlookctrl = 0;
+  //        }
+  //    }
+  //
+  //    if (strafe && !cmd->angleturn)
+  //	side += CarryMouseSide(CalcMouseSide(mousex));
+  //
+  //    mousex_angleturn = cmd->angleturn;
+  //
+  //    if (mousex_angleturn == 0)
+  //    {
+  //        // No movement in the previous frame
+  //
+  //        testcontrols_mousespeed = 0;
+  //    }
+  //
+  //    if (angle)
+  //    {
+  //        cmd->angleturn = CarryAngle(cmd->angleturn + angle);
+  //        localview.ticangleturn = crispy->fliplevels ?
+  //            (mousex_angleturn - cmd->angleturn) :
+  //            (cmd->angleturn - mousex_angleturn);
+  //    }
+  //
+  //    mousex = mousey = 0;
+  //
+  //    if (forward > MAXPLMOVE)
+  //	forward = MAXPLMOVE;
+  //    else if (forward < -MAXPLMOVE)
+  //	forward = -MAXPLMOVE;
+  //    if (side > MAXPLMOVE)
+  //	side = MAXPLMOVE;
+  //    else if (side < -MAXPLMOVE)
+  //	side = -MAXPLMOVE;
+  //
+  //    cmd->forwardmove += forward;
+  //    cmd->sidemove += side;
+  //
+  //    // [crispy]
+  //    localview.angle = 0;
+  //    localview.rawangle = 0.0;
+  //    prevcarry = carry;
+  //
+  //    // [crispy] lookdir delta is stored in the lower 4 bits of the lookfly variable
+  //    if (player->playerstate == PST_LIVE)
+  //    {
+  //        if (look < 0)
+  //        {
+  //            look += 16;
+  //        }
+  //        cmd->lookfly = look;
+  //    }
+  //
+  //    // special buttons
+  //    // [crispy] suppress pause when a new game is started
+  //    if (sendpause && gameaction != ga_newgame)
+  //    {
+  //	sendpause = false;
+  //	// [crispy] ignore un-pausing in menus during demo recording
+  //	if (!(menuactive && demorecording && paused) && gameaction != ga_loadgame)
+  //	{
+  //	cmd->buttons = BT_SPECIAL | BTS_PAUSE;
+  //	}
+  //    }
+  //
+  //    if (sendsave)
+  //    {
+  //	sendsave = false;
+  //	cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot<<BTS_SAVESHIFT);
+  //    }
+  //
+  //    if (crispy->fliplevels)
+  //    {
+  //	mousex_angleturn = -mousex_angleturn;
+  //	cmd->angleturn = -cmd->angleturn;
+  //	cmd->sidemove = -cmd->sidemove;
+  //    }
+  //
+  //    // low-res turning
+  //
+  //    if (lowres_turn)
+  //    {
+  //        signed short desired_angleturn;
+  //
+  //        desired_angleturn = cmd->angleturn;
+  //
+  //        // round angleturn to the nearest 256 unit boundary
+  //        // for recording demos with single byte values for turn
+  //
+  //        cmd->angleturn = (desired_angleturn + 128) & 0xff00;
+  //
+  //        if (angle)
+  //        {
+  //            localview.ticangleturn = cmd->angleturn - mousex_angleturn;
+  //        }
+  //
+  //        // Carry forward the error from the reduced resolution to the
+  //        // next tic, so that successive small movements can accumulate.
+  //
+  //        prevcarry.angle += crispy->fliplevels ?
+  //                            cmd->angleturn - desired_angleturn :
+  //                            desired_angleturn - cmd->angleturn;
+  //    }
 End;
 
 End.

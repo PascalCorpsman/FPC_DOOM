@@ -6,13 +6,15 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , m_fixed
   , net_defs
+  , d_ticcmd
+  , m_fixed
   ;
 
 Type
   TProcedure = Procedure();
   TRunTic = Procedure({cmds: Array Of ticcmd_t; Var ingame: boolean});
+  TBuildTiccmd = Procedure(Var cmd: ticcmd_t; maketic: int);
 
   // Callback function invoked while waiting for the netgame to start.
   // The callback is invoked when new players are ready. The callback
@@ -26,15 +28,12 @@ Type
 
     // Given the current input state, fill in the fields of the specified
     // ticcmd_t structure with data for a new tic.
-
-//    void (*BuildTiccmd)(ticcmd_t *cmd, int maketic);
+    BuildTiccmd: TBuildTiccmd;
 
     // Advance the game forward one tic, using the specified player input.
-
     RunTic: TRunTic;
 
     // Run the menu (runs independently of the game).
-
     RunMenu: TProcedure;
   End;
 
@@ -52,13 +51,34 @@ Procedure D_StartNetGame(Var settings: net_gamesettings_t; callback: netgame_sta
 
 Implementation
 
-Uses net_client
-  , i_timer, i_system
+Uses
+  net_client
+  , i_timer, i_system, i_video
   , m_argv
   ;
 
+Type
+
+  ticcmd_set_t = Record
+    cmds: Array[0..NET_MAXPLAYERS - 1] Of ticcmd_t;
+    ingame: Array[0..NET_MAXPLAYERS - 1] Of boolean;
+  End;
+
 Var
 
+  //
+  // gametic is the tic about to (or currently being) run
+  // maketic is the tic that hasn't had control made for it yet
+  // recvtic is the latest tic received from the server.
+  //
+  // a gametic cannot be run until ticcmds are received for it
+  // from all players.
+  //
+
+  ticdata: Array[0..BACKUPTICS - 1] Of ticcmd_set_t;
+
+  // The index of the next tic to be made (with a call to BuildTiccmd).
+  maketic: int;
 
   // Current players in the multiplayer game.
   // This is distinct from playeringame[] used by the game code, which may
@@ -222,15 +242,16 @@ Begin
 End;
 
 Function BuildNewTic(): Boolean;
+Var
+  gameticdiv: int;
+  cmd: ticcmd_t;
 Begin
   TicksPerSecond := TicksPerSecond + 1; // Corpsman: DEBUG for Tick per second Measurement
   result := false;
-  //      int	gameticdiv;
-  //      ticcmd_t cmd;
-  //
-  //      gameticdiv = gametic/ticdup;
-  //
-  //      I_StartTic ();
+
+  gameticdiv := gametic Div ticdup;
+
+  I_StartTic();
   loop_interface^.ProcessEvents();
 
   // Always run the menu
@@ -250,25 +271,27 @@ Begin
 //    If (Not net_client_connected) And (maketic - gameticdiv > 2) Then exit;
 
     // Never go more than ~200ms ahead
-//    If (maketic - gameticdiv > 8) Then exit;
+    If (maketic - gameticdiv > 8) Then exit;
   End
   Else Begin
-    //    If (maketic - gameticdiv >= 5) Then exit;
+    If (maketic - gameticdiv >= 5) Then exit;
   End;
 
-  //      maketic := format('mk:%d ',[maketic]);
-  //      memset(&cmd, 0, sizeof(ticcmd_t));
-  //      loop_interface->BuildTiccmd(&cmd, maketic);
+  //  writeln(format('mk:%d ', [maketic]));
+
+  FillChar(cmd, sizeof(cmd), 0);
+
+  loop_interface^.BuildTiccmd(cmd, maketic);
 
   //      if (net_client_connected)
   //      {
   //          NET_CL_SendTiccmd(&cmd, maketic);
   //      }
 
-  //      ticdata[maketic % BACKUPTICS].cmds[localplayer] = cmd;
-  //      ticdata[maketic % BACKUPTICS].ingame[localplayer] = true;
+  ticdata[maketic Mod BACKUPTICS].cmds[localplayer] := cmd;
+  ticdata[maketic Mod BACKUPTICS].ingame[localplayer] := true;
 
-  //      maketic:=maketic +1;
+  maketic := maketic + 1;
 
   result := true;
 End;

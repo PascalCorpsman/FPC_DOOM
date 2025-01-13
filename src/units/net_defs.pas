@@ -16,8 +16,12 @@ Const
 
   NET_MAXPLAYERS = 8;
 
+  // Networking and tick handling related.
+
+  BACKUPTICS = 128;
+
   // Game settings sent by client to server when initiating game start,
-// and received from the server by clients when the game starts.
+  // and received from the server by clients when the game starts.
 
 Type
   net_gamesettings_t = Record

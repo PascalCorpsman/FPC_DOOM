@@ -17,6 +17,7 @@ Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
 
 Procedure I_InitGraphics();
+Procedure I_StartTic();
 
 Procedure I_DisplayFPSDots(dots_on: boolean);
 Procedure I_StartFrame();
@@ -59,6 +60,7 @@ Var
   icon_data: P_unsigned_int = Nil;
   icon_w: int = 0;
   icon_h: int = 0;
+  initialized: Boolean = false;
 
 Procedure I_InitWindowTitle();
 Begin
@@ -513,11 +515,26 @@ Begin
   //    while (SDL_PollEvent(&dummy))
   //        ;
   //
-  //    initialized = true;
+  initialized := true;
   //
   //    // Call I_ShutdownGraphics on quit
   //
   //    I_AtExit(I_ShutdownGraphics, true);
+End;
+
+Procedure I_StartTic();
+Begin
+  If (Not initialized) Then exit;
+
+  //  I_GetEvent(); --> Das ruft die SDL Eventloop auf, wir machen das hier aber via LCL also brauchen wir nichts zu machen ;)
+
+  //  If (usemouse) And (Not nomouse) And (window_focused) Then Begin
+  //    I_ReadMouse();
+  //  End;
+
+  //  If (joywait < I_GetTime()) Then Begin
+  //    I_UpdateJoystick();
+  //  End;
 End;
 
 // Set the variable controlling FPS dots.
