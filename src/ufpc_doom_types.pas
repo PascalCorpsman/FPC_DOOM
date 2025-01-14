@@ -20,6 +20,7 @@ Type
   uint64_t = UInt64;
   size_t = UInt64;
   short = Int16;
+  unsigned_short = uInt16;
 
   int = int32;
   P_int = ^int;

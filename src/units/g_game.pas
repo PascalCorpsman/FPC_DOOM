@@ -11,6 +11,7 @@ Uses
   ;
 
 Var
+  netdemo: boolean;
   timelimit: int;
 
   nodrawers: boolean = false; // for comparative timing purposes
@@ -30,6 +31,13 @@ Var
   lowres_turn: boolean; // low resolution turning for longtics
   playeringame: Array[0..MAXPLAYERS - 1] Of boolean;
 
+
+  // 0=Cooperative; 1=Deathmatch; 2=Altdeath
+  deathmatch: int;
+
+  // Player taking events, and displaying.
+  consoleplayer: int;
+
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
 
@@ -47,79 +55,318 @@ Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 Implementation
 
 Uses
-  sounds
+  doomdata, doomstat, info, sounds, info_types
+  , d_player, d_main, d_loop
   , i_video, i_timer
-  , m_menu
+  , m_menu, m_argv, m_random
+  , p_setup, p_mobj
   , s_sound
   ;
 
+Var
+  d_skill: skill_t;
+  d_episode: int;
+  d_map: int;
+  savename: String;
+  respawnmonsters: boolean = false;
+
+  players: Array[0..MAXPLAYERS - 1] Of player_t;
+
+Procedure G_ClearSavename();
+Begin
+  savename := '';
+End;
+
+Procedure G_ReadGameParms();
+Begin
+  respawnparm := M_CheckParm('-respawn') <> 0;
+  fastparm := M_CheckParm('-fast') <> 0;
+  nomonsters := M_CheckParm('-nomonsters') <> 0;
+End;
+
 //
-// G_Responder
-// Get info needed to make ticcmd_ts for the players.
+// G_CheckSpot
+// Returns false if the player cannot be respawned
+// at the given mapthing_t spot
+// because something is occupying it
 //
 
-Procedure G_Ticker();
+Function G_CheckSpot(playernum: int; Const mthing: mapthing_t): boolean;
 Begin
-  //   int		i;
-  //    int		buf;
-  //    ticcmd_t*	cmd;
+  //    fixed_t		x;
+  //    fixed_t		y;
+  //    subsector_t*	ss;
+  //    mobj_t*		mo;
+  //    int			i;
   //
-  //    // do player reborns if needed
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //	if (playeringame[i] && players[i].playerstate == PST_REBORN)
-  //	    G_DoReborn (i);
-  //
-  //    // do things to change the game state
-  //    while (gameaction != ga_nothing)
+  //    if (!players[playernum].mo)
   //    {
-  //	switch (gameaction)
+  //	// first spawn of level, before corpses
+  //	for (i=0 ; i<playernum ; i++)
+  //	    if (players[i].mo->x == mthing->x << FRACBITS
+  //		&& players[i].mo->y == mthing->y << FRACBITS)
+  //		return false;
+  //	return true;
+  //    }
+  //
+  //    x = mthing->x << FRACBITS;
+  //    y = mthing->y << FRACBITS;
+  //
+  //    if (!P_CheckPosition (players[playernum].mo, x, y) )
+  //	return false;
+  //
+  //    // flush an old corpse if needed
+  //    if (bodyqueslot >= BODYQUESIZE)
+  //	P_RemoveMobj (bodyque[bodyqueslot%BODYQUESIZE]);
+  //    bodyque[bodyqueslot%BODYQUESIZE] = players[playernum].mo;
+  //    bodyqueslot++;
+  //
+  //    // spawn a teleport fog
+  //    ss = R_PointInSubsector (x,y);
+  //
+  //
+  //    // The code in the released source looks like this:
+  //    //
+  //    //    an = ( ANG45 * (((unsigned int) mthing->angle)/45) )
+  //    //         >> ANGLETOFINESHIFT;
+  //    //    mo = P_SpawnMobj (x+20*finecosine[an], y+20*finesine[an]
+  //    //                     , ss->sector->floorheight
+  //    //                     , MT_TFOG);
+  //    //
+  //    // But 'an' can be a signed value in the DOS version. This means that
+  //    // we get a negative index and the lookups into finecosine/finesine
+  //    // end up dereferencing values in finetangent[].
+  //    // A player spawning on a deathmatch start facing directly west spawns
+  //    // "silently" with no spawn fog. Emulate this.
+  //    //
+  //    // This code is imported from PrBoom+.
+  //
+  //    {
+  //        fixed_t xa, ya;
+  //        signed int an;
+  //
+  //        // This calculation overflows in Vanilla Doom, but here we deliberately
+  //        // avoid integer overflow as it is undefined behavior, so the value of
+  //        // 'an' will always be positive.
+  //        an = (ANG45 >> ANGLETOFINESHIFT) * ((signed int) mthing->angle / 45);
+  //
+  //        switch (an)
+  //        {
+  //            case 4096:  // -4096:
+  //                xa = finetangent[2048];    // finecosine[-4096]
+  //                ya = finetangent[0];       // finesine[-4096]
+  //                break;
+  //            case 5120:  // -3072:
+  //                xa = finetangent[3072];    // finecosine[-3072]
+  //                ya = finetangent[1024];    // finesine[-3072]
+  //                break;
+  //            case 6144:  // -2048:
+  //                xa = finesine[0];          // finecosine[-2048]
+  //                ya = finetangent[2048];    // finesine[-2048]
+  //                break;
+  //            case 7168:  // -1024:
+  //                xa = finesine[1024];       // finecosine[-1024]
+  //                ya = finetangent[3072];    // finesine[-1024]
+  //                break;
+  //            case 0:
+  //            case 1024:
+  //            case 2048:
+  //            case 3072:
+  //                xa = finecosine[an];
+  //                ya = finesine[an];
+  //                break;
+  //            default:
+  //                I_Error("G_CheckSpot: unexpected angle %d\n", an);
+  //                xa = ya = 0;
+  //                break;
+  //        }
+  //        mo = P_SpawnMobj(x + 20 * xa, y + 20 * ya,
+  //                         ss->sector->floorheight, MT_TFOG);
+  //    }
+  //
+  //    if (players[consoleplayer].viewz != 1)
+  //	S_StartSound (mo, sfx_telept);	// don't start sound on first frame
+
+  result := true;
+End;
+
+//
+// G_DeathMatchSpawnPlayer
+// Spawns a player at one of the random death match spots
+// called at level load and each death
+//
+
+Procedure G_DeathMatchSpawnPlayer(playernum: int);
+Begin
+  //    int             i,j;
+  //    int				selections;
+  //
+  //    selections = deathmatch_p - deathmatchstarts;
+  //    if (selections < 4)
+  //	I_Error ("Only %i deathmatch spots, 4 required", selections);
+  //
+  //    for (j=0 ; j<20 ; j++)
+  //    {
+  //	i = P_Random() % selections;
+  //	if (G_CheckSpot (playernum, &deathmatchstarts[i]) )
   //	{
-  //	  case ga_loadlevel:
-  //	    G_DoLoadLevel ();
-  //	    break;
-  //	  case ga_newgame:
-  //	    // [crispy] re-read game parameters from command line
-  //	    G_ReadGameParms();
-  //	    G_DoNewGame ();
-  //	    break;
-  //	  case ga_loadgame:
-  //	    // [crispy] re-read game parameters from command line
-  //	    G_ReadGameParms();
-  //	    G_DoLoadGame ();
-  //	    break;
-  //	  case ga_savegame:
-  //	    G_DoSaveGame ();
-  //	    break;
-  //	  case ga_playdemo:
-  //	    G_DoPlayDemo ();
-  //	    break;
-  //	  case ga_completed:
-  //	    G_DoCompleted ();
-  //	    break;
-  //	  case ga_victory:
-  //	    F_StartFinale ();
-  //	    break;
-  //	  case ga_worlddone:
-  //	    G_DoWorldDone ();
-  //	    break;
-  //	  case ga_screenshot:
-  //	    // [crispy] redraw view without weapons and HUD
-  //	    if (gamestate == GS_LEVEL && (crispy->cleanscreenshot || crispy->screenshotmsg == 1))
-  //	    {
-  //		crispy->screenshotmsg = 4;
-  //		crispy->post_rendering_hook = G_CrispyScreenShot;
-  //	    }
-  //	    else
-  //	    {
-  //		G_CrispyScreenShot();
-  //	    }
-  //	    gameaction = ga_nothing;
-  //	    break;
-  //	  case ga_nothing:
-  //	    break;
+  //	    deathmatchstarts[i].type = playernum+1;
+  //	    P_SpawnPlayer (&deathmatchstarts[i]);
+  //	    return;
   //	}
   //    }
   //
+  //    // no good spot, so the player will probably get stuck
+  //    P_SpawnPlayer (&playerstarts[playernum]);
+End;
+
+//
+// G_DoReborn
+//
+
+Procedure G_DoReborn(playernum: int);
+Var
+  i: int;
+Begin
+  If (Not netgame) Then Begin
+
+    // [crispy] if the player dies and the game has been loaded or saved
+    // in the mean time, reload that savegame instead of restarting the level
+    // when "Run" is pressed upon resurrection
+    If (true {crispy->singleplayer }) And (savename <> '') And (speedkeydown()) Then Begin
+      gameaction := ga_loadgame;
+    End
+    Else Begin
+      // reload the level from scratch
+      gameaction := ga_loadlevel;
+      G_ClearSavename();
+    End;
+  End
+  Else Begin
+    // respawn at the start
+
+    // first dissasociate the corpse
+   //	players[playernum].mo->player = NULL;
+
+    // spawn at random spot if in death match
+    If (deathmatch <> 0) Then Begin
+      G_DeathMatchSpawnPlayer(playernum);
+      exit;
+    End;
+
+    If (G_CheckSpot(playernum, playerstarts[playernum])) Then Begin
+      P_SpawnPlayer(playerstarts[playernum]);
+      exit;
+    End;
+    //
+    //	// try to spawn at one of the other players spots
+    //	for (i=0 ; i<MAXPLAYERS ; i++)
+    //	{
+    //	    if (G_CheckSpot (playernum, &playerstarts[i]) )
+    //	    {
+    //		playerstarts[i].type = playernum+1;	// fake as other player
+    //		P_SpawnPlayer (&playerstarts[i]);
+    //		playerstarts[i].type = i+1;		// restore
+    //		return;
+    //	    }
+    //	    // he's going to be inside something.  Too bad.
+    //	}
+    //	P_SpawnPlayer (&playerstarts[playernum]);
+  End;
+End;
+
+Procedure G_DoNewGame();
+Begin
+  demoplayback := false;
+  netdemo := false;
+  netgame := false;
+  deathmatch := 0;
+  // [crispy] reset game speed after demo fast-forward
+  singletics := false;
+  // WTF: warum nur 3 und nicht alle über 0 ?
+  playeringame[1] := false;
+  playeringame[2] := false;
+  playeringame[3] := false;
+  // [crispy] do not reset -respawn, -fast and -nomonsters parameters
+  (*
+  respawnparm = false;
+  fastparm = false;
+  nomonsters = false;
+  *)
+  consoleplayer := 0;
+  G_InitNew(d_skill, d_episode, d_map);
+  gameaction := ga_nothing;
+End;
+
+//
+// G_Ticker
+// Make ticcmd_ts for the players.
+//
+
+Procedure G_Ticker();
+Var
+
+  i: int;
+  //    int		buf;
+  cmd: ticcmd_t;
+Begin
+
+  // do player reborns if needed
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    If (playeringame[i]) And (players[i].playerstate = PST_REBORN) Then Begin
+      G_DoReborn(i);
+    End;
+  End;
+
+  // do things to change the game state
+  While (gameaction <> ga_nothing) Do Begin
+    Case (gameaction) Of
+      ga_loadlevel: Begin
+          //	    G_DoLoadLevel ();
+        End;
+      ga_newgame: Begin
+          // [crispy] re-read game parameters from command line
+          G_ReadGameParms();
+          G_DoNewGame();
+        End;
+      ga_loadgame: Begin
+          //	    // [crispy] re-read game parameters from command line
+          //	    G_ReadGameParms();
+          //	    G_DoLoadGame ();
+        End;
+      ga_savegame: Begin
+          //	    G_DoSaveGame ();
+        End;
+      ga_playdemo: Begin
+          //	    G_DoPlayDemo ();
+        End;
+      ga_completed: Begin
+          //	    G_DoCompleted ();
+        End;
+      ga_victory: Begin
+          //	    F_StartFinale ();
+        End;
+      ga_worlddone: Begin
+          //	    G_DoWorldDone ();
+        End;
+      ga_screenshot: Begin
+          //	    // [crispy] redraw view without weapons and HUD
+          //	    if (gamestate == GS_LEVEL && (crispy->cleanscreenshot || crispy->screenshotmsg == 1))
+          //	    {
+          //		crispy->screenshotmsg = 4;
+          //		crispy->post_rendering_hook = G_CrispyScreenShot;
+          //	    }
+          //	    else
+          //	    {
+          //		G_CrispyScreenShot();
+          //	    }
+          gameaction := ga_nothing;
+        End;
+      ga_nothing: Begin
+        End;
+    End;
+  End;
+
   //    // [crispy] demo sync of revenant tracers and RNG (from prboom-plus)
   //    if (paused & 2 || (!demoplayback && menuactive && !netgame))
   //    {
@@ -275,6 +522,11 @@ Begin
   //	break;
   //    }
 End;
+
+//
+// G_Responder
+// Get info needed to make ticcmd_ts for the players.
+//
 
 Function G_Responder(Const ev: Pevent_t): boolean;
 Begin
@@ -439,141 +691,119 @@ Begin
 End;
 
 Procedure G_InitNew(skill: skill_t; episode: int; map: int);
+
+// [crispy] make sure "fast" parameters are really only applied once
+Const
+  fast_applied: boolean = false;
+
+Var
+  skytexturename: String;
+  i: int;
 Begin
-  //  const char *skytexturename;
-  //    int             i;
-  //    // [crispy] make sure "fast" parameters are really only applied once
-  //    static boolean fast_applied;
-  //
-  //    if (paused)
-  //    {
-  //	paused = false;
-  //	S_ResumeSound ();
-  //    }
-  //
-  //    /*
-  //    // Note: This commented-out block of code was added at some point
-  //    // between the DOS version(s) and the Doom source release. It isn't
-  //    // found in disassemblies of the DOS version and causes IDCLEV and
-  //    // the -warp command line parameter to behave differently.
-  //    // This is left here for posterity.
-  //
-  //    // This was quite messy with SPECIAL and commented parts.
-  //    // Supposedly hacks to make the latest edition work.
-  //    // It might not work properly.
-  //    if (episode < 1)
-  //      episode = 1;
-  //
-  //    if ( gamemode == retail )
-  //    {
-  //      if (episode > 4)
-  //	episode = 4;
-  //    }
-  //    else if ( gamemode == shareware )
-  //    {
-  //      if (episode > 1)
-  //	   episode = 1;	// only start episode 1 on shareware
-  //    }
-  //    else
-  //    {
-  //      if (episode > 3)
-  //	episode = 3;
-  //    }
-  //    */
-  //
-  //    if (skill > sk_nightmare)
-  //	skill = sk_nightmare;
-  //
-  //  // [crispy] if NRFTL is not available, "episode 2" may mean The Master Levels ("episode 3")
-  //  if (gamemode == commercial)
-  //  {
-  //    if (episode < 1)
-  //      episode = 1;
-  //    else
-  //    if (episode == 2 && !crispy->havenerve)
-  //      episode = crispy->havemaster ? 3 : 1;
-  //  }
-  //
-  //  // [crispy] only fix episode/map if it doesn't exist
-  //  if (P_GetNumForMap(episode, map, false) < 0)
-  //  {
-  //    if (gameversion >= exe_ultimate)
-  //    {
-  //        if (episode == 0)
-  //        {
-  //            episode = 4;
-  //        }
-  //    }
-  //    else
-  //    {
-  //        if (episode < 1)
-  //        {
-  //            episode = 1;
-  //        }
-  //        if (episode > 3)
-  //        {
-  //            episode = 3;
-  //        }
-  //    }
-  //
-  //    if (episode > 1 && gamemode == shareware)
-  //    {
-  //        episode = 1;
-  //    }
-  //
-  //    if (map < 1)
-  //	map = 1;
-  //
-  //    if ( (map > 9)
-  //	 && ( gamemode != commercial) )
-  //    {
-  //      // [crispy] support E1M10 "Sewers"
-  //      if (!crispy->havee1m10 || episode != 1)
-  //      map = 9;
-  //      else
-  //      map = 10;
-  //    }
-  //  }
-  //
-  //    M_ClearRandom ();
-  //
-  //    // [crispy] Spider Mastermind gets increased health in Sigil II. Normally
-  //    // the Sigil II DEH handles this, but we don't load the DEH if the WAD gets
-  //    // sideloaded.
-  //    if (crispy->havesigil2 && crispy->havesigil2 != (char *)-1)
-  //    {
-  //        mobjinfo[MT_SPIDER].spawnhealth = (episode == 6) ? 9000 : 3000;
-  //    }
-  //
-  //    if (skill == sk_nightmare || respawnparm )
-  //	respawnmonsters = true;
-  //    else
-  //	respawnmonsters = false;
-  //
-  //    // [crispy] make sure "fast" parameters are really only applied once
-  //    if ((fastparm || skill == sk_nightmare) && !fast_applied)
-  //    {
-  //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
-  //	    // [crispy] Fix infinite loop caused by Demon speed bug
-  //	    if (states[i].tics > 1)
-  //	    {
-  //	    states[i].tics >>= 1;
-  //	    }
-  //	mobjinfo[MT_BRUISERSHOT].speed = 20*FRACUNIT;
-  //	mobjinfo[MT_HEADSHOT].speed = 20*FRACUNIT;
-  //	mobjinfo[MT_TROOPSHOT].speed = 20*FRACUNIT;
-  //	fast_applied = true;
-  //    }
-  //    else if (!fastparm && skill != sk_nightmare && fast_applied)
-  //    {
-  //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
-  //	    states[i].tics <<= 1;
-  //	mobjinfo[MT_BRUISERSHOT].speed = 15*FRACUNIT;
-  //	mobjinfo[MT_HEADSHOT].speed = 10*FRACUNIT;
-  //	mobjinfo[MT_TROOPSHOT].speed = 10*FRACUNIT;
-  //	fast_applied = false;
-  //    }
-  //
+
+  If (paused) Then Begin
+    paused := false;
+    S_ResumeSound();
+  End;
+
+  (*
+  // Note: This commented-out block of code was added at some point
+  // between the DOS version(s) and the Doom source release. It isn't
+  // found in disassemblies of the DOS version and causes IDCLEV and
+  // the -warp command line parameter to behave differently.
+  // This is left here for posterity.
+
+  // This was quite messy with SPECIAL and commented parts.
+  // Supposedly hacks to make the latest edition work.
+  // It might not work properly.
+  If (episode < 1) Then episode := 1;
+
+  If (gamemode = retail) Then Begin
+    If (episode > 4) Then episode := 4;
+  End
+  Else If (gamemode = shareware) Then Begin
+    If (episode > 1) Then episode := 1; // only start episode 1 on shareware
+  End
+  Else Begin
+    If (episode > 3) Then episode := 3;
+  End;
+  // *)
+
+  If (skill > sk_nightmare) Then Begin
+    skill := sk_nightmare;
+  End;
+
+  // [crispy] if NRFTL is not available, "episode 2" may mean The Master Levels ("episode 3")
+  If (gamemode = commercial) Then Begin
+    If (episode < 1) Then Begin
+      episode := 1;
+    End
+    Else Begin
+      //      if (episode == 2 && !crispy->havenerve)
+      //            episode = crispy->havemaster ? 3 : 1;
+    End;
+  End;
+
+  // [crispy] only fix episode/map if it doesn't exist
+  If (P_GetNumForMap(episode, map, false) < 0) Then Begin
+    If (gameversion >= exe_ultimate) Then Begin
+      If (episode = 0) Then episode := 4;
+    End
+    Else Begin
+      If (episode < 1) Then episode := 1;
+      If (episode > 3) Then episode := 3;
+    End;
+    If (episode > 1) And (gamemode = shareware) Then episode := 1;
+
+    If (map < 1) Then map := 1;
+
+    If ((map > 9) And (gamemode <> commercial)) Then Begin
+      // [crispy] support E1M10 "Sewers"
+      //      if (!crispy->havee1m10 || episode != 1)
+      //      map = 9;
+      //      else
+      //      map = 10;
+    End;
+  End;
+
+  M_ClearRandom();
+
+  // [crispy] Spider Mastermind gets increased health in Sigil II. Normally
+  // the Sigil II DEH handles this, but we don't load the DEH if the WAD gets
+  // sideloaded.
+//    if (crispy->havesigil2 && crispy->havesigil2 != (char *)-1)
+//    {
+//        mobjinfo[MT_SPIDER].spawnhealth = (episode == 6) ? 9000 : 3000;
+//    }
+
+  If (skill = sk_nightmare) Or (respawnparm) Then
+    respawnmonsters := true
+  Else
+    respawnmonsters := false;
+
+  // [crispy] make sure "fast" parameters are really only applied once
+  If ((fastparm) Or (skill = sk_nightmare)) And (Not fast_applied) Then Begin
+    //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
+    For i := integer(S_SARG_RUN1) To integer(S_SARG_PAIN2) - 1 Do Begin
+      // [crispy] Fix infinite loop caused by Demon speed bug
+      If (states[i].tics > 1) Then Begin
+        states[i].tics := states[i].tics Shr 1;
+      End;
+    End;
+    //	mobjinfo[MT_BRUISERSHOT].speed = 20*FRACUNIT;
+    //	mobjinfo[MT_HEADSHOT].speed = 20*FRACUNIT;
+    //	mobjinfo[MT_TROOPSHOT].speed = 20*FRACUNIT;
+    //	fast_applied = true;
+  End
+  Else If (Not fastparm) And (skill <> sk_nightmare) And (fast_applied) Then Begin
+    //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
+    //	    states[i].tics <<= 1;
+    //	mobjinfo[MT_BRUISERSHOT].speed = 15*FRACUNIT;
+    //	mobjinfo[MT_HEADSHOT].speed = 10*FRACUNIT;
+    //	mobjinfo[MT_TROOPSHOT].speed = 10*FRACUNIT;
+    //	fast_applied = false;
+  End;
+
   //    // force players to be initialized upon first level load
   //    for (i=0 ; i<MAXPLAYERS ; i++)
   //	players[i].playerstate = PST_REBORN;
@@ -1206,8 +1436,32 @@ Begin
   //    }
 End;
 
+//
+// G_InitNew
+// Can be called by the startup code or the menu task,
+// consoleplayer, displayplayer, playeringame[] should be set.
+//
+
 Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 Begin
+  d_skill := skill;
+  d_episode := episode;
+  d_map := map;
+  G_ClearSavename();
+  gameaction := ga_newgame;
+
+  // [crispy] if a new game is started during demo recording, start a new demo
+  If (demorecording) Then Begin
+    // [crispy] reset IDDT cheat when re-starting map during demo recording
+//    AM_ResetIDDTcheat();
+//    AM_ResetIDDTcheat();
+//
+//    G_CheckDemoStatus();
+//    Z_Free(demoname);
+//
+//    G_RecordDemo(orig_demoname);
+//    G_BeginRecording();
+  End;
 
 End;
 

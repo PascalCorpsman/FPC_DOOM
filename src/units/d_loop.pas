@@ -44,6 +44,10 @@ Var
   gametic: int;
   TicksPerSecond: integer; // Corpsman: DEBUG for Tick per second Measurement
 
+  // When set to true, a single tic is run each time TryRunTics() is called.
+  // This is used for -timedemo mode.
+  singletics: boolean = false;
+
 Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 
@@ -91,10 +95,6 @@ Var
 
   // The number of complete tics received from the server so far.
   recvtic: int;
-
-  // When set to true, a single tic is run each time TryRunTics() is called.
-  // This is used for -timedemo mode.
-  singletics: boolean = false;
 
   // Used for original sync code.
   skiptics: int = 0;

@@ -43,7 +43,7 @@ Function W_AddFile(filename: String): Boolean;
 Procedure W_Reload();
 
 Function W_CheckNumForName(name: String): lumpindex_t;
-//function  W_GetNumForName(name: String): lumpindex_t;
+Function W_GetNumForName(name: String): lumpindex_t;
 //Function W_CheckNumForNameFromTo(Const name: String; afrom, ato: int): lumpindex_t;
 
 Function W_LumpLength(lump: lumpindex_t): int;
@@ -166,6 +166,23 @@ Begin
       exit;
     End;
   End;
+End;
+
+//
+// W_GetNumForName
+// Calls W_CheckNumForName, but bombs out if not found.
+//
+
+Function W_GetNumForName(name: String): lumpindex_t;
+Var
+  i: lumpindex_t;
+Begin
+  result := -1;
+  i := W_CheckNumForName(name);
+  If (i < 0) Then Begin
+    I_Error(format('W_GetNumForName: %s not found!', [name]));
+  End;
+  result := i;
 End;
 
 Function W_LumpLength(lump: lumpindex_t): int;
