@@ -1453,29 +1453,30 @@ Type
     );
 
   mobjinfo_t = Record
+    index: mobjtype_t;
     doomednum: int;
-    spawnstate: int;
+    spawnstate: statenum_t;
     spawnhealth: int;
-    seestate: int;
-    seesound: int;
+    seestate: statenum_t;
+    seesound: sfxenum_t;
     reactiontime: int;
-    attacksound: int;
-    painstate: int;
+    attacksound: sfxenum_t;
+    painstate: statenum_t;
     painchance: int;
     painsound: sfxenum_t;
-    meleestate: int;
-    missilestate: int;
-    deathstate: int;
-    xdeathstate: int;
-    deathsound: int;
+    meleestate: statenum_t;
+    missilestate: statenum_t;
+    deathstate: statenum_t;
+    xdeathstate: statenum_t;
+    deathsound: sfxenum_t;
     speed: int;
     radius: int;
     height: int;
     mass: int;
     damage: int;
-    activesound: int;
+    activesound: sfxenum_t;
     flags: int;
-    raisestate: int;
+    raisestate: statenum_t;
     // [crispy] height of the spawnstate's first sprite in pixels
     actualheight: int;
     // [crispy] mobj to drop after death
