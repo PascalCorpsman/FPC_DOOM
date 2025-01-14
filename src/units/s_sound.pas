@@ -7,6 +7,7 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils, sounds;
 
+Procedure S_StartSound(origin: Pointer; sound_id: sfxenum_t);
 Procedure S_StartSoundOptional(origin: Pointer; sound_id, old_sound_id: sfxenum_t);
 Procedure S_StartMusic(m_id: musicenum_t);
 
@@ -18,6 +19,11 @@ Implementation
 Var
   mus_paused: Boolean = false;
   mus_playing: Boolean = false;
+
+Procedure S_StartSound(origin: Pointer; sound_id: sfxenum_t);
+Begin
+
+End;
 
 Procedure S_StartSoundOptional(origin: Pointer; sound_id, old_sound_id: sfxenum_t);
 Begin

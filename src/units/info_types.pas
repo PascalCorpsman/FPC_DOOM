@@ -1,3 +1,7 @@
+(*
+ * Diese Unit gibt es so nicht in DOOM, aber der FPC Compiler mag zirkuläre Abhängigkeiten nicht
+ * -> musste eine eigene Unit her, welche nur Typdefinitionen hat..
+ *)
 Unit info_types;
 
 {$MODE ObjFPC}{$H+}
@@ -6,7 +10,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , doomdata, doomdef, tables
+  , doomdata, doomdef, tables, sounds
   , d_player, d_ticcmd
   , m_fixed
   , r_defs
@@ -1192,6 +1196,46 @@ Type
     S_DOGS_RAISE5,
     S_DOGS_RAISE6,
     S_OLDBFG1,
+    S_OLDBFG2, // Inserted by Corpsman
+    S_OLDBFG3, // Inserted by Corpsman
+    S_OLDBFG4, // Inserted by Corpsman
+    S_OLDBFG5, // Inserted by Corpsman
+    S_OLDBFG6, // Inserted by Corpsman
+    S_OLDBFG7, // Inserted by Corpsman
+    S_OLDBFG8, // Inserted by Corpsman
+    S_OLDBFG9, // Inserted by Corpsman
+    S_OLDBFG10, // Inserted by Corpsman
+    S_OLDBFG11, // Inserted by Corpsman
+    S_OLDBFG12, // Inserted by Corpsman
+    S_OLDBFG13, // Inserted by Corpsman
+    S_OLDBFG14, // Inserted by Corpsman
+    S_OLDBFG15, // Inserted by Corpsman
+    S_OLDBFG16, // Inserted by Corpsman
+    S_OLDBFG17, // Inserted by Corpsman
+    S_OLDBFG18, // Inserted by Corpsman
+    S_OLDBFG19, // Inserted by Corpsman
+    S_OLDBFG20, // Inserted by Corpsman
+    S_OLDBFG21, // Inserted by Corpsman
+    S_OLDBFG22, // Inserted by Corpsman
+    S_OLDBFG23, // Inserted by Corpsman
+    S_OLDBFG24, // Inserted by Corpsman
+    S_OLDBFG25, // Inserted by Corpsman
+    S_OLDBFG26, // Inserted by Corpsman
+    S_OLDBFG27, // Inserted by Corpsman
+    S_OLDBFG28, // Inserted by Corpsman
+    S_OLDBFG29, // Inserted by Corpsman
+    S_OLDBFG30, // Inserted by Corpsman
+    S_OLDBFG31, // Inserted by Corpsman
+    S_OLDBFG32, // Inserted by Corpsman
+    S_OLDBFG33, // Inserted by Corpsman
+    S_OLDBFG34, // Inserted by Corpsman
+    S_OLDBFG35, // Inserted by Corpsman
+    S_OLDBFG36, // Inserted by Corpsman
+    S_OLDBFG37, // Inserted by Corpsman
+    S_OLDBFG38, // Inserted by Corpsman
+    S_OLDBFG39, // Inserted by Corpsman
+    S_OLDBFG40, // Inserted by Corpsman
+    S_OLDBFG41, // Inserted by Corpsman
     S_OLDBFG42 = 1040, //S_OLDBFG1 + 41,
     S_OLDBFG43 = 1041,
     S_PLS1BALL = 1042,
@@ -1418,7 +1462,7 @@ Type
     attacksound: int;
     painstate: int;
     painchance: int;
-    painsound: int;
+    painsound: sfxenum_t;
     meleestate: int;
     missilestate: int;
     deathstate: int;
@@ -1459,8 +1503,8 @@ Type
   //  action functions cleanly.
   //
   actionf_v = Procedure();
-  actionf_p1 = Procedure(a: Pointer);
-  actionf_p2 = Procedure(a, b: Pointer);
+  actionf_p1 = Procedure(mobj: Pmobj_t);
+  actionf_p2 = Procedure(a, b: Pointer); // Corpsman: seems not to be used anywhere ?
   actionf_p3 = Procedure(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t); // [crispy] let pspr action pointers get called from mobj states
 
   actionf_t = Record

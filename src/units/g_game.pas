@@ -37,6 +37,7 @@ Var
 
   // Player taking events, and displaying.
   consoleplayer: int;
+  secretexit: boolean;
 
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
@@ -51,6 +52,8 @@ Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
 // A normal game starts at map 1,
 // but a warp test can start elsewhere
 Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
+
+Procedure G_ExitLevel();
 
 Implementation
 
@@ -1463,6 +1466,13 @@ Begin
 //    G_BeginRecording();
   End;
 
+End;
+
+Procedure G_ExitLevel();
+Begin
+  secretexit := false;
+  G_ClearSavename();
+  gameaction := ga_completed;
 End;
 
 End.
