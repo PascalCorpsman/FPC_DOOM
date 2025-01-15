@@ -30,24 +30,21 @@ Type
   Ptexture_t = ^texture_t;
 
   texture_t = Record
-
     // Keep name for switch changing, etc.
     name: String;
     width: short;
     height: short;
 
     // Index in textures list
-
     index: int;
 
     // Next in hash table chain
-
     next: Ptexture_t;
 
     // All the patches[patchcount]
-    //  are drawn back to front into the cached texture.
+    // are drawn back to front into the cached texture.
     patchcount: short;
-    patches: Array[0..0] Of texpatch_t; // Ein Array der Länge 1
+    patches: Array Of texpatch_t;
   End;
 
 Procedure R_InitData();
@@ -130,21 +127,20 @@ Var
   textures: Array Of texture_t;
   textures_hashtable: Array Of Ptexture_t;
 
-  //  int*			texturewidthmask;
-  //  int*			texturewidth; // [crispy] texture width for wrapping column getter function
-  //  // needed for texture pegging
-  //  int*			texturecompositesize;
-  //  short**			texturecolumnlump;
-  //  unsigned**		texturecolumnofs; // [crispy] column offsets for composited translucent mid-textures on 2S walls
-  //  unsigned**		texturecolumnofs2; // [crispy] column offsets for composited opaque textures
-  //  byte**			texturecomposite; // [crispy] composited translucent mid-textures on 2S walls
-  //  byte**			texturecomposite2; // [crispy] composited opaque textures
+  texturewidthmask: Array Of int;
+  texturewidth: Array Of int; // [crispy] texture width for wrapping column getter function
+  // needed for texture pegging
+  texturecompositesize: Array Of int;
+  texturecolumnlump: Array Of Array Of short;
+  texturecolumnofs: Array Of Array Of unsigned; // [crispy] column offsets for composited translucent mid-textures on 2S walls
+  texturecolumnofs2: Array Of Array Of unsigned; // [crispy] column offsets for composited opaque textures
+  texturecomposite: Array Of Array Of byte; // [crispy] composited translucent mid-textures on 2S walls
+  texturecomposite2: Array Of Array Of byte; // [crispy] composited opaque textures
   texturebrightmap: Array Of TBytes; // [crispy] brightmaps
-
 
   // for global animation
   flattranslation: Array Of Int;
-  //  int*		texturetranslation;
+  texturetranslation: Array Of Int;
 
   //  // needed for pre rendering
   //  fixed_t*	spritewidth;
@@ -267,6 +263,174 @@ Begin
   End;
 End;
 
+Procedure R_GenerateLookup(texnum: int);
+Var
+  texture: ^texture_t;
+  patchcount: Array Of byte = Nil; // patchcount[texture->width]
+  postcount: Array Of byte = Nil; // killough 4/9/98: keep count of posts in addition to patches.
+  patch: ^texpatch_t;
+  realpatch: ^patch_t;
+  x, x1, x2, i: int;
+  collump: ^short;
+  colofs, colofs2: ^unsigned; // killough 4/9/98: make 32-bit
+  csize: int = 0; // killough 10/98
+  err: int = 0; // killough 10/98
+Begin
+
+  texture := @textures[texnum];
+
+  // Composited texture not created yet.
+  texturecomposite[texnum] := Nil;
+  texturecomposite2[texnum] := Nil;
+
+  texturecompositesize[texnum] := 0;
+  collump := @texturecolumnlump[texnum];
+  colofs := @texturecolumnofs[texnum];
+  colofs2 := @texturecolumnofs2[texnum];
+
+  // Now count the number of columns
+  //  that are covered by more than one patch.
+  // Fill in the lump / offset, so columns
+  //  with only a single patch are all done.
+  setlength(patchcount, texture^.width);
+  setlength(postcount, texture^.width);
+  FillChar(patchcount[0], texture^.width, 0);
+  FillChar(postcount[0], texture^.width, 0);
+
+
+  //    for (i=0 , patch = texture->patches;
+  //	 i<texture->patchcount;
+  //	 i++, patch++)
+  //    {
+  //	realpatch = W_CacheLumpNum (patch->patch, PU_CACHE);
+  //	x1 = patch->originx;
+  //	x2 = x1 + SHORT(realpatch->width);
+  //
+  //	if (x1 < 0)
+  //	    x = 0;
+  //	else
+  //	    x = x1;
+  //
+  //	if (x2 > texture->width)
+  //	    x2 = texture->width;
+  //	for ( ; x<x2 ; x++)
+  //	{
+  //	    patchcount[x]++;
+  //	    collump[x] = patch->patch;
+  //	    colofs[x] = LONG(realpatch->columnofs[x-x1])+3;
+  //	}
+  //    }
+  //
+  //    // killough 4/9/98: keep a count of the number of posts in column,
+  //    // to fix Medusa bug while allowing for transparent multipatches.
+  //    //
+  //    // killough 12/98:
+  //    // Post counts are only necessary if column is multipatched,
+  //    // so skip counting posts if column comes from a single patch.
+  //    // This allows arbitrarily tall textures for 1s walls.
+  //    //
+  //    // If texture is >= 256 tall, assume it's 1s, and hence it has
+  //    // only one post per column. This avoids crashes while allowing
+  //    // for arbitrarily tall multipatched 1s textures.
+  //
+  //    // [crispy] generate composites for all textures
+  ////  if (texture->patchcount > 1 && texture->height < 256)
+  //    {
+  //	// killough 12/98: Warn about a common column construction bug
+  //	unsigned limit = texture->height * 3 + 3; // absolute column size limit
+  //
+  //	for (i = texture->patchcount, patch = texture->patches; --i >= 0; )
+  //	{
+  //	    int pat = patch->patch;
+  //	    const patch_t *realpatch = W_CacheLumpNum(pat, PU_CACHE);
+  //	    int x, x1 = patch++->originx, x2 = x1 + SHORT(realpatch->width);
+  //	    const int *cofs = realpatch->columnofs - x1;
+  //
+  //	    if (x2 > texture->width)
+  //		x2 = texture->width;
+  //	    if (x1 < 0)
+  //		x1 = 0;
+  //
+  //	    for (x = x1 ; x < x2 ; x++)
+  //	    {
+  //		// [crispy] generate composites for all columns
+  ////		if (patchcount[x] > 1) // Only multipatched columns
+  //		{
+  //		    const column_t *col = (const column_t*)((const byte*) realpatch + LONG(cofs[x]));
+  //		    const byte *base = (const byte *) col;
+  //
+  //		    // count posts
+  //		    for ( ; col->topdelta != 0xff; postcount[x]++)
+  //		    {
+  //			if ((unsigned)((const byte *) col - base) <= limit)
+  //			    col = (const column_t *)((const byte *) col + col->length + 4);
+  //			else
+  //			    break;
+  //		    }
+  //		}
+  //	    }
+  //	}
+  //    }
+  //
+  //    // Now count the number of columns
+  //    //  that are covered by more than one patch.
+  //    // Fill in the lump / offset, so columns
+  //    //  with only a single patch are all done.
+  //
+  //    for (x=0 ; x<texture->width ; x++)
+  //    {
+  //	if (!patchcount[x] && !err++) // killough 10/98: non-verbose output
+  //	{
+  //	    // [crispy] fix absurd texture name in error message
+  //	    printf ("R_GenerateLookup: column without a patch (%.8s)\n",
+  //		    texture->name);
+  //	    // [crispy] do not return yet
+  //	    /*
+  //	    return;
+  //	    */
+  //	}
+  //	// I_Error ("R_GenerateLookup: column without a patch");
+  //
+  //	// [crispy] treat patch-less columns the same as multi-patched
+  //	if (patchcount[x] > 1 || !patchcount[x])
+  //	{
+  //	    // Use the cached block.
+  //	    // [crispy] moved up here, the rest in this loop
+  //	    // applies to single-patched textures as well
+  //	    collump[x] = -1;
+  //	}
+  //	    // killough 1/25/98, 4/9/98:
+  //	    //
+  //	    // Fix Medusa bug, by adding room for column header
+  //	    // and trailer bytes for each post in merged column.
+  //	    // For now, just allocate conservatively 4 bytes
+  //	    // per post per patch per column, since we don't
+  //	    // yet know how many posts the merged column will
+  //	    // require, and it's bounded above by this limit.
+  //
+  //	    colofs[x] = csize + 3; // three header bytes in a column
+  //	    // killough 12/98: add room for one extra post
+  //	    csize += 4 * postcount[x] + 5; // 1 stop byte plus 4 bytes per post
+  //
+  //	    // [crispy] remove limit
+  //	    /*
+  //	    if (texturecompositesize[texnum] > 0x10000-texture->height)
+  //	    {
+  //		I_Error ("R_GenerateLookup: texture %i is >64k",
+  //			 texnum);
+  //	    }
+  //	    */
+  //	csize += texture->height; // height bytes of texture data
+  //	// [crispy] initialize opaque texture column offset
+  //	colofs2[x] = x * texture->height;
+  //    }
+  //
+  //    texturecompositesize[texnum] = csize;
+  //
+  //    Z_Free(patchcount);
+  //    Z_Free(postcount);
+End;
+
 Procedure GenerateTextureHashTable();
 Begin
   //    texture_t **rover;
@@ -336,6 +500,15 @@ End;
 // [crispy] partly rewritten to merge PNAMES and TEXTURE1/2 lumps
 
 Procedure R_InitTextures();
+  Function Copy8Chars(Src: PChar): String;
+  Begin
+    result := '';
+    While (Src^ <> #0) And (length(result) < 8) Do Begin
+      result := result + src^;
+      inc(src);
+    End;
+  End;
+
 Type
   texturelump_t = Record
     lumpnum: int;
@@ -357,15 +530,13 @@ Type
 Var
   numtexturelumps: int = 0;
   mtexture: ^maptexture_t;
-  texture: Ptexture_t;
   mpatch: ^mappatch_t;
-  patch: ^mappatch_t;
-  //
+
   i, j, k: int;
 
   maptex: P_int;
 
-  name: String;
+  texturename, name: String;
 
   patchlookup: Array Of int = Nil; // Liste der Lump Indizees
 
@@ -374,7 +545,7 @@ Var
   maxoff: int = 0;
 
   directory: P_int = Nil;
-  //
+
   //    int			temp1;
   //    int			temp2;
   //    int			temp3;
@@ -387,8 +558,9 @@ Var
   maxtexturelumps: int; // TEXTURE1, TEXTURE2
 
   numpnameslumps: int = 0;
-  p: Pointer;
+  p_: Pointer;
   lumpindex: int;
+  p: short;
 Begin
   maxtexturelumps := length(lumpinfo);
   maxpnameslumps := length(lumpinfo);
@@ -415,14 +587,14 @@ Begin
   For i := high(lumpinfo) Downto 0 Do Begin
     If pos('PNAMES', lumpinfo[i].name) = 1 Then Begin
       pnameslumps[numpnameslumps].lumpnum := i;
-      p := W_CacheLumpNum(pnameslumps[numpnameslumps].lumpnum, PU_STATIC);
-      pnameslumps[numpnameslumps].names := p;
-      pnameslumps[numpnameslumps].nummappatches := P_int(p)^ And $FFFF;
+      p_ := W_CacheLumpNum(pnameslumps[numpnameslumps].lumpnum, PU_STATIC);
+      pnameslumps[numpnameslumps].names := p_;
+      pnameslumps[numpnameslumps].nummappatches := P_int(p_)^ And $FFFF;
 
       // [crispy] accumulated number of patches in the lookup tables
       // excluding the current one
       pnameslumps[numpnameslumps].summappatches := nummappatches;
-      pnameslumps[numpnameslumps].name_p := p + 4;
+      pnameslumps[numpnameslumps].name_p := p_ + 4;
       // [crispy] calculate total number of patches
       nummappatches := nummappatches + pnameslumps[numpnameslumps].nummappatches;
       numpnameslumps := numpnameslumps + 1;
@@ -447,15 +619,12 @@ Begin
   setlength(pnameslumps, numpnameslumps); // Wieder Einkürzen der TextureLump Tabelle auf die Tatsächlich genutzte Zahl
   setlength(texturelumps, numtexturelumps); // Wieder Einkürzen der TextureLump Tabelle auf die Tatsächlich genutzte Zahl
 
-  //    // [crispy] fill up the patch lookup table
+  // [crispy] fill up the patch lookup table
   setlength(patchlookup, nummappatches);
   k := 0;
   For i := 0 To numpnameslumps - 1 Do Begin
     For j := 0 To pnameslumps[i].nummappatches - 1 Do Begin
-      name := pchar(pnameslumps[i].name_p + j * 8);
-      If length(name) > 8 Then Begin // ggf "abschneiden" auf 8 Zeichen
-        delete(name, 9, length(name));
-      End;
+      name := Copy8Chars(pnameslumps[i].name_p + j * 8);
       lumpindex := W_CheckNumForName(name);
       If (Not R_IsPatchLump(lumpindex)) Then Begin
         lumpindex := -1;
@@ -496,43 +665,43 @@ Begin
   texturelump := Nil; // [crispy] gets immediately increased below
 
   setlength(textures, numtextures);
-  //    texturecolumnlump = Z_Malloc (numtextures * sizeof(*texturecolumnlump), PU_STATIC, 0);
-  //    texturecolumnofs = Z_Malloc (numtextures * sizeof(*texturecolumnofs), PU_STATIC, 0);
-  //    texturecolumnofs2 = Z_Malloc (numtextures * sizeof(*texturecolumnofs2), PU_STATIC, 0);
-  //    texturecomposite = Z_Malloc (numtextures * sizeof(*texturecomposite), PU_STATIC, 0);
-  //    texturecomposite2 = Z_Malloc (numtextures * sizeof(*texturecomposite2), PU_STATIC, 0);
-  //    texturecompositesize = Z_Malloc (numtextures * sizeof(*texturecompositesize), PU_STATIC, 0);
-  //    texturewidthmask = Z_Malloc (numtextures * sizeof(*texturewidthmask), PU_STATIC, 0);
-  //    texturewidth = Z_Malloc (numtextures * sizeof(*texturewidth), PU_STATIC, 0);
+  setlength(texturecolumnlump, numtextures);
+  setlength(texturecolumnofs, numtextures);
+  setlength(texturecolumnofs2, numtextures);
+  setlength(texturecomposite, numtextures);
+  setlength(texturecomposite2, numtextures);
+  setlength(texturecompositesize, numtextures);
+  setlength(texturewidthmask, numtextures);
+  setlength(texturewidth, numtextures);
   setlength(textureheight, numtextures);
   setlength(texturebrightmap, numtextures);
 
-  //    //	Really complex printing shit...
-  //    temp1 = W_GetNumForName (DEH_String("S_START"));  // P_???????
-  //    temp2 = W_GetNumForName (DEH_String("S_END")) - 1;
-  //    temp3 = ((temp2-temp1+63)/64) + ((numtextures+63)/64);
-  //
-  //    // If stdout is a real console, use the classic vanilla "filling
-  //    // up the box" effect, which uses backspace to "step back" inside
-  //    // the box.  If stdout is a file, don't draw the box.
-  //
-  //    if (I_ConsoleStdout())
-  //    {
-  //        printf("[");
-  //#ifndef CRISPY_TRUECOLOR
-  //        for (i = 0; i < temp3 + 9 + 1; i++) // [crispy] one more for R_InitTranMap()
-  //#else
-  //        for (i = 0; i < temp3 + 9; i++)
-  //#endif
-  //            printf(" ");
-  //        printf("]");
-  //#ifndef CRISPY_TRUECOLOR
-  //        for (i = 0; i < temp3 + 10 + 1; i++) // [crispy] one more for R_InitTranMap()
-  //#else
-  //        for (i = 0; i < temp3 + 10; i++)
-  //#endif
-  //            printf("\b");
-  //    }
+  //	Really complex printing shit...
+//    temp1 = W_GetNumForName (DEH_String("S_START"));  // P_???????
+//    temp2 = W_GetNumForName (DEH_String("S_END")) - 1;
+//    temp3 = ((temp2-temp1+63)/64) + ((numtextures+63)/64);
+//
+//    // If stdout is a real console, use the classic vanilla "filling
+//    // up the box" effect, which uses backspace to "step back" inside
+//    // the box.  If stdout is a file, don't draw the box.
+//
+//    if (I_ConsoleStdout())
+//    {
+//        printf("[");
+//#ifndef CRISPY_TRUECOLOR
+//        for (i = 0; i < temp3 + 9 + 1; i++) // [crispy] one more for R_InitTranMap()
+//#else
+//        for (i = 0; i < temp3 + 9; i++)
+//#endif
+//            printf(" ");
+//        printf("]");
+//#ifndef CRISPY_TRUECOLOR
+//        for (i = 0; i < temp3 + 10 + 1; i++) // [crispy] one more for R_InitTranMap()
+//#else
+//        for (i = 0; i < temp3 + 10; i++)
+//#endif
+//            printf("\b");
+//    }
 
 //      for (i=0 ; i<numtextures ; i++, directory++)
   For i := 0 To numtextures - 1 Do Begin
@@ -562,77 +731,71 @@ Begin
     End;
 
     mtexture := pointer(maptex) + offset;
-    texture := @textures[i];
-
-    texture^.width := mtexture^.width;
-    texture^.height := mtexture^.height;
-    texture^.patchcount := mtexture^.patchcount;
-
-    texture^.name := mtexture^.name;
+    setlength(textures[i].patches, mtexture^.patchcount);
+    textures[i].width := mtexture^.width;
+    textures[i].height := mtexture^.height;
+    textures[i].patchcount := mtexture^.patchcount;
+    textures[i].name := Copy8Chars(mtexture^.name);
     mpatch := @mtexture^.patches[0];
-    patch := @texture^.patches[0];
 
     // [crispy] initialize brightmaps
-    texturebrightmap[i] := R_BrightmapForTexName(texture^.name);
+    texturebrightmap[i] := R_BrightmapForTexName(textures[i].name);
 
-    hier gehts weiter
+    For j := 0 To textures[i].patchcount - 1 Do Begin
+      textures[i].patches[j].originx := mpatch^.originx;
+      textures[i].patches[j].originy := mpatch^.originy;
 
-    //	for (j=0 ; j<texture->patchcount ; j++, mpatch++, patch++)
-    //	{
-    //	    short p;
-    //	    patch->originx = SHORT(mpatch->originx);
-    //	    patch->originy = SHORT(mpatch->originy);
-    //	    // [crispy] apply offset for patches not in the
-    //	    // first available patch offset table
-    //	    p = SHORT(mpatch->patch) + texturelump->pnamesoffset;
-    //	    // [crispy] catch out-of-range patches
-    //	    if (p < nummappatches)
-    //		patch->patch = patchlookup[p];
-    //	    if (patch->patch == -1 || p >= nummappatches)
-    //	    {
-    //		char	texturename[9];
-    //		texturename[8] = '\0';
-    //		memcpy (texturename, texture->name, 8);
-    //		// [crispy] make non-fatal
-    //		fprintf (stderr, "R_InitTextures: Missing patch in texture %s\n",
-    //			 texturename);
-    //		patch->patch = W_CheckNumForName("WIPCNT"); // [crispy] dummy patch
-    //	    }
-    //	}
-    //	texturecolumnlump[i] = Z_Malloc (texture->width*sizeof(**texturecolumnlump), PU_STATIC,0);
-    //	texturecolumnofs[i] = Z_Malloc (texture->width*sizeof(**texturecolumnofs), PU_STATIC,0);
-    //	texturecolumnofs2[i] = Z_Malloc (texture->width*sizeof(**texturecolumnofs2), PU_STATIC,0);
-    //
-    //	j = 1;
-    //	while (j*2 <= texture->width)
-    //	    j<<=1;
-    //
-    //	texturewidthmask[i] = j-1;
-    //	textureheight[i] = texture->height<<FRACBITS;
-    //
-    //	// [crispy] texture width for wrapping column getter function
-    //	texturewidth[i] = texture->width;
+      // [crispy] apply offset for patches not in the
+      // first available patch offset table
+      p := mpatch^.patch + texturelump^.pnamesoffset;
+      // [crispy] catch out-of-range patches
+      If (p < nummappatches) Then Begin
+        textures[i].patches[j].patch := patchlookup[p];
+      End;
+      If (textures[i].patches[j].patch = -1) Or (p >= nummappatches) Then Begin
+        texturename := textures[i].name;
+        // [crispy] make non-fatal
+        writeln(stderr, format('R_InitTextures: Missing patch in texture %s', [texturename]));
+        textures[i].patches[j].patch := W_CheckNumForName('WIPCNT'); // [crispy] dummy patch
+      End;
+      inc(mpatch);
+    End;
+    setlength(texturecolumnlump[i], textures[i].width);
+    setlength(texturecolumnofs[i], textures[i].width);
+    setlength(texturecolumnofs2[i], textures[i].width);
+
+    j := 1;
+    While (j * 2 <= textures[i].width) Do Begin
+      j := j Shl 1;
+    End;
+
+    texturewidthmask[i] := j - 1;
+    textureheight[i] := textures[i].height Shl FRACBITS;
+
+    // [crispy] texture width for wrapping column getter function
+    texturewidth[i] := textures[i].width;
+    inc(directory);
   End;
-  //
-  //    Z_Free(patchlookup);
-  //
-  //    // [crispy] release memory allocated for texture files
-  //    for (i = 0; i < numtexturelumps; i++)
-  //    {
-  //	W_ReleaseLumpNum(texturelumps[i].lumpnum);
-  //    }
-  //    free(texturelumps);
-  //
-  //    // Precalculate whatever possible.
-  //
-  //    for (i=0 ; i<numtextures ; i++)
-  //	R_GenerateLookup (i);
-  //
-  //    // Create translation table for global animation.
-  //    texturetranslation = Z_Malloc ((numtextures+1)*sizeof(*texturetranslation), PU_STATIC, 0);
-  //
-  //    for (i=0 ; i<numtextures ; i++)
-  //	texturetranslation[i] = i;
+
+  setlength(patchlookup, 0);
+
+  // [crispy] release memory allocated for texture files
+//    for (i = 0; i < numtexturelumps; i++)
+//    {
+//	W_ReleaseLumpNum(texturelumps[i].lumpnum);
+//    }
+  setlength(texturelumps, 0);
+
+  // Precalculate whatever possible.
+  For i := 0 To numtextures - 1 Do Begin
+    R_GenerateLookup(i);
+  End;
+
+  // Create translation table for global animation.
+  setlength(texturetranslation, numtextures + 1);
+  For i := 0 To numtextures - 1 Do Begin
+    texturetranslation[i] := i;
+  End;
 
   GenerateTextureHashTable();
 End;
@@ -732,4 +895,5 @@ Begin
 End;
 
 End.
+
 

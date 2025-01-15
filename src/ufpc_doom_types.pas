@@ -23,6 +23,7 @@ Type
   unsigned_short = uInt16;
 
   int = int32;
+  unsigned = UInt32; // Geraten, den dass steht nirgends, könnte auch PTR_int sein ??
   P_int = ^int;
   unsigned_int = uint32;
   P_unsigned_int = ^unsigned_int;
