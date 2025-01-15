@@ -17,12 +17,9 @@ Uses
 Type
   lumpindex_t = int;
 
-  //  typedef struct lumpinfo_s ;
+  lumpinfo_t = Record
 
-
-  lumpinfo_s = Record
-
-    //    char	name[8];
+    name: String; // Der wird als Uppercase initialisiert !
     wad_file: String;
     //    int		position;
     //    int		size;
@@ -31,8 +28,6 @@ Type
     // Used for hash table lookups
 //    next: lumpindex_t;
   End;
-
-  lumpinfo_t = lumpinfo_s;
 
   (*
    * Alle Functionen aus der .h Datei sind schon mal "Portiert" aber nicht alle
@@ -52,9 +47,9 @@ Function W_LumpLength(lump: lumpindex_t): int;
 Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
 Function W_CacheLumpName(name: String; tag: int): Pointer;
 
-//Procedure W_GenerateHashTable();
+Procedure W_GenerateHashTable();
 
-// Function W_LumpNameHash(Const s: String): unsigned_int;
+Function W_LumpNameHash(Const s: String): unsigned_int;
 
 Procedure W_ReleaseLumpNum(lump: lumpindex_t);
 Procedure W_ReleaseLumpName(Const name: String);
@@ -65,7 +60,7 @@ Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
 //function W_GetWADFileNames():TStrings;
 
 Var
-  lumpinfo: Array Of lumpinfo_t; // Wird für jeden Lum mit angelegt
+  lumpinfo: Array Of lumpinfo_t; // Wird für jeden Lump mit angelegt
 
 Implementation
 
@@ -75,7 +70,7 @@ Type
   TLump = Packed Record
     filepos: int;
     size: int;
-    name: Array[0..7] Of char;
+    name: Array[0..7] Of char; // Der wird als lowercase initialisiert !
   End;
 
 Var
@@ -137,15 +132,57 @@ Begin
   setlength(lumpinfo, length(Lumps));
   For i := 0 To high(Lumps) Do Begin
     lumpinfo[i].wad_file := filename;
+    lumpinfo[i].name := UpperCase(Lumps[i].name);
     Lumps[i].name := LowerCase(Lumps[i].name);
   End;
   m.free;
   result := true;
 End;
 
+// The Doom reload hack. The idea here is that if you give a WAD file to -file
+// prefixed with the ~ hack, that WAD file will be reloaded each time a new
+// level is loaded. This lets you use a level editor in parallel and make
+// incremental changes to the level you're working on without having to restart
+// the game after every change.
+// But: the reload feature is a fragile hack...
+
 Procedure W_Reload();
 Begin
-  // Nichts zu tun
+  //    char *filename;
+  //    lumpindex_t i;
+  //
+  //    if (reloadname == NULL)
+  //    {
+  //        return;
+  //    }
+  //
+  //    // We must free any lumps being cached from the PWAD we're about to reload:
+  //    for (i = reloadlump; i < numlumps; ++i)
+  //    {
+  //        if (lumpinfo[i]->cache != NULL)
+  //        {
+  //            Z_Free(lumpinfo[i]->cache);
+  //        }
+  //    }
+  //
+  //    // Reset numlumps to remove the reload WAD file:
+  //    numlumps = reloadlump;
+  //
+  //    // Now reload the WAD file.
+  //    filename = reloadname;
+  //
+  //    W_CloseFile(reloadhandle);
+  //    free(reloadlumps);
+  //
+  //    reloadname = NULL;
+  //    reloadlump = -1;
+  //    reloadhandle = NULL;
+  //    W_AddFile(filename);
+  //    free(filename);
+
+  // The WAD directory has changed, so we have to regenerate the
+  // fast lookup hashtable:
+  W_GenerateHashTable();
 End;
 
 //
@@ -220,10 +257,60 @@ Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
 Begin
   result := Nil;
   If (lumpnum >= 0) And (lumpnum <= High(Lumps)) Then Begin
-    result := @Lumps[lumpnum];
+    result := @WadMem[Lumps[lumpnum].filepos];
   End
   Else Begin
     I_Error(format('W_CacheLumpNum: %i >= numlumps', [lumpnum]));
+  End;
+End;
+
+// Generate a hash table for fast lookups
+
+Procedure W_GenerateHashTable();
+Begin
+  //   lumpindex_t i;
+  //
+  //    // Free the old hash table, if there is one:
+  //    if (lumphash != NULL)
+  //    {
+  //        Z_Free(lumphash);
+  //    }
+  //
+  //    // Generate hash table
+  //    if (numlumps > 0)
+  //    {
+  //        lumphash = Z_Malloc(sizeof(lumpindex_t) * numlumps, PU_STATIC, NULL);
+  //
+  //        for (i = 0; i < numlumps; ++i)
+  //        {
+  //            lumphash[i] = -1;
+  //        }
+  //
+  //        for (i = 0; i < numlumps; ++i)
+  //        {
+  //            unsigned int hash;
+  //
+  //            hash = W_LumpNameHash(lumpinfo[i]->name) % numlumps;
+  //
+  //            // Hook into the hash table
+  //
+  //            lumpinfo[i]->next = lumphash[hash];
+  //            lumphash[hash] = i;
+  //        }
+  //    }
+End;
+
+// Hash function used for lump names.
+
+Function W_LumpNameHash(Const s: String): unsigned_int;
+Var
+  i: unsigned_int;
+Begin
+  // This is the djb2 string hash function, modded to work on strings
+  // that have a maximum length of 8.
+  result := 5381;
+  For i := 1 To length(s) Do Begin
+    result := ((result Shl 5) Xor result) Xor ord(Uppercase(s[i])[1]);
   End;
 End;
 
