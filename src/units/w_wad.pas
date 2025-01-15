@@ -39,7 +39,7 @@ Procedure W_Reload();
 
 Function W_CheckNumForName(name: String): lumpindex_t;
 Function W_GetNumForName(name: String): lumpindex_t;
-//Function W_CheckNumForNameFromTo(Const name: String; afrom, ato: int): lumpindex_t;
+Function W_CheckNumForNameFromTo(Const name: String; afrom, ato: int): lumpindex_t;
 
 Function W_LumpLength(lump: lumpindex_t): int;
 //Procedure W_ReadLump(lump: lumpindex_t Var dest: Pointer);
@@ -222,9 +222,23 @@ Begin
   result := i;
 End;
 
+Function W_CheckNumForNameFromTo(Const name: String; afrom, ato: int
+  ): lumpindex_t;
+Var
+  i: int;
+Begin
+  For i := afrom Downto ato Do Begin
+    If lumpinfo[i].name = name Then Begin
+      result := i;
+      exit;
+    End;
+  End;
+  result := -1;
+End;
+
 Function W_LumpLength(lump: lumpindex_t): int;
 Begin
-  result := 0;
+  result := -1; // Länge 0 wäre theoretisch gültig ..
   If (Lump >= 0) And (lump <= High(Lumps)) Then Begin
     result := Lumps[lump].size;
   End;

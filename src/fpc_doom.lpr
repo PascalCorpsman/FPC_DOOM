@@ -21,7 +21,7 @@ Uses
   cthreads,
 {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, Unit1, p_enemy, p_map, p_bexptr;
+  Forms, Unit1;
 
 Begin
   Application.Initialize;

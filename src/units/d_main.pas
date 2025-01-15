@@ -33,7 +33,7 @@ Uses
   config, sounds
   , doom_icon, doomstat, doomdef
   , am_map
-  , d_iwad, d_englsh, d_loop, d_net, d_event
+  , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad
   , f_wipe
   , g_game
   , hu_stuff
@@ -76,11 +76,6 @@ Var
   iwadfile: String = '';
 
   devparm: Boolean; // started game with -devparm
-
-
-
-
-
 
   // Store demo, do not accept any inputs
   storedemo: boolean = false;
@@ -260,6 +255,56 @@ Begin
   result := M_StringDuplicate(gamename);
 End;
 
+// Prints a message only if it has been modified by dehacked.
+
+Procedure PrintDehackedBanners();
+// Copyright message banners
+// Some dehacked mods replace these.  These are only displayed if they are
+// replaced by dehacked.
+
+Const
+  copyright_banners: Array Of String = (
+    '===========================================================================',
+    'ATTENTION:  This version of DOOM has been modified.  If you would like to',
+    'get a copy of the original game, call 1-800-IDGAMES or see the readme file.',
+    '        will not receive technical support for modified games.',
+    '                      press enter to continue',
+    '===========================================================================',
+
+    '===========================================================================',
+    '                 Commercial product - do not distribute!',
+    '         Please report software piracy to the SPA: 1-800-388-PIR8',
+    '===========================================================================',
+
+    '===========================================================================',
+    '                                Shareware!',
+    '==========================================================================='
+    );
+
+Begin
+  //    size_t i;
+  //
+  //    for (i=0; i<arrlen(copyright_banners); ++i)
+  //    {
+  //        const char *deh_s;
+  //
+  //        deh_s = DEH_String(copyright_banners[i]);
+  //
+  //        if (deh_s != copyright_banners[i])
+  //        {
+  //            printf("%s", deh_s);
+  //
+  //            // Make sure the modified banner always ends in a newline character.
+  //            // If it doesn't, add a newline.  This fixes av.wad.
+  //
+  //            if (deh_s[strlen(deh_s) - 1] != '\n')
+  //            {
+  //                printf("\n");
+  //            }
+  //        }
+  //    }
+End;
+
 Procedure D_AdvanceDemo();
 Begin
   advancedemo := true;
@@ -324,6 +369,109 @@ Begin
   If gamedescription = '' Then Begin
     gamedescription := M_StringDuplicate('Unknown');
   End;
+End;
+
+// Load dehacked patches needed for certain IWADs.
+
+Procedure LoadIwadDeh();
+Begin
+  // The Freedoom IWADs have DEHACKED lumps that must be loaded.
+//    if (gamevariant == freedoom || gamevariant == freedm)
+//    {
+//        // Old versions of Freedoom (before 2014-09) did not have technically
+//        // valid DEHACKED lumps, so ignore errors and just continue if this
+//        // is an old IWAD.
+//        DEH_LoadLumpByName("DEHACKED", false, true);
+//    }
+//
+//    else // [crispy]
+//    // If this is the HACX IWAD, we need to load the DEHACKED lump.
+//    if (gameversion == exe_hacx)
+//    {
+//        if (!DEH_LoadLumpByName("DEHACKED", true, false))
+//        {
+//            I_Error("DEHACKED lump not found.  Please check that this is the "
+//                    "Hacx v1.2 IWAD.");
+//        }
+//    }
+//
+//    else // [crispy]
+//    // Chex Quest needs a separate Dehacked patch which must be downloaded
+//    // and installed next to the IWAD.
+//    if (gameversion == exe_chex)
+//    {
+//        char *chex_deh = NULL;
+//        char *dirname;
+//
+//        // Look for chex.deh in the same directory as the IWAD file.
+//        dirname = M_DirName(iwadfile);
+//        chex_deh = M_StringJoin(dirname, DIR_SEPARATOR_S, "chex.deh", NULL);
+//        free(dirname);
+//
+//        // If the dehacked patch isn't found, try searching the WAD
+//        // search path instead.  We might find it...
+//        if (!M_FileExists(chex_deh))
+//        {
+//            free(chex_deh);
+//            chex_deh = D_FindWADByName("chex.deh");
+//        }
+//
+//        // Still not found?
+//        if (chex_deh == NULL)
+//        {
+//            I_Error("Unable to find Chex Quest dehacked file (chex.deh).\n"
+//                    "The dehacked file is required in order to emulate\n"
+//                    "chex.exe correctly.  It can be found in your nearest\n"
+//                    "/idgames repository mirror at:\n\n"
+//                    "   themes/chex/chexdeh.zip");
+//        }
+//
+//        if (!DEH_LoadFile(chex_deh))
+//        {
+//            I_Error("Failed to load chex.deh needed for emulating chex.exe.");
+//        }
+//    }
+//    // [crispy] try anyway...
+//    else if (W_CheckNumForName("DEHACKED") != -1)
+//    {
+//        DEH_LoadLumpByName("DEHACKED", true, true);
+//    }
+//
+//    if (IsFrenchIWAD())
+//    {
+//        char *french_deh = NULL;
+//        char *dirname;
+//
+//        // Look for french.deh in the same directory as the IWAD file.
+//        dirname = M_DirName(iwadfile);
+//        french_deh = M_StringJoin(dirname, DIR_SEPARATOR_S, "french.deh", NULL);
+//        printf("French version\n");
+//        free(dirname);
+//
+//        // If the dehacked patch isn't found, try searching the WAD
+//        // search path instead.  We might find it...
+//        if (!M_FileExists(french_deh))
+//        {
+//            free(french_deh);
+//            french_deh = D_FindWADByName("french.deh");
+//        }
+//
+//        // Still not found?
+//        if (french_deh == NULL)
+//        {
+//            I_Error("Unable to find French Doom II dehacked file\n"
+//                    "(french.deh).  The dehacked file is required in order to\n"
+//                    "emulate French doom2.exe correctly.  It can be found in\n"
+//                    "your nearest /idgames repository mirror at:\n\n"
+//                    "   utils/exe_edit/patches/french.zip");
+//        }
+//
+//        if (!DEH_LoadFile(french_deh))
+//        {
+//            I_Error("Failed to load french.deh needed for emulating French\n"
+//                    "doom2.exe.");
+//        }
+//    }
 End;
 
 // Initialize the game version
@@ -926,9 +1074,10 @@ End;
 Procedure D_DoomMain();
 Var
   p: int;
+  demolumpname: String;
 Begin
+  demolumpname := '';
   //    char file[256];
-  //    char demolumpname[9] = {0};
 
   //    // [crispy] unconditionally initialize DEH tables
   //    DEH_Init();
@@ -1172,378 +1321,366 @@ Begin
     gamevariant := bfgedition;
   End;
 
-  //    //!
-  //    // @category mod
-  //    //
-  //    // Disable automatic loading of Dehacked patches for certain
-  //    // IWAD files.
-  //    //
-  //    if (!M_ParmExists("-nodeh"))
-  //    {
-  //        // Some IWADs have dehacked patches that need to be loaded for
-  //        // them to be played properly.
-  //        LoadIwadDeh();
-  //    }
+  //!
+  // @category mod
   //
-  //    // Doom 3: BFG Edition includes modified versions of the classic
-  //    // IWADs which can be identified by an additional DMENUPIC lump.
-  //    // Furthermore, the M_GDHIGH lumps have been modified in a way that
-  //    // makes them incompatible to Vanilla Doom and the modified version
-  //    // of doom2.wad is missing the TITLEPIC lump.
-  //    // We specifically check for DMENUPIC here, before PWADs have been
-  //    // loaded which could probably include a lump of that name.
+  // Disable automatic loading of Dehacked patches for certain
+  // IWAD files.
   //
-  //    if (gamevariant == bfgedition)
-  //    {
-  //        printf("BFG Edition: Using workarounds as needed.\n");
+  If (Not M_ParmExists('-nodeh')) Then Begin
+
+    // Some IWADs have dehacked patches that need to be loaded for
+    // them to be played properly.
+    LoadIwadDeh();
+  End;
+
+  // Doom 3: BFG Edition includes modified versions of the classic
+  // IWADs which can be identified by an additional DMENUPIC lump.
+  // Furthermore, the M_GDHIGH lumps have been modified in a way that
+  // makes them incompatible to Vanilla Doom and the modified version
+  // of doom2.wad is missing the TITLEPIC lump.
+  // We specifically check for DMENUPIC here, before PWADs have been
+  // loaded which could probably include a lump of that name.
+
+  If (gamevariant = bfgedition) Then Begin
+    //        printf("BFG Edition: Using workarounds as needed.\n");
+    //
+    //        // BFG Edition changes the names of the secret levels to
+    //        // censor the Wolfenstein references. It also has an extra
+    //        // secret level (MAP33). In Vanilla Doom (meaning the DOS
+    //        // version), MAP33 overflows into the Plutonia level names
+    //        // array, so HUSTR_33 is actually PHUSTR_1.
+    //        DEH_AddStringReplacement(HUSTR_31, "level 31: idkfa");
+    //        DEH_AddStringReplacement(HUSTR_32, "level 32: keen");
+    //        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
+    //
+    //        // The BFG edition doesn't have the "low detail" menu option (fair
+    //        // enough). But bizarrely, it reuses the M_GDHIGH patch as a label
+    //        // for the options menu (says "Fullscreen:"). Why the perpetrators
+    //        // couldn't just add a new graphic lump and had to reuse this one,
+    //        // I don't know.
+    //        //
+    //        // The end result is that M_GDHIGH is too wide and causes the game
+    //        // to crash. As a workaround to get a minimum level of support for
+    //        // the BFG edition IWADs, use the "ON"/"OFF" graphics instead.
+    //        DEH_AddStringReplacement("M_GDHIGH", "M_MSGON");
+    //        DEH_AddStringReplacement("M_GDLOW", "M_MSGOFF");
+    //
+    //        // The BFG edition's "Screen Size:" graphic has also been changed
+    //        // to say "Gamepad:". Fortunately, it (along with the original
+    //        // Doom IWADs) has an unused graphic that says "Display". So we
+    //        // can swap this in instead, and it kind of makes sense.
+    //        DEH_AddStringReplacement("M_SCRNSZ", "M_DISP");
+  End;
+
+  //!
+  // @category game
   //
-  //        // BFG Edition changes the names of the secret levels to
-  //        // censor the Wolfenstein references. It also has an extra
-  //        // secret level (MAP33). In Vanilla Doom (meaning the DOS
-  //        // version), MAP33 overflows into the Plutonia level names
-  //        // array, so HUSTR_33 is actually PHUSTR_1.
-  //        DEH_AddStringReplacement(HUSTR_31, "level 31: idkfa");
-  //        DEH_AddStringReplacement(HUSTR_32, "level 32: keen");
-  //        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
+  // Automatic pistol start when advancing from one level to the next. At the
+  // beginning of each level, the player's health is reset to 100, their
+  // armor to 0 and their inventory is reduced to the following: pistol,
+  // fists and 50 bullets. This option is not allowed when recording a demo,
+  // playing back a demo or when starting a network game.
   //
-  //        // The BFG edition doesn't have the "low detail" menu option (fair
-  //        // enough). But bizarrely, it reuses the M_GDHIGH patch as a label
-  //        // for the options menu (says "Fullscreen:"). Why the perpetrators
-  //        // couldn't just add a new graphic lump and had to reuse this one,
-  //        // I don't know.
-  //        //
-  //        // The end result is that M_GDHIGH is too wide and causes the game
-  //        // to crash. As a workaround to get a minimum level of support for
-  //        // the BFG edition IWADs, use the "ON"/"OFF" graphics instead.
-  //        DEH_AddStringReplacement("M_GDHIGH", "M_MSGON");
-  //        DEH_AddStringReplacement("M_GDLOW", "M_MSGOFF");
+
+//    crispy->pistolstart = M_ParmExists("-pistolstart");
+
+    //!
+    // @category game
+    //
+    // Double ammo pickup rate. This option is not allowed when recording a
+    // demo, playing back a demo or when starting a network game.
+    //
+
+//    crispy->moreammo = M_ParmExists("-doubleammo");
+
+    //!
+    // @category mod
+    //
+    // Disable auto-loading of .wad and .deh files.
+    //
+  If (Not M_ParmExists('-noautoload')) And (gamemode <> shareware) Then Begin
+    //        char *autoload_dir;
+    //
+    //        // common auto-loaded files for all Doom flavors
+    //
+    //        if (gamemission < pack_chex && gamevariant != freedoom)
+    //        {
+    //            autoload_dir = M_GetAutoloadDir("doom-all", true);
+    //            if (autoload_dir != NULL)
+    //            {
+    //                DEH_AutoLoadPatches(autoload_dir);
+    //                W_AutoLoadWADs(autoload_dir);
+    //                free(autoload_dir);
+    //            }
+    //        }
+    //
+    //        // auto-loaded files per IWAD
+    //        autoload_dir = M_GetAutoloadDir(D_SaveGameIWADName(gamemission, gamevariant), true);
+    //        if (autoload_dir != NULL)
+    //        {
+    //            DEH_AutoLoadPatches(autoload_dir);
+    //            W_AutoLoadWADs(autoload_dir);
+    //            free(autoload_dir);
+    //        }
+  End;
+
+  // Load Dehacked patches specified on the command line with -deh.
+  // Note that there's a very careful and deliberate ordering to how
+  // Dehacked patches are loaded. The order we use is:
+  //  1. IWAD dehacked patches.
+  //  2. Command line dehacked patches specified with -deh.
+  //  3. PWAD dehacked patches in DEHACKED lumps.
+//    DEH_ParseCommandLine();
+
+    // Load PWAD files.
+//    modifiedgame = W_ParseCommandLine();
+
+    //!
+    // @arg <file>
+    // @category mod
+    //
+    // [crispy] experimental feature: in conjunction with -merge <files>
+    // merges PWADs into the main IWAD and writes the merged data into <file>
+    //
+
+  p := M_CheckParm('-mergedump');
+
+  If (p <> 0) Then Begin
+    //	p = M_CheckParmWithArgs("-mergedump", 1);
+    //
+    //	if (p)
+    //	{
+    //	    int merged;
+    //
+    //	    if (M_StringEndsWith(myargv[p+1], ".wad"))
+    //	    {
+    //		M_StringCopy(file, myargv[p+1], sizeof(file));
+    //	    }
+    //	    else
+    //	    {
+    //		DEH_snprintf(file, sizeof(file), "%s.wad", myargv[p+1]);
+    //	    }
+    //
+    //	    merged = W_MergeDump(file);
+    //	    I_Error("W_MergeDump: Merged %d lumps into file '%s'.", merged, file);
+    //      }
+    //	else
+    //	{
+    //	    I_Error("W_MergeDump: The '-mergedump' parameter requires an argument.");
+    //	}
+  End;
+
+  //!
+  // @arg <file>
+  // @category mod
   //
-  //        // The BFG edition's "Screen Size:" graphic has also been changed
-  //        // to say "Gamepad:". Fortunately, it (along with the original
-  //        // Doom IWADs) has an unused graphic that says "Display". So we
-  //        // can swap this in instead, and it kind of makes sense.
-  //        DEH_AddStringReplacement("M_SCRNSZ", "M_DISP");
-  //    }
+  // [crispy] experimental feature: dump lump data into a new LMP file <file>
   //
-  //    //!
-  //    // @category game
-  //    //
-  //    // Automatic pistol start when advancing from one level to the next. At the
-  //    // beginning of each level, the player's health is reset to 100, their
-  //    // armor to 0 and their inventory is reduced to the following: pistol,
-  //    // fists and 50 bullets. This option is not allowed when recording a demo,
-  //    // playing back a demo or when starting a network game.
-  //    //
+
+  p := M_CheckParm('-lumpdump');
+
+  If (p <> 0) Then Begin
+    //	p = M_CheckParmWithArgs("-lumpdump", 1);
+    //
+    //	if (p)
+    //	{
+    //	    int dumped;
+    //
+    //	    M_StringCopy(file, myargv[p+1], sizeof(file));
+    //
+    //	    dumped = W_LumpDump(file);
+    //
+    //	    if (dumped < 0)
+    //	    {
+    //		I_Error("W_LumpDump: Failed to write lump '%s'.", file);
+    //	    }
+    //	    else
+    //	    {
+    //		I_Error("W_LumpDump: Dumped lump into file '%s.lmp'.", file);
+    //	    }
+    //	}
+    //	else
+    //	{
+    //	    I_Error("W_LumpDump: The '-lumpdump' parameter requires an argument.");
+    //	}
+  End;
+
+  // Debug:
+//  W_PrintDirectory();
+
+  // [crispy] add wad files from autoload PWAD directories
+  If (Not M_ParmExists('-noautoload')) And (gamemode <> shareware) Then Begin
+    //        int i;
+    //
+    //        for (i = 0; loadparms[i]; i++)
+    //        {
+    //            int p;
+    //            p = M_CheckParmWithArgs(loadparms[i], 1);
+    //            if (p)
+    //            {
+    //                while (++p != myargc && myargv[p][0] != '-')
+    //                {
+    //                    char *autoload_dir;
+    //                    if ((autoload_dir = M_GetAutoloadDir(M_BaseName(myargv[p]), false)))
+    //                    {
+    //                        W_AutoLoadWADs(autoload_dir);
+    //                        free(autoload_dir);
+    //                    }
+    //                }
+    //            }
+    //        }
+  End;
+
+  //!
+  // @arg <demo>
+  // @category demo
+  // @vanilla
   //
-  //    crispy->pistolstart = M_ParmExists("-pistolstart");
+  // Play back the demo named demo.lmp.
   //
-  //    //!
-  //    // @category game
-  //    //
-  //    // Double ammo pickup rate. This option is not allowed when recording a
-  //    // demo, playing back a demo or when starting a network game.
-  //    //
-  //
-  //    crispy->moreammo = M_ParmExists("-doubleammo");
-  //
-  //    //!
-  //    // @category mod
-  //    //
-  //    // Disable auto-loading of .wad and .deh files.
-  //    //
-  //    if (!M_ParmExists("-noautoload") && gamemode != shareware)
-  //    {
-  //        char *autoload_dir;
-  //
-  //        // common auto-loaded files for all Doom flavors
-  //
-  //        if (gamemission < pack_chex && gamevariant != freedoom)
-  //        {
-  //            autoload_dir = M_GetAutoloadDir("doom-all", true);
-  //            if (autoload_dir != NULL)
-  //            {
-  //                DEH_AutoLoadPatches(autoload_dir);
-  //                W_AutoLoadWADs(autoload_dir);
-  //                free(autoload_dir);
-  //            }
-  //        }
-  //
-  //        // auto-loaded files per IWAD
-  //        autoload_dir = M_GetAutoloadDir(D_SaveGameIWADName(gamemission, gamevariant), true);
-  //        if (autoload_dir != NULL)
-  //        {
-  //            DEH_AutoLoadPatches(autoload_dir);
-  //            W_AutoLoadWADs(autoload_dir);
-  //            free(autoload_dir);
-  //        }
-  //    }
-  //
-  //    // Load Dehacked patches specified on the command line with -deh.
-  //    // Note that there's a very careful and deliberate ordering to how
-  //    // Dehacked patches are loaded. The order we use is:
-  //    //  1. IWAD dehacked patches.
-  //    //  2. Command line dehacked patches specified with -deh.
-  //    //  3. PWAD dehacked patches in DEHACKED lumps.
-  //    DEH_ParseCommandLine();
-  //
-  //    // Load PWAD files.
-  //    modifiedgame = W_ParseCommandLine();
-  //
-  //    //!
-  //    // @arg <file>
-  //    // @category mod
-  //    //
-  //    // [crispy] experimental feature: in conjunction with -merge <files>
-  //    // merges PWADs into the main IWAD and writes the merged data into <file>
-  //    //
-  //
-  //    p = M_CheckParm("-mergedump");
-  //
-  //    if (p)
-  //    {
-  //	p = M_CheckParmWithArgs("-mergedump", 1);
-  //
-  //	if (p)
-  //	{
-  //	    int merged;
-  //
-  //	    if (M_StringEndsWith(myargv[p+1], ".wad"))
-  //	    {
-  //		M_StringCopy(file, myargv[p+1], sizeof(file));
-  //	    }
-  //	    else
-  //	    {
-  //		DEH_snprintf(file, sizeof(file), "%s.wad", myargv[p+1]);
-  //	    }
-  //
-  //	    merged = W_MergeDump(file);
-  //	    I_Error("W_MergeDump: Merged %d lumps into file '%s'.", merged, file);
-  //	}
-  //	else
-  //	{
-  //	    I_Error("W_MergeDump: The '-mergedump' parameter requires an argument.");
-  //	}
-  //    }
-  //
-  //    //!
-  //    // @arg <file>
-  //    // @category mod
-  //    //
-  //    // [crispy] experimental feature: dump lump data into a new LMP file <file>
-  //    //
-  //
-  //    p = M_CheckParm("-lumpdump");
-  //
-  //    if (p)
-  //    {
-  //	p = M_CheckParmWithArgs("-lumpdump", 1);
-  //
-  //	if (p)
-  //	{
-  //	    int dumped;
-  //
-  //	    M_StringCopy(file, myargv[p+1], sizeof(file));
-  //
-  //	    dumped = W_LumpDump(file);
-  //
-  //	    if (dumped < 0)
-  //	    {
-  //		I_Error("W_LumpDump: Failed to write lump '%s'.", file);
-  //	    }
-  //	    else
-  //	    {
-  //		I_Error("W_LumpDump: Dumped lump into file '%s.lmp'.", file);
-  //	    }
-  //	}
-  //	else
-  //	{
-  //	    I_Error("W_LumpDump: The '-lumpdump' parameter requires an argument.");
-  //	}
-  //    }
-  //
-  //    // Debug:
-  ////    W_PrintDirectory();
-  //
-  //    // [crispy] add wad files from autoload PWAD directories
-  //
-  //    if (!M_ParmExists("-noautoload") && gamemode != shareware)
-  //    {
-  //        int i;
-  //
-  //        for (i = 0; loadparms[i]; i++)
-  //        {
-  //            int p;
-  //            p = M_CheckParmWithArgs(loadparms[i], 1);
-  //            if (p)
-  //            {
-  //                while (++p != myargc && myargv[p][0] != '-')
-  //                {
-  //                    char *autoload_dir;
-  //                    if ((autoload_dir = M_GetAutoloadDir(M_BaseName(myargv[p]), false)))
-  //                    {
-  //                        W_AutoLoadWADs(autoload_dir);
-  //                        free(autoload_dir);
-  //                    }
-  //                }
-  //            }
-  //        }
-  //    }
-  //
-  //    //!
-  //    // @arg <demo>
-  //    // @category demo
-  //    // @vanilla
-  //    //
-  //    // Play back the demo named demo.lmp.
-  //    //
-  //
-  //    p = M_CheckParmWithArgs ("-playdemo", 1);
-  //
-  //    if (!p)
-  //    {
-  //        //!
-  //        // @arg <demo>
-  //        // @category demo
-  //        // @vanilla
-  //        //
-  //        // Play back the demo named demo.lmp, determining the framerate
-  //        // of the screen.
-  //        //
-  //	p = M_CheckParmWithArgs("-timedemo", 1);
-  //
-  //    }
-  //
-  //    if (p)
-  //    {
-  //        char *uc_filename = strdup(myargv[p + 1]);
-  //        M_ForceUppercase(uc_filename);
-  //
-  //        // With Vanilla you have to specify the file without extension,
-  //        // but make that optional.
-  //        if (M_StringEndsWith(uc_filename, ".LMP"))
-  //        {
-  //            M_StringCopy(file, myargv[p + 1], sizeof(file));
-  //        }
-  //        else
-  //        {
-  //            DEH_snprintf(file, sizeof(file), "%s.lmp", myargv[p+1]);
-  //        }
-  //
-  //        free(uc_filename);
-  //
-  //        if (D_AddFile(file))
-  //        {
-  //	    int i;
-  //	    // [crispy] check if the demo file name gets truncated to a lump name that is already present
-  //	    if ((i = W_CheckNumForNameFromTo(lumpinfo[numlumps - 1]->name, numlumps - 2, 0)) != -1)
-  //	    {
-  //		printf("Demo lump name collision detected with lump \'%.8s\' from %s.\n",
-  //		        lumpinfo[i]->name, W_WadNameForLump(lumpinfo[i]));
-  //		// [FG] the DEMO1 lump is almost certainly always a demo lump
-  //		M_StringCopy(lumpinfo[numlumps - 1]->name, "DEMO1", 6);
-  //	    }
-  //
-  //            M_StringCopy(demolumpname, lumpinfo[numlumps - 1]->name,
-  //                         sizeof(demolumpname));
-  //        }
-  //        else
-  //        {
-  //            // If file failed to load, still continue trying to play
-  //            // the demo in the same way as Vanilla Doom.  This makes
-  //            // tricks like "-playdemo demo1" possible.
-  //
-  //            M_StringCopy(demolumpname, myargv[p + 1], sizeof(demolumpname));
-  //        }
-  //
-  //        printf("Playing demo %s.\n", file);
-  //    }
-  //
+
+  p := M_CheckParmWithArgs('-playdemo', 1);
+
+  If (p = 0) Then Begin
+    //!
+    // @arg <demo>
+    // @category demo
+    // @vanilla
+    //
+    // Play back the demo named demo.lmp, determining the framerate
+    // of the screen.
+    //
+    p := M_CheckParmWithArgs('-timedemo', 1);
+
+  End;
+
+  If (p <> 0) Then Begin
+    //        char *uc_filename = strdup(myargv[p + 1]);
+    //        M_ForceUppercase(uc_filename);
+    //
+    //        // With Vanilla you have to specify the file without extension,
+    //        // but make that optional.
+    //        if (M_StringEndsWith(uc_filename, ".LMP"))
+    //        {
+    //            M_StringCopy(file, myargv[p + 1], sizeof(file));
+    //        }
+    //        else
+    //        {
+    //            DEH_snprintf(file, sizeof(file), "%s.lmp", myargv[p+1]);
+    //        }
+    //
+    //        free(uc_filename);
+    //
+    //        if (D_AddFile(file))
+    //        {
+    //	    int i;
+    //	    // [crispy] check if the demo file name gets truncated to a lump name that is already present
+    //	    if ((i = W_CheckNumForNameFromTo(lumpinfo[numlumps - 1]->name, numlumps - 2, 0)) != -1)
+    //	    {
+    //		printf("Demo lump name collision detected with lump \'%.8s\' from %s.\n",
+    //		        lumpinfo[i]->name, W_WadNameForLump(lumpinfo[i]));
+    //		// [FG] the DEMO1 lump is almost certainly always a demo lump
+    //		M_StringCopy(lumpinfo[numlumps - 1]->name, "DEMO1", 6);
+    //	    }
+    //
+    //            M_StringCopy(demolumpname, lumpinfo[numlumps - 1]->name,
+    //                         sizeof(demolumpname));
+    //        }
+    //        else
+    //        {
+    //            // If file failed to load, still continue trying to play
+    //            // the demo in the same way as Vanilla Doom.  This makes
+    //            // tricks like "-playdemo demo1" possible.
+    //
+    //            M_StringCopy(demolumpname, myargv[p + 1], sizeof(demolumpname));
+    //        }
+    //
+    //        printf("Playing demo %s.\n", file);
+  End;
+
   //    I_AtExit(G_CheckDemoStatusAtExit, true);
+
+  // Generate the WAD hash table.  Speed things up a bit.
+  W_GenerateHashTable();
+
+  // [crispy] allow overriding of special-casing
+
+  //!
+  // @category mod
   //
-  //    // Generate the WAD hash table.  Speed things up a bit.
-  //    W_GenerateHashTable();
+  // Disable automatic loading of Master Levels, No Rest for the Living and
+  // Sigil.
   //
-  //    // [crispy] allow overriding of special-casing
+  If (Not M_ParmExists('-nosideload')) And (gamemode <> shareware) And (demolumpname <> '') Then Begin
+    //	if (gamemode == retail &&
+    //	    gameversion == exe_ultimate &&
+    //	    gamevariant != freedoom &&
+    //	    strncasecmp(M_BaseName(iwadfile), "rekkr", 5))
+    //	{
+    //		D_LoadSigilWads();
+    //	}
+
+    If (gamemission = doom2) Then Begin
+      D_LoadNerveWad();
+      D_LoadMasterlevelsWad();
+    End;
+  End;
+
+  // Load DEHACKED lumps from WAD files - but only if we give the right
+  // command line parameter.
+
+  // [crispy] load DEHACKED lumps by default, but allow overriding
+
+  //!
+  // @category mod
   //
-  //    //!
-  //    // @category mod
-  //    //
-  //    // Disable automatic loading of Master Levels, No Rest for the Living and
-  //    // Sigil.
-  //    //
-  //    if (!M_ParmExists("-nosideload") && gamemode != shareware && !demolumpname[0])
-  //    {
-  //	if (gamemode == retail &&
-  //	    gameversion == exe_ultimate &&
-  //	    gamevariant != freedoom &&
-  //	    strncasecmp(M_BaseName(iwadfile), "rekkr", 5))
-  //	{
-  //		D_LoadSigilWads();
-  //	}
+  // Disable automatic loading of embedded DEHACKED lumps in wad files.
   //
-  //	if (gamemission == doom2)
-  //	{
-  //		D_LoadNerveWad();
-  //		D_LoadMasterlevelsWad();
-  //	}
-  //    }
-  //
-  //    // Load DEHACKED lumps from WAD files - but only if we give the right
-  //    // command line parameter.
-  //
-  //    // [crispy] load DEHACKED lumps by default, but allow overriding
-  //
-  //    //!
-  //    // @category mod
-  //    //
-  //    // Disable automatic loading of embedded DEHACKED lumps in wad files.
-  //    //
-  //    if (!M_ParmExists("-nodehlump") && !M_ParmExists("-nodeh"))
-  //    {
-  //        int i, loaded = 0;
-  //        int numiwadlumps = numlumps;
-  //
-  //        while (!W_IsIWADLump(lumpinfo[numiwadlumps - 1]))
-  //        {
-  //            numiwadlumps--;
-  //        }
-  //
-  //        for (i = numiwadlumps; i < numlumps; ++i)
-  //        {
-  //            if (!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
-  //            {
-  //                DEH_LoadLump(i, true, true); // [crispy] allow long, allow error
-  //                loaded++;
-  //            }
-  //        }
-  //
-  //        printf("  loaded %i DEHACKED lumps from PWAD files.\n", loaded);
-  //    }
-  //
-  //    // [crispy] process .deh files from PWADs autoload directories
-  //
-  //    if (!M_ParmExists("-noautoload") && gamemode != shareware)
-  //    {
-  //        int i;
-  //
-  //        for (i = 0; loadparms[i]; i++)
-  //        {
-  //            int p;
-  //            p = M_CheckParmWithArgs(loadparms[i], 1);
-  //            if (p)
-  //            {
-  //                while (++p != myargc && myargv[p][0] != '-')
-  //                {
-  //                    char *autoload_dir;
-  //                    if ((autoload_dir = M_GetAutoloadDir(M_BaseName(myargv[p]), false)))
-  //                    {
-  //                        DEH_AutoLoadPatches(autoload_dir);
-  //                        free(autoload_dir);
-  //                    }
-  //                }
-  //            }
-  //        }
-  //    }
+  If (Not M_ParmExists('-nodehlump')) And (Not M_ParmExists('-nodeh')) Then Begin
+    //        int i, loaded = 0;
+    //        int numiwadlumps = numlumps;
+    //
+    //        while (!W_IsIWADLump(lumpinfo[numiwadlumps - 1]))
+    //        {
+    //            numiwadlumps--;
+    //        }
+    //
+    //        for (i = numiwadlumps; i < numlumps; ++i)
+    //        {
+    //            if (!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
+    //            {
+    //                DEH_LoadLump(i, true, true); // [crispy] allow long, allow error
+    //                loaded++;
+    //            }
+    //        }
+    //
+    //        printf("  loaded %i DEHACKED lumps from PWAD files.\n", loaded);
+  End;
+
+  // [crispy] process .deh files from PWADs autoload directories
+
+  If (Not M_ParmExists('-noautoload')) And (gamemode <> shareware) Then Begin
+    //        int i;
+    //
+    //        for (i = 0; loadparms[i]; i++)
+    //        {
+    //            int p;
+    //            p = M_CheckParmWithArgs(loadparms[i], 1);
+    //            if (p)
+    //            {
+    //                while (++p != myargc && myargv[p][0] != '-')
+    //                {
+    //                    char *autoload_dir;
+    //                    if ((autoload_dir = M_GetAutoloadDir(M_BaseName(myargv[p]), false)))
+    //                    {
+    //                        DEH_AutoLoadPatches(autoload_dir);
+    //                        free(autoload_dir);
+    //                    }
+    //                }
+    //            }
+    //        }
+  End;
 
   // Set the gamedescription string. This is only possible now that
   // we've finished loading Dehacked patches.
@@ -1577,7 +1714,7 @@ Begin
   End;
 
   I_PrintStartupBanner(gamedescription);
-  //    PrintDehackedBanners();
+  PrintDehackedBanners();
 
   Writeln('I_Init: Setting up machine state.');
   //    I_CheckIsScreensaver();
@@ -1627,7 +1764,7 @@ Begin
   //        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
   //    }
 
-  //    writeln('NET_Init: Init network subsystem.');
+  writeln('NET_Init: Init network subsystem.');
   //    NET_Init (); // TODO: wenn mal nur noch das hier portiert werden muss ...
 
       // Initial netgame startup. Connect to server etc.
@@ -1653,13 +1790,12 @@ Begin
   // 0 disables all monsters.
   //
 
-//    p = M_CheckParmWithArgs("-skill", 1);
-//
-//    if (p)
-//    {
-//	startskill = myargv[p+1][0]-'1';
-//	autostart = true;
-//    }
+  p := M_CheckParmWithArgs('-skill', 1);
+
+  If (p <> 0) Then Begin
+    //	startskill = myargv[p+1][0]-'1';
+    //	autostart = true;
+  End;
 
   //!
   // @category game
@@ -1669,14 +1805,13 @@ Begin
   // Start playing on episode n (1-4)
   //
 
-//    p = M_CheckParmWithArgs("-episode", 1);
-//
-//    if (p)
-//    {
-//	startepisode = myargv[p+1][0]-'0';
-//	startmap = 1;
-//	autostart = true;
-//    }
+  p := M_CheckParmWithArgs('-episode', 1);
+
+  If (p <> 0) Then Begin
+    //	startepisode = myargv[p+1][0]-'0';
+    //	startmap = 1;
+    //	autostart = true;
+  End;
 
   timelimit := 0;
 
@@ -1688,64 +1823,61 @@ Begin
   // For multiplayer games: exit each level after n minutes.
   //
 
-//    p = M_CheckParmWithArgs("-timer", 1);
-//
-//    if (p)
-//    {
-//	timelimit = atoi(myargv[p+1]);
-//    }
+  p := M_CheckParmWithArgs('-timer', 1);
 
-    //!
-    // @category net
-    // @vanilla
+  If (p <> 0) Then Begin
+    //	timelimit = atoi(myargv[p+1]);
+  End;
+
+  //!
+  // @category net
+  // @vanilla
+  //
+  // Austin Virtual Gaming: end levels after 20 minutes.
+  //
+
+  p := M_CheckParm('-avg');
+
+  If (p <> 0) Then Begin
+    //	timelimit = 20;
+  End;
+
+  //!
+  // @category game
+  // @arg [<x> <y> | <xy>]
+  // @vanilla
+  //
+  // Start a game immediately, warping to ExMy (Doom 1) or MAPxy
+  // (Doom 2)
+  //
+
+  p := M_CheckParmWithArgs('-warp', 1);
+
+  If (p <> 0) Then Begin
+    //        if (gamemode == commercial)
+    //            startmap = atoi (myargv[p+1]);
+    //        else
+    //        {
+    //            startepisode = myargv[p+1][0]-'0';
     //
-    // Austin Virtual Gaming: end levels after 20 minutes.
-    //
+    //            // [crispy] only if second argument is not another option
+    //            if (p + 2 < myargc && myargv[p+2][0] != '-')
+    //            {
+    //                startmap = myargv[p+2][0]-'0';
+    //            }
+    //            else
+    //            {
+    //                // [crispy] allow second digit without space in between for Doom 1
+    //                startmap = myargv[p+1][1]-'0';
+    //            }
+    //        }
+    //        autostart = true;
+    //        // [crispy] if used with -playdemo, fast-forward demo up to the desired map
+    //        crispy->demowarp = startmap;
+  End;
 
-//    p = M_CheckParm ("-avg");
-//
-//    if (p)
-//    {
-//	timelimit = 20;
-//    }
-
-    //!
-    // @category game
-    // @arg [<x> <y> | <xy>]
-    // @vanilla
-    //
-    // Start a game immediately, warping to ExMy (Doom 1) or MAPxy
-    // (Doom 2)
-    //
-
-//    p = M_CheckParmWithArgs("-warp", 1);
-//
-//    if (p)
-//    {
-//        if (gamemode == commercial)
-//            startmap = atoi (myargv[p+1]);
-//        else
-//        {
-//            startepisode = myargv[p+1][0]-'0';
-//
-//            // [crispy] only if second argument is not another option
-//            if (p + 2 < myargc && myargv[p+2][0] != '-')
-//            {
-//                startmap = myargv[p+2][0]-'0';
-//            }
-//            else
-//            {
-//                // [crispy] allow second digit without space in between for Doom 1
-//                startmap = myargv[p+1][1]-'0';
-//            }
-//        }
-//        autostart = true;
-//        // [crispy] if used with -playdemo, fast-forward demo up to the desired map
-//        crispy->demowarp = startmap;
-//    }
-
-    // Undocumented:
-    // Invoked by setup to test the controls.
+  // Undocumented:
+  // Invoked by setup to test the controls.
 
 //    p = M_CheckParm("-testcontrols");
 //
@@ -1768,44 +1900,40 @@ Begin
 //    }
 //#endif
 
-//    p = M_CheckParm("-fliplevels");
-//
-//    if (p > 0)
-//    {
-//        crispy->fliplevels = !crispy->fliplevels;
-//        crispy->flipweapons = !crispy->flipweapons;
-//    }
+  p := M_CheckParm('-fliplevels');
 
-//    p = M_CheckParm("-flipweapons");
-//
-//    if (p > 0)
-//    {
-//        crispy->flipweapons = !crispy->flipweapons;
-//    }
+  If (p > 0) Then Begin
+    //        crispy->fliplevels = !crispy->fliplevels;
+    //        crispy->flipweapons = !crispy->flipweapons;
+  End;
 
-    // Check for load game parameter
-    // We do this here and save the slot number, so that the network code
-    // can override it or send the load slot to other players.
+  p := M_CheckParm('-flipweapons');
 
-    //!
-    // @category game
-    // @arg <s>
-    // @vanilla
-    //
-    // Load the game in slot s.
-    //
+  If (p > 0) Then Begin
+    //        crispy->flipweapons = !crispy->flipweapons;
+  End;
 
-//    p = M_CheckParmWithArgs("-loadgame", 1);
-//
-//    if (p)
-//    {
-//        startloadgame = atoi(myargv[p+1]);
-//    }
-//    else
-//    {
-//        // Not loading a game
-//        startloadgame = -1;
-//    }
+  // Check for load game parameter
+  // We do this here and save the slot number, so that the network code
+  // can override it or send the load slot to other players.
+
+  //!
+  // @category game
+  // @arg <s>
+  // @vanilla
+  //
+  // Load the game in slot s.
+  //
+
+  p := M_CheckParmWithArgs('-loadgame', 1);
+
+  If (p <> 0) Then Begin
+    //        startloadgame = atoi(myargv[p+1]);
+  End
+  Else Begin
+    // Not loading a game
+    startloadgame := -1;
+  End;
 
   write('M_Init: Init miscellaneous info.');
   M_Init();
@@ -1872,27 +2000,24 @@ Begin
     autostart := true;
   End;
 
-  //    p = M_CheckParmWithArgs("-playdemo", 1);
-  //    if (p)
-  //    {
-  //	singledemo = true;              // quit after one demo
-  //	G_DeferedPlayDemo (demolumpname);
-  //	D_DoomLoop ();  // never returns
-  //    }
+  p := M_CheckParmWithArgs('-playdemo', 1);
+  If (p <> 0) Then Begin
+    //	singledemo = true;              // quit after one demo
+    //	G_DeferedPlayDemo (demolumpname);
+    //	D_DoomLoop ();  // never returns
+  End;
   //    crispy->demowarp = 0; // [crispy] we don't play a demo, so don't skip maps
 
-  //    p = M_CheckParmWithArgs("-timedemo", 1);
-  //    if (p)
-  //    {
-  //	G_TimeDemo (demolumpname);
-  //	D_DoomLoop ();  // never returns
-  //    }
+  p := M_CheckParmWithArgs('-timedemo', 1);
+  If (p <> 0) Then Begin
+    //	G_TimeDemo (demolumpname);
+    //	D_DoomLoop ();  // never returns
+  End;
 
-  //    if (startloadgame >= 0)
-  //    {
-  //        M_StringCopy(file, P_SaveGameFile(startloadgame), sizeof(file));
-  //	G_LoadGame(file);
-  //    }
+  If (startloadgame >= 0) Then Begin
+    //        M_StringCopy(file, P_SaveGameFile(startloadgame), sizeof(file));
+    //	G_LoadGame(file);
+  End;
 
   If (gameaction <> ga_loadgame) Then Begin
     If (autostart Or netgame) Then Begin
@@ -1934,7 +2059,7 @@ Begin
   //     V_RestoreBuffer();
   //     R_ExecuteSetViewSize();
   //
-  //     D_StartGameLoop();
+  D_StartGameLoop();
   //
   //     if (testcontrols)
   //     {

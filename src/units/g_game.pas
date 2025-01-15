@@ -10,6 +10,9 @@ Uses
   , d_event, d_mode, d_ticcmd
   ;
 
+Const
+  DEMOMARKER = $80;
+
 Var
   netdemo: boolean;
   timelimit: int;
@@ -19,6 +22,12 @@ Var
   gameaction: gameaction_t = ga_nothing;
   demorecording: Boolean;
   demoplayback: boolean = false;
+
+  // [crispy] demo progress bar and timer widget
+  defdemotics: int = 0;
+  deftotaldemotics: int;
+  // [crispy] moved here
+  defdemoname: String;
 
   paused: boolean;
   sendpause: Boolean; // send a pause event next tic
@@ -30,7 +39,6 @@ Var
 
   lowres_turn: boolean; // low resolution turning for longtics
   playeringame: Array[0..MAXPLAYERS - 1] Of boolean;
-
 
   // 0=Cooperative; 1=Deathmatch; 2=Altdeath
   deathmatch: int;
@@ -59,10 +67,12 @@ Implementation
 
 Uses
   doomdata, doomstat, info, sounds, info_types
+  , am_map
   , d_player, d_main, d_loop
   , i_video, i_timer
-  , m_menu, m_argv, m_random
+  , m_menu, m_argv, m_random, m_fixed
   , p_setup, p_mobj
+  , r_data, r_sky
   , s_sound
   ;
 
@@ -74,6 +84,13 @@ Var
   respawnmonsters: boolean = false;
 
   players: Array[0..MAXPLAYERS - 1] Of player_t;
+
+  gameskill: skill_t;
+  gameepisode: int;
+  gamemap: int;
+  totalleveltimes: int; // [crispy] CPhipps - total time for all completed levels
+  demostarttic: int; // [crispy] fix revenant internal demo bug
+
 
 Procedure G_ClearSavename();
 Begin
@@ -693,6 +710,142 @@ Begin
   result := false;
 End;
 
+//
+// G_DoLoadLevel
+//
+
+Procedure G_DoLoadLevel();
+Begin
+  //    int             i;
+  //
+  //    // Set the sky map.
+  //    // First thing, we have a dummy sky texture name,
+  //    //  a flat. The data is in the WAD only because
+  //    //  we look for an actual index, instead of simply
+  //    //  setting one.
+  //
+  //    skyflatnum = R_FlatNumForName(DEH_String(SKYFLATNAME));
+  //
+  //    // The "Sky never changes in Doom II" bug was fixed in
+  //    // the id Anthology version of doom2.exe for Final Doom.
+  //    // [crispy] correct "Sky never changes in Doom II" bug
+  //    if ((gamemode == commercial)
+  //     && (gameversion == exe_final2 || gameversion == exe_chex || true))
+  //    {
+  //        const char *skytexturename;
+  //
+  //        if (gamemap < 12)
+  //        {
+  //            if ((gameepisode == 2 || gamemission == pack_nerve) && gamemap >= 4 && gamemap <= 8)
+  //                skytexturename = "SKY3";
+  //            else
+  //            skytexturename = "SKY1";
+  //        }
+  //        else if (gamemap < 21)
+  //        {
+  //            // [crispy] BLACKTWR (MAP25) and TEETH (MAP31 and MAP32)
+  //            if ((gameepisode == 3 || gamemission == pack_master) && gamemap >= 19)
+  //                skytexturename = "SKY3";
+  //            else
+  //            // [crispy] BLOODSEA and MEPHISTO (both MAP07)
+  //            if ((gameepisode == 3 || gamemission == pack_master) && (gamemap == 14 || gamemap == 15))
+  //                skytexturename = "SKY1";
+  //            else
+  //            skytexturename = "SKY2";
+  //        }
+  //        else
+  //        {
+  //            skytexturename = "SKY3";
+  //        }
+  //
+  //        skytexturename = DEH_String(skytexturename);
+  //
+  //        skytexture = R_TextureNumForName(skytexturename);
+  //    }
+
+  // [crispy] sky texture scales
+  R_InitSkyMap();
+
+  //    levelstarttic = gametic;        // for time calculation
+  //
+  //    if (wipegamestate == GS_LEVEL)
+  //	wipegamestate = -1;             // force a wipe
+  //
+  //    gamestate = GS_LEVEL;
+  //
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //    {
+  //	turbodetected[i] = false;
+  //	if (playeringame[i] && players[i].playerstate == PST_DEAD)
+  //	    players[i].playerstate = PST_REBORN;
+  //	memset (players[i].frags,0,sizeof(players[i].frags));
+  //    }
+  //
+  //    // [crispy] update the "singleplayer" variable
+  //    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);
+  //
+  //    // [crispy] double ammo
+  //    if (crispy->moreammo && !crispy->singleplayer)
+  //    {
+  //        const char message[] = "The -doubleammo option is not supported"
+  //                               " for demos and\n"
+  //                               " network play.";
+  //        if (!demo_p) demorecording = false;
+  //        I_Error(message);
+  //    }
+  //
+  //    // [crispy] pistol start
+  //    if (crispy->pistolstart)
+  //    {
+  //        if (crispy->singleplayer)
+  //        {
+  //            G_PlayerReborn(0);
+  //        }
+  //        else if ((demoplayback || netdemo) && !singledemo)
+  //        {
+  //            // no-op - silently ignore pistolstart when playing demo from the
+  //            // demo reel
+  //        }
+  //        else
+  //        {
+  //            const char message[] = "The -pistolstart option is not supported"
+  //                                   " for demos and\n"
+  //                                   " network play.";
+  //            if (!demo_p) demorecording = false;
+  //            I_Error(message);
+  //        }
+  //    }
+  //
+  //    P_SetupLevel (gameepisode, gamemap, 0, gameskill);
+  //    displayplayer = consoleplayer;		// view the guy you are playing
+  //    gameaction = ga_nothing;
+  //    Z_CheckHeap ();
+  //
+  //    // clear cmd building stuff
+  //
+  //    memset (gamekeydown, 0, sizeof(gamekeydown));
+  //    joyxmove = joyymove = joystrafemove = joylook = 0;
+  //    mousex = mousey = 0;
+  //    memset(&localview, 0, sizeof(localview)); // [crispy]
+  //    memset(&carry, 0, sizeof(carry)); // [crispy]
+  //    memset(&prevcarry, 0, sizeof(prevcarry)); // [crispy]
+  //    memset(&basecmd, 0, sizeof(basecmd)); // [crispy]
+  //    sendpause = sendsave = paused = false;
+  //    memset(mousearray, 0, sizeof(mousearray));
+  //    memset(joyarray, 0, sizeof(joyarray));
+  //    R_SetGoobers(false);
+  //
+  //    // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
+  //    // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
+  //    ST_Start();
+  //    HU_Start();
+  //
+  //    if (testcontrols)
+  //    {
+  //        players[consoleplayer].message = "Press escape to quit.";
+  //    }
+End;
+
 Procedure G_InitNew(skill: skill_t; episode: int; map: int);
 
 // [crispy] make sure "fast" parameters are really only applied once
@@ -786,102 +939,96 @@ Begin
 
   // [crispy] make sure "fast" parameters are really only applied once
   If ((fastparm) Or (skill = sk_nightmare)) And (Not fast_applied) Then Begin
-    //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
     For i := integer(S_SARG_RUN1) To integer(S_SARG_PAIN2) - 1 Do Begin
       // [crispy] Fix infinite loop caused by Demon speed bug
       If (states[i].tics > 1) Then Begin
         states[i].tics := states[i].tics Shr 1;
       End;
     End;
-    //	mobjinfo[MT_BRUISERSHOT].speed = 20*FRACUNIT;
-    //	mobjinfo[MT_HEADSHOT].speed = 20*FRACUNIT;
-    //	mobjinfo[MT_TROOPSHOT].speed = 20*FRACUNIT;
-    //	fast_applied = true;
+    mobjinfo[integer(MT_BRUISERSHOT)].speed := 20 * FRACUNIT;
+    mobjinfo[integer(MT_HEADSHOT)].speed := 20 * FRACUNIT;
+    mobjinfo[integer(MT_TROOPSHOT)].speed := 20 * FRACUNIT;
+    fast_applied := true;
   End
   Else If (Not fastparm) And (skill <> sk_nightmare) And (fast_applied) Then Begin
-    //	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++)
-    //	    states[i].tics <<= 1;
-    //	mobjinfo[MT_BRUISERSHOT].speed = 15*FRACUNIT;
-    //	mobjinfo[MT_HEADSHOT].speed = 10*FRACUNIT;
-    //	mobjinfo[MT_TROOPSHOT].speed = 10*FRACUNIT;
-    //	fast_applied = false;
+    For i := integer(S_SARG_RUN1) To integer(S_SARG_PAIN2) - 1 Do Begin
+      states[i].tics := states[i].tics Shl 1;
+    End;
+    mobjinfo[integer(MT_BRUISERSHOT)].speed := 15 * FRACUNIT;
+    mobjinfo[integer(MT_HEADSHOT)].speed := 10 * FRACUNIT;
+    mobjinfo[integer(MT_TROOPSHOT)].speed := 10 * FRACUNIT;
+    fast_applied := false;
   End;
 
-  //    // force players to be initialized upon first level load
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //	players[i].playerstate = PST_REBORN;
+  // force players to be initialized upon first level load
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    players[i].playerstate := PST_REBORN;
+  End;
+
+  usergame := true; // will be set false if a demo
+  paused := false;
+  demoplayback := false;
+  automapactive := false;
+  viewactive := true;
+  gameepisode := episode;
+  gamemap := map;
+  gameskill := skill;
+
+  // [crispy] CPhipps - total time for all completed levels
+  totalleveltimes := 0;
+  defdemotics := 0;
+  demostarttic := gametic; // [crispy] fix revenant internal demo bug
+
+  // Set the sky to use.
   //
-  //    usergame = true;                // will be set false if a demo
-  //    paused = false;
-  //    demoplayback = false;
-  //    automapactive = false;
-  //    viewactive = true;
-  //    gameepisode = episode;
-  //    gamemap = map;
-  //    gameskill = skill;
+  // Note: This IS broken, but it is how Vanilla Doom behaves.
+  // See http://doomwiki.org/wiki/Sky_never_changes_in_Doom_II.
   //
-  //    // [crispy] CPhipps - total time for all completed levels
-  //    totalleveltimes = 0;
-  //    defdemotics = 0;
-  //    demostarttic = gametic; // [crispy] fix revenant internal demo bug
-  //
-  //    // Set the sky to use.
-  //    //
-  //    // Note: This IS broken, but it is how Vanilla Doom behaves.
-  //    // See http://doomwiki.org/wiki/Sky_never_changes_in_Doom_II.
-  //    //
-  //    // Because we set the sky here at the start of a game, not at the
-  //    // start of a level, the sky texture never changes unless we
-  //    // restore from a saved game.  This was fixed before the Doom
-  //    // source release, but this IS the way Vanilla DOS Doom behaves.
-  //
-  //    if (gamemode == commercial)
-  //    {
-  //        skytexturename = DEH_String("SKY3");
-  //        skytexture = R_TextureNumForName(skytexturename);
-  //        if (gamemap < 21)
-  //        {
-  //            skytexturename = DEH_String(gamemap < 12 ? "SKY1" : "SKY2");
-  //            skytexture = R_TextureNumForName(skytexturename);
-  //        }
-  //    }
-  //    else
-  //    {
-  //        switch (gameepisode)
-  //        {
-  //          default:
-  //          case 1:
-  //            skytexturename = "SKY1";
-  //            break;
-  //          case 2:
-  //            skytexturename = "SKY2";
-  //            break;
-  //          case 3:
-  //            skytexturename = "SKY3";
-  //            break;
-  //          case 4:        // Special Edition sky
-  //            skytexturename = "SKY4";
-  //            break;
-  //          case 5:        // [crispy] Sigil
-  //            skytexturename = "SKY5_ZD";
-  //            if (R_CheckTextureNumForName(DEH_String(skytexturename)) == -1)
-  //            {
-  //                skytexturename = "SKY3";
-  //            }
-  //            break;
-  //          case 6:        // [crispy] Sigil II
-  //            skytexturename = "SKY6_ZD";
-  //            if (R_CheckTextureNumForName(DEH_String(skytexturename)) == -1)
-  //            {
-  //                skytexturename = "SKY3";
-  //            }
-  //            break;
-  //        }
-  //        skytexturename = DEH_String(skytexturename);
-  //        skytexture = R_TextureNumForName(skytexturename);
-  //    }
-  //
-  //    G_DoLoadLevel ();
+  // Because we set the sky here at the start of a game, not at the
+  // start of a level, the sky texture never changes unless we
+  // restore from a saved game.  This was fixed before the Doom
+  // source release, but this IS the way Vanilla DOS Doom behaves.
+
+  If (gamemode = commercial) Then Begin
+
+    skytexturename := 'SKY3';
+    skytexture := R_TextureNumForName(skytexturename);
+    If (gamemap < 21) Then Begin
+      If gamemap < 12 Then Begin
+        skytexturename := 'SKY1';
+      End
+      Else Begin
+        skytexturename := 'SKY2';
+      End;
+      skytexture := R_TextureNumForName(skytexturename);
+    End;
+  End
+  Else Begin
+    Case (gameepisode) Of
+      1: skytexturename := 'SKY1';
+      2: skytexturename := 'SKY2';
+      3: skytexturename := 'SKY3';
+      4: skytexturename := 'SKY4'; // Special Edition sky
+      5: Begin // [crispy] Sigil
+          skytexturename := 'SKY5_ZD';
+          If (R_CheckTextureNumForName(skytexturename) = -1) Then Begin
+            skytexturename := 'SKY3';
+          End;
+        End;
+      6: Begin // [crispy] Sigil II
+          skytexturename := 'SKY6_ZD';
+          If (R_CheckTextureNumForName(skytexturename) = -1) Then Begin
+            skytexturename := 'SKY3';
+          End;
+        End;
+    Else Begin
+        skytexturename := 'SKY1';
+      End;
+    End;
+    skytexture := R_TextureNumForName(skytexturename);
+  End;
+
+  G_DoLoadLevel();
 End;
 
 //

@@ -50,7 +50,7 @@ Var
 
 Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
-
+Procedure D_StartGameLoop();
 Procedure D_StartNetGame(Var settings: net_gamesettings_t; callback: netgame_startup_callback_t);
 
 Implementation
@@ -117,6 +117,8 @@ Var
   // and saved in the game settings.
   player_class: int = 0;
 
+  lasttime: int;
+
   // 35 fps clock adjusted by offsetms milliseconds
 
 Function GetAdjustedTime(): int;
@@ -139,6 +141,18 @@ End;
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 Begin
   loop_interface := i;
+End;
+
+
+//
+// Start game loop
+//
+// Called after the screen is set but before the game starts running.
+//
+
+Procedure D_StartGameLoop();
+Begin
+  lasttime := GetAdjustedTime() Div ticdup;
 End;
 
 // Start game with specified settings. The structure will be updated
@@ -301,8 +315,6 @@ End;
 // Builds ticcmds for console player,
 // sends out a packet
 //
-Var
-  lasttime: int;
 
 Procedure NetUpdate();
 Var

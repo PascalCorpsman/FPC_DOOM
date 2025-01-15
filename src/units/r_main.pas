@@ -13,7 +13,9 @@ Var
 
 Implementation
 
-Uses r_data;
+Uses
+  r_data, r_sky
+  ;
 
 Var
   // just for profiling purposes
@@ -35,6 +37,7 @@ Begin
   //  R_InitLightTables();
   write('.');
   write('.');
+  R_InitSkyMap();
   //  R_InitTranslationTables();
   write('.');
 

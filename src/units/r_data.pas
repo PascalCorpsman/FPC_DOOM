@@ -5,21 +5,155 @@ Unit r_data;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils, r_defs;
+  ufpc_doom_types, Classes, SysUtils, r_defs
+  , m_fixed
+  ;
+
+Type
+
+  // A single patch from a texture definition,
+  //  basically a rectangular area within
+  //  the texture rectangle.
+  texpatch_t = Record
+    // Block origin (allways UL),
+    // which has allready accounted
+    // for the internal origin of the patch.
+    originx: short;
+    originy: short;
+    patch: int;
+  End;
+
+  // A maptexturedef_t describes a rectangular texture,
+  //  which is composed of one or more mappatch_t structures
+  //  that arrange graphic patches.
+
+  Ptexture_t = ^texture_t;
+
+  texture_t = Record
+
+    // Keep name for switch changing, etc.
+    name: String;
+    width: short;
+    height: short;
+
+    // Index in textures list
+
+    index: int;
+
+    // Next in hash table chain
+
+    next: Ptexture_t;
+
+    // All the patches[patchcount]
+    //  are drawn back to front into the cached texture.
+    patchcount: short;
+    patches: Array[0..0] Of texpatch_t; // Ein Array der Länge 1
+  End;
 
 Procedure R_InitData();
 
-//Var
-//  colormaps: lighttable_t;
+Function R_TextureNumForName(name: String): int;
+Function R_CheckTextureNumForName(name: String): int;
+
+Function R_FlatNumForName(Const name: String): int;
+
+Var
+  textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
+
+  //  colormaps: lighttable_t;
 
 Implementation
 
 Uses
-  r_main
+  i_system
+  , r_bmaps, r_sky
   , w_wad
-  , v_video, v_trans
+  , v_video, v_trans, v_patch
   , z_zone
   ;
+
+Type
+  //
+  // Graphics.
+  // DOOM graphics for walls and sprites
+  // is stored in vertical runs of opaque pixels (posts).
+  // A column is composed of zero or more posts,
+  // a patch or sprite is composed of zero or more columns.
+  //
+
+  //
+  // Texture definition.
+  // Each texture is composed of one or more patches,
+  // with patches being lumps stored in the WAD.
+  // The lumps are referenced by number, and patched
+  // into the rectangular texture space using origin
+  // and possibly other attributes.
+  //
+  mappatch_t = Packed Record
+    originx: short;
+    originy: short;
+    patch: short;
+    stepdir: short;
+    colormap: short;
+  End;
+
+  //
+  // Texture definition.
+  // A DOOM wall texture is a list of patches
+  // which are to be combined in a predefined order.
+  //
+  maptexture_t = Packed Record
+    name: Array[0..7] Of char;
+    masked: int;
+    width: short;
+    height: short;
+    obsolete: int;
+    patchcount: short;
+    patches: Array[0..0] Of mappatch_t; // Hat die Länge 1
+  End;
+
+Var
+
+  firstflat: int;
+  lastflat: int;
+  numflats: int;
+
+  //int		firstpatch;
+  //int		lastpatch;
+  //int		numpatches;
+  //
+  //int		firstspritelump;
+  //int		lastspritelump;
+  //int		numspritelumps;
+
+  numtextures: int = 0;
+  textures: Array Of texture_t;
+  textures_hashtable: Array Of Ptexture_t;
+
+  //  int*			texturewidthmask;
+  //  int*			texturewidth; // [crispy] texture width for wrapping column getter function
+  //  // needed for texture pegging
+  //  int*			texturecompositesize;
+  //  short**			texturecolumnlump;
+  //  unsigned**		texturecolumnofs; // [crispy] column offsets for composited translucent mid-textures on 2S walls
+  //  unsigned**		texturecolumnofs2; // [crispy] column offsets for composited opaque textures
+  //  byte**			texturecomposite; // [crispy] composited translucent mid-textures on 2S walls
+  //  byte**			texturecomposite2; // [crispy] composited opaque textures
+  texturebrightmap: Array Of TBytes; // [crispy] brightmaps
+
+
+  // for global animation
+  flattranslation: Array Of Int;
+  //  int*		texturetranslation;
+
+  //  // needed for pre rendering
+  //  fixed_t*	spritewidth;
+  //  fixed_t*	spriteoffset;
+  //  fixed_t*	spritetopoffset;
+
+  //  lighttable_t	*colormaps;
+  //  lighttable_t	*pal_color; // [crispy] array holding palette colors for true color mode
+
 
 Procedure R_InitColormaps();
 Var
@@ -85,6 +219,424 @@ Begin
   End;
 End;
 
+// [FG] check if the lump can be a Doom patch
+// taken from PrBoom+ prboom2/src/r_patch.c:L350-L390
+
+Function R_IsPatchLump(lump: int): boolean;
+Const
+  PNGFileSignature = chr(137) + 'PNG' + chr(13) + chr(10) + chr(26) + chr(10);
+
+Var
+  size, x: int;
+  width, height: int;
+  patch: ppatch_t;
+  LumpHeader: Array[0..7] Of Char;
+  Pint: ^integer;
+  ofs: unsigned_int;
+Begin
+  result := false;
+  If (lump < 0) Then exit;
+  size := W_LumpLength(lump);
+  // minimum length of a valid Doom patch
+  If (size < 13) Then exit;
+  patch := W_CacheLumpNum(lump, PU_CACHE);
+  // [FG] detect patches in PNG format early
+  Move(pointer(patch), LumpHeader, 8); // TODO: ungetestet, da keine .wad datei mit .png Dateien zur Verfügung stehen ..
+  If LumpHeader = PNGFileSignature Then exit;
+
+  width := patch^.width;
+  height := patch^.height;
+
+  result := (height > 0) And (height <= 16384) And (width > 0) And (width <= 16384) And (width < size Div 4);
+
+  If (result) Then Begin
+    // The dimensions seem like they might be valid for a patch, so
+    // check the column directory for extra security. All columns
+    // must begin after the column directory, and none of them must
+    // point past the end of the patch.
+    Pint := @patch^.columnofs[0];
+    For x := 0 To width - 1 Do Begin
+      ofs := pint^;
+      // Need one byte for an empty column (but there's patches that don't know that!)
+      If (ofs < width * 4 + 8) Or (ofs >= size) Then Begin
+        result := false;
+        break;
+      End;
+      inc(Pint);
+    End;
+  End;
+End;
+
+Procedure GenerateTextureHashTable();
+Begin
+  //    texture_t **rover;
+  //    int i;
+  //    int key;
+  //
+  //    textures_hashtable
+  //            = Z_Malloc(sizeof(texture_t *) * numtextures, PU_STATIC, 0);
+  //
+  //    memset(textures_hashtable, 0, sizeof(texture_t *) * numtextures);
+  //
+  //    // Add all textures to hash table
+  //
+  //    for (i=0; i<numtextures; ++i)
+  //    {
+  //        // Store index
+  //
+  //        textures[i]->index = i;
+  //
+  //        // Vanilla Doom does a linear search of the texures array
+  //        // and stops at the first entry it finds.  If there are two
+  //        // entries with the same name, the first one in the array
+  //        // wins. The new entry must therefore be added at the end
+  //        // of the hash chain, so that earlier entries win.
+  //
+  //        key = W_LumpNameHash(textures[i]->name) % numtextures;
+  //
+  //        rover = &textures_hashtable[key];
+  //
+  //        while (*rover != NULL)
+  //        {
+  //            rover = &(*rover)->next;
+  //        }
+  //
+  //        // Hook into hash table
+  //
+  //        textures[i]->next = NULL;
+  //        *rover = textures[i];
+  //    }
+End;
+
+//
+// R_InitFlats
+//
+
+Procedure R_InitFlats();
+Var
+  i: int;
+Begin
+  firstflat := W_GetNumForName('F_START') + 1;
+  lastflat := W_GetNumForName('F_END') - 1;
+  numflats := lastflat - firstflat + 1;
+
+  // Create translation table for global animation.
+  setlength(flattranslation, numflats + 1);
+
+  For i := 0 To numflats - 1 Do Begin
+    flattranslation[i] := i;
+  End;
+End;
+
+//
+// R_InitTextures
+// Initializes the texture list
+//  with the textures from the world map.
+//
+// [crispy] partly rewritten to merge PNAMES and TEXTURE1/2 lumps
+
+Procedure R_InitTextures();
+Type
+  texturelump_t = Record
+    lumpnum: int;
+    maptex: P_int;
+    maxoff: integer;
+    numtextures: Short;
+    sumtextures: short;
+    pnamesoffset: short;
+  End;
+
+  pnameslump_t = Record
+    lumpnum: int;
+    names: Pointer; // Ist ein Pointer auf <short><char*>0
+    nummappatches: short;
+    summappatches: short;
+    name_p: PChar;
+  End;
+
+Var
+  numtexturelumps: int = 0;
+  mtexture: ^maptexture_t;
+  texture: Ptexture_t;
+  mpatch: ^mappatch_t;
+  patch: ^mappatch_t;
+  //
+  i, j, k: int;
+
+  maptex: P_int;
+
+  name: String;
+
+  patchlookup: Array Of int = Nil; // Liste der Lump Indizees
+
+  nummappatches: int;
+  offset: int;
+  maxoff: int = 0;
+
+  directory: P_int = Nil;
+  //
+  //    int			temp1;
+  //    int			temp2;
+  //    int			temp3;
+
+  pnameslumps: Array Of pnameslump_t = Nil;
+  texturelumps: Array Of texturelump_t = Nil; // *;
+  texturelump: ^texturelump_t;
+
+  maxpnameslumps: int; // PNAMES
+  maxtexturelumps: int; // TEXTURE1, TEXTURE2
+
+  numpnameslumps: int = 0;
+  p: Pointer;
+  lumpindex: int;
+Begin
+  maxtexturelumps := length(lumpinfo);
+  maxpnameslumps := length(lumpinfo);
+
+  setlength(pnameslumps, maxpnameslumps);
+  setlength(texturelumps, maxtexturelumps);
+
+  // [crispy] make sure the first available TEXTURE1/2 lumps
+  // are always processed first
+  texturelumps[0].lumpnum := W_GetNumForName('TEXTURE1');
+  numtexturelumps := 1;
+  i := W_CheckNumForName('TEXTURE2');
+  If (i <> -1) Then Begin
+    texturelumps[numtexturelumps].lumpnum := i;
+    numtexturelumps := numtexturelumps + 1;
+  End
+  Else Begin
+    texturelumps[numtexturelumps].lumpnum := -1; // Muss initialisiert werden, dass die If unten keinen Sonderfall braucht ;)
+  End;
+
+  // [crispy] fill the arrays with all available PNAMES lumps
+  // and the remaining available TEXTURE1/2 lumps
+  nummappatches := 0;
+  For i := high(lumpinfo) Downto 0 Do Begin
+    If pos('PNAMES', lumpinfo[i].name) = 1 Then Begin
+      pnameslumps[numpnameslumps].lumpnum := i;
+      p := W_CacheLumpNum(pnameslumps[numpnameslumps].lumpnum, PU_STATIC);
+      pnameslumps[numpnameslumps].names := p;
+      pnameslumps[numpnameslumps].nummappatches := P_int(p)^ And $FFFF;
+
+      // [crispy] accumulated number of patches in the lookup tables
+      // excluding the current one
+      pnameslumps[numpnameslumps].summappatches := nummappatches;
+      pnameslumps[numpnameslumps].name_p := p + 4;
+      // [crispy] calculate total number of patches
+      nummappatches := nummappatches + pnameslumps[numpnameslumps].nummappatches;
+      numpnameslumps := numpnameslumps + 1;
+    End
+    Else Begin
+      If pos('TEXTURE', lumpinfo[i].name) = 1 Then Begin
+        // [crispy] support only TEXTURE1/2 lumps, not TEXTURE3 etc.
+        If (lumpinfo[i].name[8] <> '1') And (lumpinfo[i].name[8] <> '2') Then continue;
+
+        // [crispy] make sure the first available TEXTURE1/2 lumps
+        // are not processed again
+        If (i = texturelumps[0].lumpnum) Or (i = texturelumps[1].lumpnum) Then continue; // [crispy] may still be -1
+
+        // [crispy] do not proceed any further, yet
+        // we first need a complete pnameslumps[] array and need
+        // to process texturelumps[0] (and also texturelumps[1]) as well
+        texturelumps[numtexturelumps].lumpnum := i;
+        numtexturelumps := numtexturelumps + 1;
+      End;
+    End;
+  End;
+  setlength(pnameslumps, numpnameslumps); // Wieder Einkürzen der TextureLump Tabelle auf die Tatsächlich genutzte Zahl
+  setlength(texturelumps, numtexturelumps); // Wieder Einkürzen der TextureLump Tabelle auf die Tatsächlich genutzte Zahl
+
+  //    // [crispy] fill up the patch lookup table
+  setlength(patchlookup, nummappatches);
+  k := 0;
+  For i := 0 To numpnameslumps - 1 Do Begin
+    For j := 0 To pnameslumps[i].nummappatches - 1 Do Begin
+      name := pchar(pnameslumps[i].name_p + j * 8);
+      If length(name) > 8 Then Begin // ggf "abschneiden" auf 8 Zeichen
+        delete(name, 9, length(name));
+      End;
+      lumpindex := W_CheckNumForName(name);
+      If (Not R_IsPatchLump(lumpindex)) Then Begin
+        lumpindex := -1;
+      End;
+      // [crispy] if the name is unambiguous, use the lump we found
+      patchlookup[k] := lumpindex;
+      k := k + 1;
+    End;
+  End;
+
+  // [crispy] calculate total number of textures
+  numtextures := 0;
+  For i := 0 To numtexturelumps - 1 Do Begin
+    texturelumps[i].maptex := W_CacheLumpNum(texturelumps[i].lumpnum, PU_STATIC);
+    texturelumps[i].maxoff := W_LumpLength(texturelumps[i].lumpnum);
+    texturelumps[i].numtextures := P_int(texturelumps[i].maptex)^;
+
+    // [crispy] accumulated number of textures in the texture files
+    // including the current one
+    numtextures := numtextures + texturelumps[i].numtextures;
+    texturelumps[i].sumtextures := numtextures;
+
+    // [crispy] link textures to their own WAD's patch lookup table (if any)
+    texturelumps[i].pnamesoffset := 0;
+    For j := 0 To numpnameslumps - 1 Do Begin
+      // [crispy] both are from the same WAD?
+      If (lumpinfo[texturelumps[i].lumpnum].wad_file = lumpinfo[pnameslumps[j].lumpnum].wad_file) Then Begin
+        texturelumps[i].pnamesoffset := pnameslumps[j].summappatches;
+        break;
+      End;
+    End;
+  End;
+
+  // [crispy] release memory allocated for patch lookup tables
+  setlength(pnameslumps, 0);
+
+  // [crispy] pointer to (i.e. actually before) the first texture file
+  texturelump := Nil; // [crispy] gets immediately increased below
+
+  setlength(textures, numtextures);
+  //    texturecolumnlump = Z_Malloc (numtextures * sizeof(*texturecolumnlump), PU_STATIC, 0);
+  //    texturecolumnofs = Z_Malloc (numtextures * sizeof(*texturecolumnofs), PU_STATIC, 0);
+  //    texturecolumnofs2 = Z_Malloc (numtextures * sizeof(*texturecolumnofs2), PU_STATIC, 0);
+  //    texturecomposite = Z_Malloc (numtextures * sizeof(*texturecomposite), PU_STATIC, 0);
+  //    texturecomposite2 = Z_Malloc (numtextures * sizeof(*texturecomposite2), PU_STATIC, 0);
+  //    texturecompositesize = Z_Malloc (numtextures * sizeof(*texturecompositesize), PU_STATIC, 0);
+  //    texturewidthmask = Z_Malloc (numtextures * sizeof(*texturewidthmask), PU_STATIC, 0);
+  //    texturewidth = Z_Malloc (numtextures * sizeof(*texturewidth), PU_STATIC, 0);
+  setlength(textureheight, numtextures);
+  setlength(texturebrightmap, numtextures);
+
+  //    //	Really complex printing shit...
+  //    temp1 = W_GetNumForName (DEH_String("S_START"));  // P_???????
+  //    temp2 = W_GetNumForName (DEH_String("S_END")) - 1;
+  //    temp3 = ((temp2-temp1+63)/64) + ((numtextures+63)/64);
+  //
+  //    // If stdout is a real console, use the classic vanilla "filling
+  //    // up the box" effect, which uses backspace to "step back" inside
+  //    // the box.  If stdout is a file, don't draw the box.
+  //
+  //    if (I_ConsoleStdout())
+  //    {
+  //        printf("[");
+  //#ifndef CRISPY_TRUECOLOR
+  //        for (i = 0; i < temp3 + 9 + 1; i++) // [crispy] one more for R_InitTranMap()
+  //#else
+  //        for (i = 0; i < temp3 + 9; i++)
+  //#endif
+  //            printf(" ");
+  //        printf("]");
+  //#ifndef CRISPY_TRUECOLOR
+  //        for (i = 0; i < temp3 + 10 + 1; i++) // [crispy] one more for R_InitTranMap()
+  //#else
+  //        for (i = 0; i < temp3 + 10; i++)
+  //#endif
+  //            printf("\b");
+  //    }
+
+//      for (i=0 ; i<numtextures ; i++, directory++)
+  For i := 0 To numtextures - 1 Do Begin
+    //	if (!(i&63))
+    //	    printf (".");
+
+     // [crispy] initialize for the first texture file lump,
+     // skip through empty texture file lumps which do not contain any texture
+    While (texturelump = Nil) Or (i = texturelump^.sumtextures) Do Begin
+
+      // [crispy] start looking in next texture file
+      If assigned(texturelump) Then Begin
+        inc(texturelump);
+      End
+      Else Begin
+        texturelump := @texturelumps[0];
+      End;
+      maptex := texturelump^.maptex;
+      maxoff := texturelump^.maxoff;
+      directory := maptex + 1;
+    End;
+
+    offset := directory^;
+
+    If (offset > maxoff) Then Begin
+      I_Error('R_InitTextures: bad texture directory');
+    End;
+
+    mtexture := pointer(maptex) + offset;
+    texture := @textures[i];
+
+    texture^.width := mtexture^.width;
+    texture^.height := mtexture^.height;
+    texture^.patchcount := mtexture^.patchcount;
+
+    texture^.name := mtexture^.name;
+    mpatch := @mtexture^.patches[0];
+    patch := @texture^.patches[0];
+
+    // [crispy] initialize brightmaps
+    texturebrightmap[i] := R_BrightmapForTexName(texture^.name);
+
+    hier gehts weiter
+
+    //	for (j=0 ; j<texture->patchcount ; j++, mpatch++, patch++)
+    //	{
+    //	    short p;
+    //	    patch->originx = SHORT(mpatch->originx);
+    //	    patch->originy = SHORT(mpatch->originy);
+    //	    // [crispy] apply offset for patches not in the
+    //	    // first available patch offset table
+    //	    p = SHORT(mpatch->patch) + texturelump->pnamesoffset;
+    //	    // [crispy] catch out-of-range patches
+    //	    if (p < nummappatches)
+    //		patch->patch = patchlookup[p];
+    //	    if (patch->patch == -1 || p >= nummappatches)
+    //	    {
+    //		char	texturename[9];
+    //		texturename[8] = '\0';
+    //		memcpy (texturename, texture->name, 8);
+    //		// [crispy] make non-fatal
+    //		fprintf (stderr, "R_InitTextures: Missing patch in texture %s\n",
+    //			 texturename);
+    //		patch->patch = W_CheckNumForName("WIPCNT"); // [crispy] dummy patch
+    //	    }
+    //	}
+    //	texturecolumnlump[i] = Z_Malloc (texture->width*sizeof(**texturecolumnlump), PU_STATIC,0);
+    //	texturecolumnofs[i] = Z_Malloc (texture->width*sizeof(**texturecolumnofs), PU_STATIC,0);
+    //	texturecolumnofs2[i] = Z_Malloc (texture->width*sizeof(**texturecolumnofs2), PU_STATIC,0);
+    //
+    //	j = 1;
+    //	while (j*2 <= texture->width)
+    //	    j<<=1;
+    //
+    //	texturewidthmask[i] = j-1;
+    //	textureheight[i] = texture->height<<FRACBITS;
+    //
+    //	// [crispy] texture width for wrapping column getter function
+    //	texturewidth[i] = texture->width;
+  End;
+  //
+  //    Z_Free(patchlookup);
+  //
+  //    // [crispy] release memory allocated for texture files
+  //    for (i = 0; i < numtexturelumps; i++)
+  //    {
+  //	W_ReleaseLumpNum(texturelumps[i].lumpnum);
+  //    }
+  //    free(texturelumps);
+  //
+  //    // Precalculate whatever possible.
+  //
+  //    for (i=0 ; i<numtextures ; i++)
+  //	R_GenerateLookup (i);
+  //
+  //    // Create translation table for global animation.
+  //    texturetranslation = Z_Malloc ((numtextures+1)*sizeof(*texturetranslation), PU_STATIC, 0);
+  //
+  //    for (i=0 ; i<numtextures ; i++)
+  //	texturetranslation[i] = i;
+
+  GenerateTextureHashTable();
+End;
+
 Procedure R_InitData();
 Begin
   // [crispy] Moved R_InitFlats() to the top, because it sets firstflat/lastflat
@@ -92,22 +644,91 @@ Begin
   // mistaken as patches and by R_InitBrightmaps() to set brightmaps for flats.
   // R_InitBrightmaps() comes next, because it sets R_BrightmapForTexName()
   // to initialize brightmaps depending on gameversion in R_InitTextures().
-//    R_InitFlats ();
-//    R_InitBrightmaps ();
-//    R_InitTextures ();
-//    printf (".");
-////  R_InitFlats (); [crispy] moved ...
-//    printf (".");
-//    R_InitSpriteLumps ();
-//    printf (".");
-//    // [crispy] Initialize and generate gamma-correction levels.
-//    I_SetGammaTable ();
+  R_InitFlats();
+  R_InitBrightmaps();
+  R_InitTextures();
+  //    printf (".");
+  ////  R_InitFlats (); [crispy] moved ...
+  //    printf (".");
+  //    R_InitSpriteLumps ();
+  //    printf (".");
+  //    // [crispy] Initialize and generate gamma-correction levels.
+  //    I_SetGammaTable ();
   R_InitColormaps();
   // [crispy] Initialize color translation and color string tables.
   R_InitHSVColors();
   //#ifndef CRISPY_TRUECOLOR
   //    R_InitTranMap(); // [crispy] prints a mark itself
   //#endif
+End;
+
+//
+// R_CheckTextureNumForName
+// Check whether texture is available.
+// Filter out NoTexture indicator.
+//
+
+Function R_CheckTextureNumForName(name: String): int;
+Var
+  texture: Ptexture_t;
+  key: unsigned_int;
+Begin
+
+  // "NoTexture" marker.
+  If (name[1] = '-') Then Begin
+    result := 0;
+    exit;
+  End;
+  key := W_LumpNameHash(name) Mod numtextures;
+
+  texture := textures_hashtable[key];
+
+  While assigned(texture) Do Begin
+    //    {
+    //	if (!strncasecmp (texture->name, name, 8) )
+    //	    return texture->index;
+    //
+    //        texture = texture->next;
+  End;
+
+  result := -1;
+End;
+
+Function R_FlatNumForName(Const name: String): int;
+Var
+  i: int;
+Begin
+  i := W_CheckNumForNameFromTo(name, lastflat, firstflat);
+  If (i = -1) Then Begin
+    // [crispy] make non-fatal
+    writeln(stderr, format('R_FlatNumForName: %s not found', [name]));
+    // [crispy] since there is no "No Flat" marker,
+    // render missing flats as SKY
+    result := skyflatnum;
+    exit;
+  End;
+  result := i - firstflat;
+End;
+
+//
+// R_TextureNumForName
+// Calls R_CheckTextureNumForName,
+//  aborts with error message.
+//
+
+Function R_TextureNumForName(name: String): int;
+Var
+  i: int;
+Begin
+  i := R_CheckTextureNumForName(name);
+
+  If (i = -1) Then Begin
+    // [crispy] fix absurd texture name in error message
+     // [crispy] make non-fatal
+    WriteLn(StdErr, format('R_TextureNumForName: %s not found', [name]));
+    result := 0; // WTF: warum ist das nicht -1 wie immer ?
+  End;
+  result := i;
 End;
 
 End.
