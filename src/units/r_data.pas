@@ -31,7 +31,7 @@ Type
 
   texture_t = Record
     // Keep name for switch changing, etc.
-    name: String;
+    name: String; // Always Uppercase !
     width: short;
     height: short;
 
@@ -275,6 +275,12 @@ Var
   colofs, colofs2: ^unsigned; // killough 4/9/98: make 32-bit
   csize: int = 0; // killough 10/98
   err: int = 0; // killough 10/98
+  cofs: P_int;
+  limit: unsigned;
+  pat: int;
+  col: ^column_t;
+  base: ^Byte;
+  index: Integer;
 Begin
 
   texture := @textures[texnum];
@@ -297,179 +303,173 @@ Begin
   FillChar(patchcount[0], texture^.width, 0);
   FillChar(postcount[0], texture^.width, 0);
 
+  For i := 0 To texture^.patchcount - 1 Do Begin
+    patch := @texture^.patches[i];
+    realpatch := W_CacheLumpNum(patch^.patch, PU_CACHE);
+    x1 := patch^.originx;
+    x2 := x1 + realpatch^.width;
 
-  //    for (i=0 , patch = texture->patches;
-  //	 i<texture->patchcount;
-  //	 i++, patch++)
-  //    {
-  //	realpatch = W_CacheLumpNum (patch->patch, PU_CACHE);
-  //	x1 = patch->originx;
-  //	x2 = x1 + SHORT(realpatch->width);
+    If (x1 < 0) Then
+      x := 0
+    Else
+      x := x1;
+
+    If (x2 > texture^.width) Then
+      x2 := texture^.width;
+    cofs := @realpatch^.columnofs[0];
+
+    While x < x2 Do Begin
+
+      patchcount[x] := patchcount[x] + 1;
+      collump[x] := patch^.patch;
+      //      colofs[x] := realpatch^.columnofs[x - x1] + 3;
+      colofs[x] := cofs[x - x1] + 3; // Das Muss so, weil sonst der Array Range Checker durch dreht :/
+      inc(x);
+    End;
+  End;
+
+  // killough 4/9/98: keep a count of the number of posts in column,
+  // to fix Medusa bug while allowing for transparent multipatches.
   //
-  //	if (x1 < 0)
-  //	    x = 0;
-  //	else
-  //	    x = x1;
+  // killough 12/98:
+  // Post counts are only necessary if column is multipatched,
+  // so skip counting posts if column comes from a single patch.
+  // This allows arbitrarily tall textures for 1s walls.
   //
-  //	if (x2 > texture->width)
-  //	    x2 = texture->width;
-  //	for ( ; x<x2 ; x++)
-  //	{
-  //	    patchcount[x]++;
-  //	    collump[x] = patch->patch;
-  //	    colofs[x] = LONG(realpatch->columnofs[x-x1])+3;
-  //	}
-  //    }
-  //
-  //    // killough 4/9/98: keep a count of the number of posts in column,
-  //    // to fix Medusa bug while allowing for transparent multipatches.
-  //    //
-  //    // killough 12/98:
-  //    // Post counts are only necessary if column is multipatched,
-  //    // so skip counting posts if column comes from a single patch.
-  //    // This allows arbitrarily tall textures for 1s walls.
-  //    //
-  //    // If texture is >= 256 tall, assume it's 1s, and hence it has
-  //    // only one post per column. This avoids crashes while allowing
-  //    // for arbitrarily tall multipatched 1s textures.
-  //
-  //    // [crispy] generate composites for all textures
-  ////  if (texture->patchcount > 1 && texture->height < 256)
-  //    {
-  //	// killough 12/98: Warn about a common column construction bug
-  //	unsigned limit = texture->height * 3 + 3; // absolute column size limit
-  //
-  //	for (i = texture->patchcount, patch = texture->patches; --i >= 0; )
-  //	{
-  //	    int pat = patch->patch;
-  //	    const patch_t *realpatch = W_CacheLumpNum(pat, PU_CACHE);
-  //	    int x, x1 = patch++->originx, x2 = x1 + SHORT(realpatch->width);
-  //	    const int *cofs = realpatch->columnofs - x1;
-  //
-  //	    if (x2 > texture->width)
-  //		x2 = texture->width;
-  //	    if (x1 < 0)
-  //		x1 = 0;
-  //
-  //	    for (x = x1 ; x < x2 ; x++)
-  //	    {
-  //		// [crispy] generate composites for all columns
-  ////		if (patchcount[x] > 1) // Only multipatched columns
-  //		{
-  //		    const column_t *col = (const column_t*)((const byte*) realpatch + LONG(cofs[x]));
-  //		    const byte *base = (const byte *) col;
-  //
-  //		    // count posts
-  //		    for ( ; col->topdelta != 0xff; postcount[x]++)
-  //		    {
-  //			if ((unsigned)((const byte *) col - base) <= limit)
-  //			    col = (const column_t *)((const byte *) col + col->length + 4);
-  //			else
-  //			    break;
-  //		    }
-  //		}
-  //	    }
-  //	}
-  //    }
-  //
-  //    // Now count the number of columns
-  //    //  that are covered by more than one patch.
-  //    // Fill in the lump / offset, so columns
-  //    //  with only a single patch are all done.
-  //
-  //    for (x=0 ; x<texture->width ; x++)
-  //    {
-  //	if (!patchcount[x] && !err++) // killough 10/98: non-verbose output
-  //	{
-  //	    // [crispy] fix absurd texture name in error message
-  //	    printf ("R_GenerateLookup: column without a patch (%.8s)\n",
-  //		    texture->name);
-  //	    // [crispy] do not return yet
-  //	    /*
-  //	    return;
-  //	    */
-  //	}
-  //	// I_Error ("R_GenerateLookup: column without a patch");
-  //
-  //	// [crispy] treat patch-less columns the same as multi-patched
-  //	if (patchcount[x] > 1 || !patchcount[x])
-  //	{
-  //	    // Use the cached block.
-  //	    // [crispy] moved up here, the rest in this loop
-  //	    // applies to single-patched textures as well
-  //	    collump[x] = -1;
-  //	}
-  //	    // killough 1/25/98, 4/9/98:
-  //	    //
-  //	    // Fix Medusa bug, by adding room for column header
-  //	    // and trailer bytes for each post in merged column.
-  //	    // For now, just allocate conservatively 4 bytes
-  //	    // per post per patch per column, since we don't
-  //	    // yet know how many posts the merged column will
-  //	    // require, and it's bounded above by this limit.
-  //
-  //	    colofs[x] = csize + 3; // three header bytes in a column
-  //	    // killough 12/98: add room for one extra post
-  //	    csize += 4 * postcount[x] + 5; // 1 stop byte plus 4 bytes per post
-  //
-  //	    // [crispy] remove limit
-  //	    /*
-  //	    if (texturecompositesize[texnum] > 0x10000-texture->height)
-  //	    {
-  //		I_Error ("R_GenerateLookup: texture %i is >64k",
-  //			 texnum);
-  //	    }
-  //	    */
-  //	csize += texture->height; // height bytes of texture data
-  //	// [crispy] initialize opaque texture column offset
-  //	colofs2[x] = x * texture->height;
-  //    }
-  //
-  //    texturecompositesize[texnum] = csize;
-  //
+  // If texture is >= 256 tall, assume it's 1s, and hence it has
+  // only one post per column. This avoids crashes while allowing
+  // for arbitrarily tall multipatched 1s textures.
+
+  // [crispy] generate composites for all textures
+//  if (texture->patchcount > 1 && texture->height < 256)
+  Begin
+    // killough 12/98: Warn about a common column construction bug
+    limit := texture^.height * 3 + 3; // absolute column size limit
+
+    //	for (i = texture->patchcount, patch = texture->patches; --i >= 0; )
+    For i := 0 To texture^.patchcount - 1 Do Begin
+      patch := @texture^.patches[i];
+      pat := patch^.patch;
+      realpatch := W_CacheLumpNum(pat, PU_CACHE);
+      x1 := patch^.originx;
+      x2 := x1 + realpatch^.width;
+
+      cofs := @realpatch^.columnofs[0];
+
+      If (x2 > texture^.width) Then x2 := texture^.width;
+      If (x1 < 0) Then x1 := 0;
+      index := 0;
+      For x := x1 To x2 - 1 Do Begin
+        // [crispy] generate composites for all columns
+//		if (patchcount[x] > 1) // Only multipatched columns
+        Begin
+          col := pointer(realpatch) + cofs[index];
+          inc(index);
+          base := pointer(col);
+
+          // count posts
+          While col^.topdelta <> $FF Do Begin
+            If pointer(col) - pointer(base) <= limit Then Begin
+              postcount[x] := postcount[x] + 1;
+              col := pointer(col) + col^.length + 4;
+            End
+            Else Begin
+              break;
+            End;
+          End;
+        End;
+      End;
+    End;
+  End;
+
+  // Now count the number of columns
+  //  that are covered by more than one patch.
+  // Fill in the lump / offset, so columns
+  //  with only a single patch are all done.
+
+  For x := 0 To texture^.width - 1 Do Begin
+    If (patchcount[x] = 0) And (err = 0) Then Begin // killough 10/98: non-verbose output
+      err := err + 1;
+      // [crispy] fix absurd texture name in error message
+      writeln(format('R_GenerateLookup: column without a patch (%s)',
+        [texture^.name]));
+      // [crispy] do not return yet
+      (*
+      exit;
+      *)
+    End;
+    // I_Error ("R_GenerateLookup: column without a patch");
+
+     // [crispy] treat patch-less columns the same as multi-patched
+    If (patchcount[x] > 1) Or (patchcount[x] = 0) Then Begin
+      // Use the cached block.
+      // [crispy] moved up here, the rest in this loop
+      // applies to single-patched textures as well
+      collump[x] := -1;
+    End;
+    // killough 1/25/98, 4/9/98:
+    //
+    // Fix Medusa bug, by adding room for column header
+    // and trailer bytes for each post in merged column.
+    // For now, just allocate conservatively 4 bytes
+    // per post per patch per column, since we don't
+    // yet know how many posts the merged column will
+    // require, and it's bounded above by this limit.
+
+    colofs[x] := csize + 3; // three header bytes in a column
+    // killough 12/98: add room for one extra post
+    csize := csize + 4 * postcount[x] + 5; // 1 stop byte plus 4 bytes per post
+
+    // [crispy] remove limit
+    (*
+    If (texturecompositesize[texnum] > $10000 - texture^.height) Then Begin
+      I_Error(format('R_GenerateLookup: texture %d is >64k', [texnum]));
+    End;
+    *)
+    csize := csize + texture^.height; // height bytes of texture data
+    // [crispy] initialize opaque texture column offset
+    colofs2[x] := x * texture^.height;
+  End;
+
+  texturecompositesize[texnum] := csize;
+
   //    Z_Free(patchcount);
   //    Z_Free(postcount);
 End;
 
 Procedure GenerateTextureHashTable();
+Var
+  key, i: Int;
+  rover: Ptexture_t;
 Begin
-  //    texture_t **rover;
-  //    int i;
-  //    int key;
-  //
-  //    textures_hashtable
-  //            = Z_Malloc(sizeof(texture_t *) * numtextures, PU_STATIC, 0);
-  //
-  //    memset(textures_hashtable, 0, sizeof(texture_t *) * numtextures);
-  //
-  //    // Add all textures to hash table
-  //
-  //    for (i=0; i<numtextures; ++i)
-  //    {
-  //        // Store index
-  //
-  //        textures[i]->index = i;
-  //
-  //        // Vanilla Doom does a linear search of the texures array
-  //        // and stops at the first entry it finds.  If there are two
-  //        // entries with the same name, the first one in the array
-  //        // wins. The new entry must therefore be added at the end
-  //        // of the hash chain, so that earlier entries win.
-  //
-  //        key = W_LumpNameHash(textures[i]->name) % numtextures;
-  //
-  //        rover = &textures_hashtable[key];
-  //
-  //        while (*rover != NULL)
-  //        {
-  //            rover = &(*rover)->next;
-  //        }
-  //
-  //        // Hook into hash table
-  //
-  //        textures[i]->next = NULL;
-  //        *rover = textures[i];
-  //    }
+  setlength(textures_hashtable, numtextures);
+  For i := 0 To high(textures_hashtable) Do
+    textures_hashtable[i] := Nil;
+
+  // Add all textures to hash table
+
+  For i := 0 To numtextures - 1 Do Begin
+    // Store index
+    textures[i].index := i;
+
+    // Vanilla Doom does a linear search of the texures array
+    // and stops at the first entry it finds.  If there are two
+    // entries with the same name, the first one in the array
+    // wins. The new entry must therefore be added at the end
+    // of the hash chain, so that earlier entries win.
+
+    key := W_LumpNameHash(textures[i].name) Mod numtextures;
+    If textures_hashtable[key] = Nil Then Begin
+      textures_hashtable[key] := @textures[i];
+    End
+    Else Begin
+      rover := textures_hashtable[key];
+      While rover^.next <> Nil Do Begin
+        rover := rover^.next;
+      End;
+      rover^.next := @textures[i];
+    End;
+  End;
 End;
 
 //
@@ -507,6 +507,7 @@ Procedure R_InitTextures();
       result := result + src^;
       inc(src);
     End;
+    result := UpperCase(Result);
   End;
 
 Type
@@ -562,6 +563,7 @@ Var
   lumpindex: int;
   p: short;
 Begin
+
   maxtexturelumps := length(lumpinfo);
   maxpnameslumps := length(lumpinfo);
 
@@ -736,6 +738,7 @@ Begin
     textures[i].height := mtexture^.height;
     textures[i].patchcount := mtexture^.patchcount;
     textures[i].name := Copy8Chars(mtexture^.name);
+    textures[i].next := Nil;
     mpatch := @mtexture^.patches[0];
 
     // [crispy] initialize brightmaps
@@ -777,6 +780,7 @@ Begin
     inc(directory);
   End;
 
+
   setlength(patchlookup, 0);
 
   // [crispy] release memory allocated for texture files
@@ -788,7 +792,7 @@ Begin
 
   // Precalculate whatever possible.
   For i := 0 To numtextures - 1 Do Begin
-    R_GenerateLookup(i);
+    //    R_GenerateLookup(i); -- WTF: Wenn diese Zeile Aktiv ist, dann Knallts beim beenden, so wies aussieht braucht man das ggf aber gar nicht ..
   End;
 
   // Create translation table for global animation.
@@ -836,24 +840,22 @@ Var
   texture: Ptexture_t;
   key: unsigned_int;
 Begin
-
   // "NoTexture" marker.
   If (name[1] = '-') Then Begin
     result := 0;
     exit;
   End;
-  key := W_LumpNameHash(name) Mod numtextures;
-
+  key := W_LumpNameHash(uppercase(name)) Mod numtextures;
   texture := textures_hashtable[key];
-
   While assigned(texture) Do Begin
-    //    {
-    //	if (!strncasecmp (texture->name, name, 8) )
-    //	    return texture->index;
-    //
-    //        texture = texture->next;
+    If texture^.name = name Then Begin
+      result := texture^.index;
+      exit;
+    End
+    Else Begin
+      texture := texture^.next;
+    End;
   End;
-
   result := -1;
 End;
 
@@ -895,5 +897,4 @@ Begin
 End;
 
 End.
-
 

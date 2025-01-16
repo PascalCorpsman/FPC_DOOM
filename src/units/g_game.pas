@@ -6,8 +6,8 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , doomdef
-  , d_event, d_mode, d_ticcmd
+  , doomdef, info_types
+  , d_event, d_mode, d_ticcmd, d_player
   ;
 
 Const
@@ -20,6 +20,7 @@ Var
   nodrawers: boolean = false; // for comparative timing purposes
   gamestate: gamestate_t;
   gameaction: gameaction_t = ga_nothing;
+  gameepisode: int;
   demorecording: Boolean;
   demoplayback: boolean = false;
 
@@ -46,6 +47,11 @@ Var
   // Player taking events, and displaying.
   consoleplayer: int;
   secretexit: boolean;
+  wminfo: wbstartstruct_t; // parms for world map / intermission
+  players: Array[0..MAXPLAYERS - 1] Of player_t;
+
+  savedleveltime: int = 0; // [crispy] moved here for level time logging
+  totalleveltimes: int; // [crispy] CPhipps - total time for all completed levels
 
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
@@ -66,9 +72,9 @@ Procedure G_ExitLevel();
 Implementation
 
 Uses
-  doomdata, doomstat, info, sounds, info_types
+  doomdata, doomstat, info, sounds
   , am_map
-  , d_player, d_main, d_loop
+  , d_main, d_loop
   , i_video, i_timer
   , m_menu, m_argv, m_random, m_fixed
   , p_setup, p_mobj
@@ -83,14 +89,12 @@ Var
   savename: String;
   respawnmonsters: boolean = false;
 
-  players: Array[0..MAXPLAYERS - 1] Of player_t;
+  turbodetected: Array[0..MAXPLAYERS - 1] Of boolean;
 
   gameskill: skill_t;
-  gameepisode: int;
   gamemap: int;
-  totalleveltimes: int; // [crispy] CPhipps - total time for all completed levels
   demostarttic: int; // [crispy] fix revenant internal demo bug
-
+  levelstarttic: int; // gametic at level start
 
 Procedure G_ClearSavename();
 Begin
@@ -715,108 +719,100 @@ End;
 //
 
 Procedure G_DoLoadLevel();
+Var
+  skytexturename: String;
+  i: int;
 Begin
-  //    int             i;
-  //
-  //    // Set the sky map.
-  //    // First thing, we have a dummy sky texture name,
-  //    //  a flat. The data is in the WAD only because
-  //    //  we look for an actual index, instead of simply
-  //    //  setting one.
-  //
-  //    skyflatnum = R_FlatNumForName(DEH_String(SKYFLATNAME));
-  //
-  //    // The "Sky never changes in Doom II" bug was fixed in
-  //    // the id Anthology version of doom2.exe for Final Doom.
-  //    // [crispy] correct "Sky never changes in Doom II" bug
-  //    if ((gamemode == commercial)
-  //     && (gameversion == exe_final2 || gameversion == exe_chex || true))
-  //    {
-  //        const char *skytexturename;
-  //
-  //        if (gamemap < 12)
-  //        {
-  //            if ((gameepisode == 2 || gamemission == pack_nerve) && gamemap >= 4 && gamemap <= 8)
-  //                skytexturename = "SKY3";
-  //            else
-  //            skytexturename = "SKY1";
-  //        }
-  //        else if (gamemap < 21)
-  //        {
-  //            // [crispy] BLACKTWR (MAP25) and TEETH (MAP31 and MAP32)
-  //            if ((gameepisode == 3 || gamemission == pack_master) && gamemap >= 19)
-  //                skytexturename = "SKY3";
-  //            else
-  //            // [crispy] BLOODSEA and MEPHISTO (both MAP07)
-  //            if ((gameepisode == 3 || gamemission == pack_master) && (gamemap == 14 || gamemap == 15))
-  //                skytexturename = "SKY1";
-  //            else
-  //            skytexturename = "SKY2";
-  //        }
-  //        else
-  //        {
-  //            skytexturename = "SKY3";
-  //        }
-  //
-  //        skytexturename = DEH_String(skytexturename);
-  //
-  //        skytexture = R_TextureNumForName(skytexturename);
-  //    }
+  // Set the sky map.
+  // First thing, we have a dummy sky texture name,
+  //  a flat. The data is in the WAD only because
+  //  we look for an actual index, instead of simply
+  //  setting one.
+
+  skyflatnum := R_FlatNumForName(SKYFLATNAME);
+
+  // The "Sky never changes in Doom II" bug was fixed in
+  // the id Anthology version of doom2.exe for Final Doom.
+  // [crispy] correct "Sky never changes in Doom II" bug
+  If ((gamemode = commercial)) And ((gameversion = exe_final2) Or (gameversion = exe_chex) Or (true)) Then Begin
+    If (gamemap < 12) Then Begin
+      If ((gameepisode = 2) Or (gamemission = pack_nerve)) And (gamemap >= 4) And (gamemap <= 8) Then
+        skytexturename := 'SKY3'
+      Else
+        skytexturename := 'SKY1';
+    End
+    Else If (gamemap < 21) Then Begin
+      // [crispy] BLACKTWR (MAP25) and TEETH (MAP31 and MAP32)
+      If ((gameepisode = 3) Or (gamemission = pack_master)) And (gamemap >= 19) Then
+        skytexturename := 'SKY3'
+      Else Begin
+        // [crispy] BLOODSEA and MEPHISTO (both MAP07)
+        If ((gameepisode = 3) Or (gamemission = pack_master)) And ((gamemap = 14) Or (gamemap = 15)) Then
+          skytexturename := 'SKY1'
+        Else
+          skytexturename := 'SKY2';
+      End;
+    End
+    Else Begin
+      skytexturename := 'SKY3';
+    End;
+    skytexture := R_TextureNumForName(skytexturename);
+  End;
 
   // [crispy] sky texture scales
   R_InitSkyMap();
 
-  //    levelstarttic = gametic;        // for time calculation
-  //
-  //    if (wipegamestate == GS_LEVEL)
-  //	wipegamestate = -1;             // force a wipe
-  //
-  //    gamestate = GS_LEVEL;
-  //
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //    {
-  //	turbodetected[i] = false;
-  //	if (playeringame[i] && players[i].playerstate == PST_DEAD)
-  //	    players[i].playerstate = PST_REBORN;
-  //	memset (players[i].frags,0,sizeof(players[i].frags));
-  //    }
-  //
-  //    // [crispy] update the "singleplayer" variable
-  //    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);
-  //
-  //    // [crispy] double ammo
-  //    if (crispy->moreammo && !crispy->singleplayer)
-  //    {
-  //        const char message[] = "The -doubleammo option is not supported"
-  //                               " for demos and\n"
-  //                               " network play.";
-  //        if (!demo_p) demorecording = false;
-  //        I_Error(message);
-  //    }
-  //
-  //    // [crispy] pistol start
-  //    if (crispy->pistolstart)
-  //    {
-  //        if (crispy->singleplayer)
-  //        {
-  //            G_PlayerReborn(0);
-  //        }
-  //        else if ((demoplayback || netdemo) && !singledemo)
-  //        {
-  //            // no-op - silently ignore pistolstart when playing demo from the
-  //            // demo reel
-  //        }
-  //        else
-  //        {
-  //            const char message[] = "The -pistolstart option is not supported"
-  //                                   " for demos and\n"
-  //                                   " network play.";
-  //            if (!demo_p) demorecording = false;
-  //            I_Error(message);
-  //        }
-  //    }
-  //
-  //    P_SetupLevel (gameepisode, gamemap, 0, gameskill);
+  levelstarttic := gametic; // for time calculation
+
+  If (wipegamestate = GS_LEVEL) Then Begin
+    wipegamestate := GS_NEG_1; // force a wipe
+  End;
+  gamestate := GS_LEVEL;
+
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    turbodetected[i] := false;
+    If (playeringame[i]) And (players[i].playerstate = PST_DEAD) Then Begin
+      players[i].playerstate := PST_REBORN;
+    End;
+    FillChar(players[i].frags[0], SizeOf(players[i].frags), 0);
+  End;
+
+  // [crispy] update the "singleplayer" variable
+//    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);
+
+//    // [crispy] double ammo
+//    if (crispy->moreammo && !crispy->singleplayer)
+//    {
+//        const char message[] = "The -doubleammo option is not supported"
+//                               " for demos and\n"
+//                               " network play.";
+//        if (!demo_p) demorecording = false;
+//        I_Error(message);
+//    }
+
+// [crispy] pistol start
+//    if (crispy->pistolstart)
+//    {
+//        if (crispy->singleplayer)
+//        {
+//            G_PlayerReborn(0);
+//        }
+//        else if ((demoplayback || netdemo) && !singledemo)
+//        {
+//            // no-op - silently ignore pistolstart when playing demo from the
+//            // demo reel
+//        }
+//        else
+//        {
+//            const char message[] = "The -pistolstart option is not supported"
+//                                   " for demos and\n"
+//                                   " network play.";
+//            if (!demo_p) demorecording = false;
+//            I_Error(message);
+//        }
+//    }
+
+  P_SetupLevel(gameepisode, gamemap, 0, gameskill);
   //    displayplayer = consoleplayer;		// view the guy you are playing
   //    gameaction = ga_nothing;
   //    Z_CheckHeap ();

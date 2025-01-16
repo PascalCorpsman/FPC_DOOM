@@ -42,6 +42,7 @@ Type
 Var
   // The number of tics that have been run (using RunTic) so far.
   gametic: int;
+  oldleveltime: int; // [crispy] check if leveltime keeps tickin'
   TicksPerSecond: integer; // Corpsman: DEBUG for Tick per second Measurement
 
   // When set to true, a single tic is run each time TryRunTics() is called.

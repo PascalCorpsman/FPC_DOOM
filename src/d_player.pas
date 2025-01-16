@@ -6,7 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , net_defs
+  , net_defs, doomdef
   // The player data structure depends on a number
   // of other structs: items (internal inventory),
   // animation states (closely tied to the sprites
@@ -52,53 +52,51 @@ Type
     CF_NOTARGET = 8
     );
 
-// player_t -> moved p_mobj
+  // player_t -> moved p_mobj
 
-  ////
-  //// INTERMISSION
-  //// Structure passed e.g. to WI_Start(wb)
-  ////
-  //typedef struct
-  //{
-  //    boolean	in;	// whether the player is in game
   //
-  //    // Player stats, kills, collected items etc.
-  //    int		skills;
-  //    int		sitems;
-  //    int		ssecret;
-  //    int		stime;
-  //    int		frags[4];
-  //    int		score;	// current score on entry, modified on return
+  // INTERMISSION
+  // Structure passed e.g. to WI_Start(wb)
   //
-  //} wbplayerstruct_t;
-  //
-  //typedef struct
-  //{
-  //    int		epsd;	// episode # (0-2)
-  //
-  //    // if true, splash the secret level
-  //    boolean	didsecret;
-  //
-  //    // previous and next levels, origin 0
-  //    int		last;
-  //    int		next;
-  //
-  //    int		maxkills;
-  //    int		maxitems;
-  //    int		maxsecret;
-  //    int		maxfrags;
-  //
-  //    // the par time
-  //    int		partime;
-  //
-  //    // index of this player in game
-  //    int		pnum;
-  //
-  //    wbplayerstruct_t	plyr[MAXPLAYERS];
-  //
-  //    // [crispy] CPhipps - total game time for completed levels so far
-  //    int		totaltimes;
-  //} wbstartstruct_t;
+  wbplayerstruct_t = Record
+    _in: boolean; // whether the player is in game
+
+    // Player stats, kills, collected items etc.
+    skills: int;
+    sitems: int;
+    ssecret: int;
+    stime: int;
+    frags: Array[0..3] Of int;
+    score: int; // current score on entry, modified on return
+  End;
+
+  wbstartstruct_t = Record
+
+    epsd: int; // episode # (0-2)
+
+    // if true, splash the secret level
+    didsecret: boolean;
+
+    // previous and next levels, origin 0
+    last: int;
+    next: int;
+
+    maxkills: int;
+    maxitems: int;
+    maxsecret: int;
+    maxfrags: int;
+
+    // the par time
+    partime: int;
+
+    // index of this player in game
+    pnum: int;
+
+    plyr: Array[0..MAXPLAYERS - 1] Of wbplayerstruct_t;
+
+    // [crispy] CPhipps - total game time for completed levels so far
+    totaltimes: int;
+  End;
 
 
 Implementation

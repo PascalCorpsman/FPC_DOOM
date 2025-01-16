@@ -6,6 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
+  , doomdef
   , d_mode
   ;
 
@@ -17,6 +18,8 @@ Procedure D_ProcessEvents();
 Procedure D_DoAdvanceDemo();
 
 Var
+  wipegamestate: gamestate_t = GS_DEMOSCREEN;
+  // wipegamestate can be set to -1 to force a wipe on the next draw
   advancedemo: boolean;
   autostart: Boolean;
   startepisode: int;
@@ -31,7 +34,7 @@ Implementation
 
 Uses
   config, sounds
-  , doom_icon, doomstat, doomdef
+  , doom_icon, doomstat
   , am_map
   , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad
   , f_wipe
@@ -689,10 +692,6 @@ Begin
     End;
   End;
 End;
-
-// wipegamestate can be set to -1 to force a wipe on the next draw
-Var
-  wipegamestate: gamestate_t = GS_DEMOSCREEN;
 
 Function D_Display(): Boolean;
 Const

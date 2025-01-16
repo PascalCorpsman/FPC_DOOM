@@ -23,6 +23,7 @@ Type
   unsigned_short = uInt16;
 
   int = int32;
+  int32_t = Int32;
   unsigned = UInt32; // Geraten, den dass steht nirgends, könnte auch PTR_int sein ??
   P_int = ^int;
   unsigned_int = uint32;
@@ -32,11 +33,24 @@ Type
 
 Procedure Nop(); // Just for debugging to have a breakpoint position ;)
 
+Function IfThen(aValue: Boolean; aTrueString: String; aFalseString: String): String;
+
 Implementation
 
 Procedure Nop();
 Begin
 
+End;
+
+Function IfThen(aValue: Boolean; aTrueString: String; aFalseString: String
+  ): String;
+Begin
+  If aValue Then Begin
+    result := aTrueString;
+  End
+  Else Begin
+    Result := aFalseString;
+  End;
 End;
 
 End.

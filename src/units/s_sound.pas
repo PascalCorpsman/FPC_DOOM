@@ -14,6 +14,8 @@ Procedure S_StartMusic(m_id: musicenum_t);
 Procedure S_ResumeSound();
 Procedure S_PauseSound();
 
+Procedure S_Start();
+
 Implementation
 
 Var
@@ -39,7 +41,7 @@ Procedure S_ResumeSound();
 Begin
   If (mus_playing) And (mus_paused) Then Begin
 
-    //        I_ResumeSong();
+    //    I_ResumeSong();
     mus_paused := false;
   End;
 End;
@@ -48,9 +50,21 @@ Procedure S_PauseSound();
 Begin
   If (mus_playing) And (Not mus_paused) Then Begin
 
-    //        I_PauseSong();
+    //    I_PauseSong();
     mus_paused := true;
   End;
+End;
+
+
+//
+// Per level startup code.
+// Kills playing sounds at start of level,
+//  determines music if any, changes music.
+//
+
+Procedure S_Start();
+Begin
+
 End;
 
 End.

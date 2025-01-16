@@ -7,6 +7,9 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils;
 
+Const
+  // SKY, store the number for name.
+  SKYFLATNAME = 'F_SKY1';
 
 Var
   //
@@ -27,9 +30,6 @@ Uses
   ;
 
 Const
-  // SKY, store the number for name.
-  SKYFLATNAME = 'F_SKY1';
-
   // The sky map is 256*128*4 maps.
   ANGLETOSKYSHIFT = 22;
 
@@ -49,14 +49,14 @@ Begin
   //    crispy->stretchsky = crispy->freelook || crispy->mouselook || crispy->pitch;
   skyheight := textureheight[skytexture] Shr FRACBITS;
 
-  If (true {crispy->stretchsky}) And (skyheight < 200) Then Begin
+  If (false {crispy->stretchsky}) And (skyheight < 200) Then Begin
     skytexturemid := -28 * FRACUNIT;
   End
   Else If (skyheight >= 200) Then Begin
     skytexturemid := 200 * FRACUNIT;
   End
   Else Begin
-    skytexturemid := (ORIGHEIGHT * FRACUNIT) Div 2;
+    skytexturemid := ORIGHEIGHT div 2 * FRACUNIT;
   End;
 End;
 

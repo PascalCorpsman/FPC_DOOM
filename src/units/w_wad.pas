@@ -42,7 +42,7 @@ Function W_GetNumForName(name: String): lumpindex_t;
 Function W_CheckNumForNameFromTo(Const name: String; afrom, ato: int): lumpindex_t;
 
 Function W_LumpLength(lump: lumpindex_t): int;
-//Procedure W_ReadLump(lump: lumpindex_t Var dest: Pointer);
+Procedure W_ReadLump(lump: lumpindex_t; dest: Pointer);
 
 Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
 Function W_CacheLumpName(name: String; tag: int): Pointer;
@@ -54,7 +54,7 @@ Function W_LumpNameHash(Const s: String): unsigned_int;
 Procedure W_ReleaseLumpNum(lump: lumpindex_t);
 Procedure W_ReleaseLumpName(Const name: String);
 
-//Function W_WadNameForLump(Const lump: lumpinfo_t): String;
+Function W_WadNameForLump(Const lump: lumpinfo_t): String;
 Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
 
 //function W_GetWADFileNames():TStrings;
@@ -146,7 +146,7 @@ End;
 // the game after every change.
 // But: the reload feature is a fragile hack...
 
-Procedure W_Reload();
+Procedure W_Reload;
 Begin
   //    char *filename;
   //    lumpindex_t i;
@@ -244,6 +244,18 @@ Begin
   End;
 End;
 
+Procedure W_ReadLump(lump: lumpindex_t; dest: Pointer);
+Var
+  i: integer;
+  p: PByte;
+Begin
+  p := dest;
+  For i := 0 To Lumps[lump].size - 1 Do Begin
+    p^ := WadMem[Lumps[lump].filepos + i];
+    inc(p);
+  End;
+End;
+
 //
 // W_CacheLumpNum
 //
@@ -280,7 +292,7 @@ End;
 
 // Generate a hash table for fast lookups
 
-Procedure W_GenerateHashTable();
+Procedure W_GenerateHashTable;
 Begin
   //   lumpindex_t i;
   //
@@ -336,6 +348,11 @@ End;
 Procedure W_ReleaseLumpName(Const name: String);
 Begin
   // Nichts zu tun
+End;
+
+Function W_WadNameForLump(Const lump: lumpinfo_t): String;
+Begin
+  result := lump.name;
 End;
 
 Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;

@@ -12,32 +12,28 @@ Uses
   , doomdef
   ;
 
-Type
-  //
-  // Map level types.
-  // The following data structures define the persistent format
-  // used in the lumps of the WAD files.
-  //
-
+//
+// Map level types.
+// The following data structures define the persistent format
+// used in the lumps of the WAD files.
+//
+Const
   // Lump order in a map WAD: each map needs a couple of lumps
   // to provide a complete scene geometry description.
-  //enum
-  //{
-  //  ML_LABEL,		// A separator, name, ExMx or MAPxx
-  //  ML_THINGS,		// Monsters, items..
-  //  ML_LINEDEFS,		// LineDefs, from editing
-  //  ML_SIDEDEFS,		// SideDefs, from editing
-  //  ML_VERTEXES,		// Vertices, edited and BSP splits generated
-  //  ML_SEGS,		// LineSegs, from LineDefs split by BSP
-  //  ML_SSECTORS,		// SubSectors, list of LineSegs
-  //  ML_NODES,		// BSP nodes
-  //  ML_SECTORS,		// Sectors, from editing
-  //  ML_REJECT,		// LUT, sector-sector visibility
-  //  ML_BLOCKMAP		// LUT, motion clipping, walls/grid element
-  //};
-  //
-  //
-  //// A single Vertex.
+  ML_LABEL = 0; // A separator, name, ExMx or MAPxx
+  ML_THINGS = 1; // Monsters, items..
+  ML_LINEDEFS = 2; // LineDefs, from editing
+  ML_SIDEDEFS = 3; // SideDefs, from editing
+  ML_VERTEXES = 4; // Vertices, edited and BSP splits generated
+  ML_SEGS = 5; // LineSegs, from LineDefs split by BSP
+  ML_SSECTORS = 6; // SubSectors, list of LineSegs
+  ML_NODES = 7; // BSP nodes
+  ML_SECTORS = 8; // Sectors, from editing
+  ML_REJECT = 9; // LUT, sector-sector visibility
+  ML_BLOCKMAP = 10; // LUT, motion clipping, walls/grid element
+
+Type
+  // A single Vertex.
   //typedef PACKED_STRUCT (
   //{
   //  short		x;
@@ -287,27 +283,4 @@ Type
 Implementation
 
 End.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -18,10 +18,25 @@ Var
   // Set if homebrew PWAD stuff has been added.
   modifiedgame: boolean = false;
 
-  // Convenience macro.
-  // 'gamemission' can be equal to pack_chex or pack_hacx, but these are
-  // just modified versions of doom and doom2, and should be interpreted
-  // as the same most of the time.
+  // -------------------------------------
+// Scores, rating.
+// Statistics on a given map, for intermission.
+//
+  totalkills: int;
+  totalitems: int;
+  totalsecret: int;
+  extrakills: int; // [crispy] count spawned monsters
+
+  // Timer, for scores.
+  //extern  int	levelstarttic;	// gametic at level start
+  leveltime: int; // tics in game play for par
+  //extern  int	totalleveltimes; // [crispy] CPhipps - total time for all completed levels
+
+
+    // Convenience macro.
+    // 'gamemission' can be equal to pack_chex or pack_hacx, but these are
+    // just modified versions of doom and doom2, and should be interpreted
+    // as the same most of the time.
 
 Function logical_gamemission(): GameMission_t Inline;
 
