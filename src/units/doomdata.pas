@@ -243,7 +243,7 @@ Type
     _type: short;
     options: short;
   End;
-
+  Pmapthing_t = ^mapthing_t;
 
   //// [crispy] allow loading of Hexen-format maps
   //// taken from chocolate-doom/src/hexen/xddefs.h:134-149

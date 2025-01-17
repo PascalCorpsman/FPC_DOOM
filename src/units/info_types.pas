@@ -13,7 +13,6 @@ Uses
   , doomdata, doomdef, tables, sounds
   , d_player, d_ticcmd
   , m_fixed
-  //  , r_defs
   ;
 
 Type
@@ -1522,6 +1521,7 @@ Type
   Pmobjinfo_t = ^mobjinfo_t;
 
   Pmobj_t = ^mobj_t;
+  PPmobj_t = ^Pmobj_t;
   Psector_t = ^sector_t;
   Pplayer_t = ^player_t;
   Ppspdef_t = ^pspdef_t;
@@ -1603,6 +1603,7 @@ Type
     // If NF_SUBSECTOR its a subsector.
     children: Array[0..1] Of int; // [crispy] extended nodes
   End;
+  Pnode_t = ^node_t;
 
   mobj_t = Record
 
@@ -1684,7 +1685,7 @@ Type
     tracer: Pmobj_t;
 
     // [AM] If true, ok to interpolate this tic.
-    interp: int;
+    interp: boolean; // War int
 
     // [AM] Previous position of mobj before think.
     //      Used to interpolate between positions.
@@ -1870,13 +1871,13 @@ Type
     // Is wp_nochange if not changing.
     pendingweapon: weapontype_t;
 
-    weaponowned: Array[weapontype_t] Of int;
+    weaponowned: Array[weapontype_t] Of boolean; // War int
     ammo: Array[0..integer(NUMAMMO) - 1] Of int;
     maxammo: Array[0..integer(NUMAMMO) - 1] Of int;
 
     // True if button down last tic.
-    attackdown: int;
-    usedown: int;
+    attackdown: boolean; // war int
+    usedown: boolean; // war int
 
     // Bit flags, for cheats and debug.
     // See cheat_t, above.

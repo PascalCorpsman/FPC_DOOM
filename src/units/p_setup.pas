@@ -8,11 +8,36 @@ Uses
   ufpc_doom_types, Classes, SysUtils
   , doomdef, doomdata, info_types
   , d_mode
+  , m_fixed
   ;
+
+Const
+  // Maintain single and multi player starting spots.
+  MAX_DEATHMATCH_STARTS = 10;
 
 Var
   playerstarts: Array[0..MAXPLAYERS - 1] Of mapthing_t;
+  playerstartsingame: Array[0..MAXPLAYERS - 1] Of boolean;
 
+  deathmatchstarts: Array[0..MAX_DEATHMATCH_STARTS - 1] Of mapthing_t;
+  deathmatch_p: int;
+
+  numnodes: int;
+  nodes: Array Of node_t;
+
+  numsubsectors: int;
+  subsectors: Array Of subsector_t;
+
+  // for thing chains
+  blocklinks: Array Of Pmobj_t;
+
+  // Blockmap size.
+  bmapwidth: int;
+  bmapheight: int; // size in mapblocks
+
+  // origin of block map
+  bmaporgx: fixed_t;
+  bmaporgy: fixed_t;
 
 Function P_GetNumForMap(episode, map: int; critical: boolean): int;
 
@@ -25,8 +50,8 @@ Uses
   , d_loop, d_main
   , i_timer, i_system
   , g_game
-  , m_argv, m_fixed, m_bbox
-  , p_tick, p_extnodes, p_blockmap, p_local
+  , m_argv, m_bbox
+  , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter
   , r_defs, r_data, r_main
   , s_musinfo, s_sound
   , w_wad
@@ -55,17 +80,9 @@ Var
   // Used to speed up collision detection
   // by spatial subdivision in 2D.
   //
-  // Blockmap size.
-  bmapwidth: int;
-  bmapheight: int; // size in mapblocks
   blockmap: Array Of int32_t; // int for larger maps // [crispy] BLOCKMAP limit
   // offsets in blockmap are from here
   blockmaplump: Array Of int32_t; // [crispy] BLOCKMAP limit
-  // origin of block map
-  bmaporgx: fixed_t;
-  bmaporgy: fixed_t;
-  // for thing chains
-  blocklinks: Array Of Pmobj_t;
 
   //
   // MAP related Lookup tables.
@@ -79,12 +96,6 @@ Var
 
   numsectors: int;
   sectors: Array Of sector_t;
-
-  numsubsectors: int;
-  subsectors: Array Of subsector_t;
-
-  numnodes: int;
-  nodes: Array Of node_t;
 
   numlines: int;
   lines: Array Of line_t;
@@ -940,10 +951,63 @@ Begin
   End;
 End;
 
+Procedure P_LoadThings(lump: int);
+Var
+  i: int;
+  mt: ^mapthing_t; // WTF: warum kann man hier nicht array of schreiben ?
+  spawnthing: mapthing_t;
+  numthings: int;
+  spawn: Boolean;
+Begin
+  numthings := W_LumpLength(lump) Div sizeof(mapthing_t);
+
+  mt := W_CacheLumpNum(lump, PU_STATIC);
+  For i := 0 To numthings - 1 Do Begin
+    spawn := true;
+    // Do not spawn cool, new monsters if !commercial
+    If (gamemode <> commercial) Then Begin
+      Case mt[i]._type Of
+        68, // Arachnotron
+        64, // Archvile
+        88, // Boss Brain
+        89, // Boss Shooter
+        69, // Hell Knight
+        67, // Mancubus
+        71, // Pain Elemental
+        65, // Former Human Commando
+        66, // Revenant
+        84: Begin // Wolf SS
+            spawn := false;
+          End;
+      End;
+      If (Not spawn) Then break;
+    End;
+    // Do spawn all other stuff.
+    spawnthing.x := mt[i].x;
+    spawnthing.y := mt[i].y;
+    spawnthing.angle := mt[i].angle;
+    spawnthing._type := mt[i]._type;
+    spawnthing.options := mt[i].options;
+
+    P_SpawnMapThing(@spawnthing);
+  End;
+
+  If (deathmatch = 0) Then Begin
+    For i := 0 To MAXPLAYERS - 1 Do Begin
+      If (playeringame[i]) And (Not playerstartsingame[i]) Then Begin
+        I_Error(format('P_LoadThings: Player %d start missing (vanilla crashes here)', [i + 1]));
+      End;
+      playerstartsingame[i] := false;
+    End;
+  End;
+
+  W_ReleaseLumpNum(lump);
+End;
+
 Procedure P_SetupLevel(episode, map, playermask: int; skill: skill_t);
 Var
   lumpnum, i: Int;
-  rfn_str, lumpname: String;
+  rfn_str {, lumpname}: String;
   ltime, ttime: int;
   crispy_mapformat: mapformat_t;
   crispy_validblockmap: Boolean;
@@ -1043,7 +1107,7 @@ Begin
   lumpnum := P_GetNumForMap(episode, map, true);
 
   maplumpinfo := @lumpinfo[lumpnum];
-  lumpname := lumpinfo[lumpnum].name;
+  //lumpname := lumpinfo[lumpnum].name;
 
 
   leveltime := 0;
@@ -1112,45 +1176,47 @@ Begin
   P_SegLengths(false);
   // [crispy] blinking key or skull in the status bar
 //    memset(st_keyorskull, 0, sizeof(st_keyorskull));
-//
-//    bodyqueslot = 0;
-//    deathmatch_p = deathmatchstarts;
-//    if (crispy_mapformat & MFMT_HEXEN)
-//	P_LoadThings_Hexen (lumpnum+ML_THINGS);
-//    else
-//    P_LoadThings (lumpnum+ML_THINGS);
-//
-//    // if deathmatch, randomly spawn the active players
-//    if (deathmatch)
-//    {
-//	for (i=0 ; i<MAXPLAYERS ; i++)
-//	    if (playeringame[i])
-//	    {
-//		players[i].mo = NULL;
-//		G_DeathMatchSpawnPlayer (i);
-//	    }
-//
-//    }
-//    // [crispy] support MUSINFO lump (dynamic music changing)
-//    if (gamemode != shareware)
-//    {
-//	S_ParseMusInfo(lumpname);
-//    }
-//
-//    // clear special respawning que
-//    iquehead = iquetail = 0;
-//
-//    // set up world state
-//    P_SpawnSpecials ();
-//
-//    // build subsector connect matrix
-//    //	UNUSED P_ConnectSubsectors ();
-//
-//    // preload graphics
-//    if (precache)
-//	R_PrecacheLevel ();
 
-//printf ("free memory: 0x%x\n", Z_FreeMemory());
+  bodyqueslot := 0;
+  deathmatch_p := 0;
+  If (crispy_mapformat = MFMT_HEXEN) Then Begin
+    //	P_LoadThings_Hexen (lumpnum+ML_THINGS);
+  End
+  Else Begin
+    P_LoadThings(lumpnum + ML_THINGS);
+  End;
+
+  //    // if deathmatch, randomly spawn the active players
+  //    if (deathmatch)
+  //    {
+  //	for (i=0 ; i<MAXPLAYERS ; i++)
+  //	    if (playeringame[i])
+  //	    {
+  //		players[i].mo = NULL;
+  //		G_DeathMatchSpawnPlayer (i);
+  //	    }
+  //
+  //    }
+  //    // [crispy] support MUSINFO lump (dynamic music changing)
+  //    if (gamemode != shareware)
+  //    {
+  //	S_ParseMusInfo(lumpname);
+  //    }
+  //
+  //    // clear special respawning que
+  //    iquehead = iquetail = 0;
+  //
+  //    // set up world state
+  //    P_SpawnSpecials ();
+  //
+  //    // build subsector connect matrix
+  //    //	UNUSED P_ConnectSubsectors ();
+  //
+  //    // preload graphics
+  //    if (precache)
+  //	R_PrecacheLevel ();
+
+  //printf ("free memory: 0x%x\n", Z_FreeMemory());
 End;
 
 

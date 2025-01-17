@@ -113,9 +113,26 @@ Const
   MF_TRANSLUCENT = $80000000;
 
 
-Procedure P_SpawnPlayer(Var mthing: mapthing_t);
+Procedure P_SpawnPlayer(Const mthing: mapthing_t);
+
+Procedure P_SpawnMapThing(mthing: Pmapthing_t);
+
+Function P_SpawnMobj(x, y, z: fixed_t; _type: mobjtype_t): Pmobj_t;
 
 Implementation
+
+Uses
+  info
+  , d_mode, d_main
+  , g_game
+  , m_random
+  , p_setup, p_local, p_maputl, p_pspr, p_tick
+  , r_things, r_data
+  , st_stuff
+  , v_patch
+  , w_wad
+  , z_zone
+  ;
 
 //
 // P_SpawnPlayer
@@ -124,63 +141,58 @@ Implementation
 //  between levels.
 //
 
-Procedure P_SpawnPlayer(Var mthing: mapthing_t);
+Procedure P_SpawnPlayer(Const mthing: mapthing_t);
+Var
+  p: ^player_t;
+  x: fixed_t;
+  y: fixed_t;
+  z: fixed_t;
+
+  mobj: Pmobj_t;
+
+  i: int;
 Begin
-  //  player_t*		p;
-  //    fixed_t		x;
-  //    fixed_t		y;
-  //    fixed_t		z;
-  //
-  //    mobj_t*		mobj;
-  //
-  //    int			i;
-  //
-  //    // [crispy] stop fast forward after entering new level while demo playback
-  //    if (demo_gotonextlvl)
-  //    {
-  //        demo_gotonextlvl = false;
-  //        G_DemoGotoNextLevel(false);
-  //    }
-  //
-  //    if (mthing->type == 0)
-  //    {
-  //        return;
-  //    }
-  //
-  //    // not playing?
-  //    if (!playeringame[mthing->type-1])
-  //	return;
-  //
-  //    p = &players[mthing->type-1];
-  //
-  //    if (p->playerstate == PST_REBORN)
-  //	G_PlayerReborn (mthing->type-1);
-  //
-  //    x 		= mthing->x << FRACBITS;
-  //    y 		= mthing->y << FRACBITS;
-  //    z		= ONFLOORZ;
-  //    mobj	= P_SpawnMobj (x,y,z, MT_PLAYER);
-  //
+
+  // [crispy] stop fast forward after entering new level while demo playback
+  If (demo_gotonextlvl) Then Begin
+    demo_gotonextlvl := false;
+    G_DemoGotoNextLevel(false);
+  End;
+
+  If (mthing._type = 0) Then exit;
+
+  // not playing?
+  If (Not playeringame[mthing._type - 1]) Then exit;
+
+  p := @players[mthing._type - 1];
+
+  If (p^.playerstate = PST_REBORN) Then G_PlayerReborn(mthing._type - 1);
+
+  x := mthing.x Shl FRACBITS;
+  y := mthing.y Shl FRACBITS;
+  z := ONFLOORZ;
+  mobj := P_SpawnMobj(x, y, z, MT_PLAYER);
+
   //    // set color translations for player sprites
-  //    if (mthing->type > 1)
-  //	mobj->flags |= (mthing->type-1)<<MF_TRANSSHIFT;
+  //    if (mthing._type > 1)
+  //	mobj.flags |= (mthing._type-1)<<MF_TRANSSHIFT;
   //
-  //    mobj->angle	= ANG45 * (mthing->angle/45);
-  //    mobj->player = p;
-  //    mobj->health = p->health;
+  //    mobj.angle	= ANG45 * (mthing.angle/45);
+  //    mobj.player = p;
+  //    mobj.health = p.health;
   //
-  //    p->mo = mobj;
-  //    p->playerstate = PST_LIVE;
-  //    p->refire = 0;
-  //    p->message = NULL;
-  //    p->damagecount = 0;
-  //    p->bonuscount = 0;
-  //    p->extralight = 0;
-  //    p->fixedcolormap = 0;
-  //    p->viewheight = VIEWHEIGHT;
+  //    p.mo = mobj;
+  //    p.playerstate = PST_LIVE;
+  //    p.refire = 0;
+  //    p.message = NULL;
+  //    p.damagecount = 0;
+  //    p.bonuscount = 0;
+  //    p.extralight = 0;
+  //    p.fixedcolormap = 0;
+  //    p.viewheight = VIEWHEIGHT;
   //
   //    // [crispy] weapon sound source
-  //    p->so = Crispy_PlayerSO(mthing->type-1);
+  //    p.so = Crispy_PlayerSO(mthing._type-1);
   //
   //    pspr_interp = false; // interpolate weapon bobbing
   //
@@ -190,15 +202,379 @@ Begin
   //    // give all cards in death match mode
   //    if (deathmatch)
   //	for (i=0 ; i<NUMCARDS ; i++)
-  //	    p->cards[i] = true;
+  //	    p.cards[i] = true;
   //
-  //    if (mthing->type-1 == consoleplayer)
+  //    if (mthing._type-1 == consoleplayer)
   //    {
   //	// wake up the status bar
   //	ST_Start ();
   //	// wake up the heads up text
   //	HU_Start ();
   //    }
+End;
+
+//
+// P_SpawnMapThing
+// The fields of the mapthing should
+// already be in host byte order.
+//
+
+Procedure P_SpawnMapThing(mthing: Pmapthing_t);
+Var
+  i, j: int;
+  bit: int;
+  mobj: Pmobj_t;
+  x: fixed_t;
+  y: fixed_t;
+  z: fixed_t;
+  musid: int = 0;
+Begin
+
+  // count deathmatch start positions
+  If (mthing^._type = 11) Then Begin
+    If (deathmatch_p <= high(deathmatchstarts)) Then Begin
+      deathmatchstarts[deathmatch_p] := mthing^;
+      inc(deathmatch_p);
+    End;
+    exit;
+  End;
+
+  If (mthing^._type <= 0) Then Begin
+    // Thing type 0 is actually "player -1 start".
+    // For some reason, Vanilla Doom accepts/ignores this.
+    exit;
+  End;
+
+  // check for players specially
+  If (mthing^._type <= MAXPLAYERS) Then Begin
+
+    // save spots for respawning in network games
+    playerstarts[mthing^._type - 1] := mthing^;
+    playerstartsingame[mthing^._type - 1] := true;
+    If (deathmatch = 0) Then Begin
+      P_SpawnPlayer(mthing^);
+    End;
+    exit;
+  End;
+
+  // check for appropriate skill level
+  If (Not coop_spawns) And (Not netgame) And ((mthing^.options And 16) <> 0) Then exit;
+
+  If (gameskill = sk_baby) Then
+    bit := 1
+  Else If (gameskill = sk_nightmare) Then
+    bit := 4
+  Else Begin
+    // avoid undefined behavior (left shift by negative value and rhs too big)
+    // by accurately emulating what doom.exe did: reduce mod 32.
+    // For more details check:
+    // https://github.com/chocolate-doom/chocolate-doom/issues/1677
+    bit := (1 Shl ((integer(gameskill) - 1) And $1F));
+  End;
+  // [crispy] warn about mapthings without any skill tag set
+  If ((mthing^.options And (MTF_EASY Or MTF_NORMAL Or MTF_HARD)) <> 0) Then Begin
+    writeln(stderr, format('P_SpawnMapThing: Mapthing type %i without any skill tag at (%i, %i)',
+      [mthing^._type, mthing^.x, mthing^.y]));
+  End;
+
+  If ((mthing^.options And bit) = 0) Then exit;
+
+  // [crispy] support MUSINFO lump (dynamic music changing)
+  If (mthing^._type >= 14100) And (mthing^._type <= 14164) Then Begin
+    musid := mthing^._type - 14100;
+    mthing^._type := mobjinfo[integer(MT_MUSICSOURCE)].doomednum;
+  End;
+
+  // find which type to spawn
+  i := -1;
+  For j := 0 To integer(NUMMOBJTYPES) - 1 Do Begin
+    If (mthing^._type = mobjinfo[i].doomednum) Then Begin
+      i := j;
+      break;
+    End;
+  End;
+
+  If (i = -1) Then Begin
+    // [crispy] ignore unknown map things
+    writeln(stderr, format('P_SpawnMapThing: Unknown type %i at (%i, %i)', [mthing^._type, mthing^.x, mthing^.y]));
+    exit;
+  End;
+
+  // don't spawn keycards and players in deathmatch
+  If (deathmatch <> 0) And ((mobjinfo[i].flags And MF_NOTDMATCH) <> 0) Then exit;
+
+  // don't spawn any monsters if -nomonsters
+  If (nomonsters) And ((i = integer(MT_SKULL)) Or ((mobjinfo[i].flags And MF_COUNTKILL) <> 0)) Then exit;
+
+  // spawn it
+  x := mthing^.x Shl FRACBITS;
+  y := mthing^.y Shl FRACBITS;
+
+  If (mobjinfo[i].flags And MF_SPAWNCEILING) <> 0 Then
+    z := ONCEILINGZ
+  Else
+    z := ONFLOORZ;
+
+  mobj := P_SpawnMobj(x, y, z, mobjtype_t(i));
+  mobj^.spawnpoint := mthing^;
+
+  If (mobj^.tics > 0) Then
+    mobj^.tics := 1 + (P_Random() Mod mobj^.tics);
+  If (mobj^.flags And MF_COUNTKILL) <> 0 Then
+    totalkills := totalkills + 1;
+  If (mobj^.flags And MF_COUNTITEM) <> 0 Then
+    totalitems := totalitems + 1;
+
+  mobj^.angle := ANG45 * (mthing^.angle Div 45);
+  If (mthing^.options And MTF_AMBUSH) <> 0 Then
+    mobj^.flags := mobj^.flags Or MF_AMBUSH;
+
+  // [crispy] support MUSINFO lump (dynamic music changing)
+  If (i = integer(MT_MUSICSOURCE)) Then Begin
+    mobj^.health := 1000 + musid;
+  End;
+  // [crispy] Lost Souls bleed Puffs
+  If (false {crispy^.coloredblood = COLOREDBLOOD_ALL}) And (i = integer(MT_SKULL)) Then
+    mobj^.flags := mobj^.flags Or MF_NOBLOOD;
+
+  // [crispy] blinking key or skull in the status bar
+  If (mobj^.sprite = SPR_BSKU) Then
+    st_keyorskull[it_bluecard] := 3
+  Else If (mobj^.sprite = SPR_RSKU) Then
+    st_keyorskull[it_redcard] := 3
+  Else If (mobj^.sprite = SPR_YSKU) Then
+    st_keyorskull[it_yellowcard] := 3;
+End;
+
+// [crispy] return the latest "safe" state in a state sequence,
+// so that no action pointer is ever called
+
+Var
+  laststate, lastsafestate: statenum_t;
+
+Function P_LatestSafeState(state: statenum_t): statenum_t;
+Var
+  safestate: statenum_t = S_NULL;
+Begin
+  Raise exception.create('P_LatestSafeState: hier fehlt noch was');
+  If (state = laststate) Then Begin
+    result := lastsafestate;
+  End;
+
+  //    for (laststate = state; state != S_NULL; state = states[state].nextstate)
+  //    {
+  //	if (safestate == S_NULL)
+  //	{
+  //	    safestate = state;
+  //	}
+  //
+  //	if (states[state].action.acp1)
+  //	{
+  //	    safestate = S_NULL;
+  //	}
+  //
+  //	// [crispy] a state with -1 tics never changes
+  //	if (states[state].tics == -1 || state == states[state].nextstate)
+  //	{
+  //	    break;
+  //	}
+  //    }
+  //
+  //    return lastsafestate = safestate;
+End;
+
+Procedure P_MobjThinker(mobj: Pmobj_t);
+Begin
+  // [crispy] support MUSINFO lump (dynamic music changing)
+//    if (mobj->type == MT_MUSICSOURCE)
+//    {
+//	return MusInfoThinker(mobj);
+//    }
+//    // [crispy] suppress interpolation of player missiles for the first tic
+//    // and Archvile fire to mitigate it being spawned at the wrong location
+//    if (mobj->interp < 0)
+//    {
+//        mobj->interp++;
+//    }
+//    else
+//    // [AM] Handle interpolation unless we're an active player.
+//    if (!(mobj->player != NULL && mobj == mobj->player->mo))
+//    {
+//        // Assume we can interpolate at the beginning
+//        // of the tic.
+//        mobj->interp = true;
+//
+//        // Store starting position for mobj interpolation.
+//        mobj->oldx = mobj->x;
+//        mobj->oldy = mobj->y;
+//        mobj->oldz = mobj->z;
+//        mobj->oldangle = mobj->angle;
+//    }
+//
+//    // momentum movement
+//    if (mobj->momx
+//	|| mobj->momy
+//	|| (mobj->flags&MF_SKULLFLY) )
+//    {
+//	P_XYMovement (mobj);
+//
+//	// FIXME: decent NOP/NULL/Nil function pointer please.
+//	if (mobj->thinker.function.acv == (actionf_v) (-1))
+//	    return;		// mobj was removed
+//    }
+//    if ( (mobj->z != mobj->floorz)
+//	 || mobj->momz )
+//    {
+//	P_ZMovement (mobj);
+//
+//	// FIXME: decent NOP/NULL/Nil function pointer please.
+//	if (mobj->thinker.function.acv == (actionf_v) (-1))
+//	    return;		// mobj was removed
+//    }
+//
+//
+//    // cycle through states,
+//    // calling action functions at transitions
+//    if (mobj->tics != -1)
+//    {
+//	mobj->tics--;
+//
+//	// you can cycle through multiple states in a tic
+//	if (!mobj->tics)
+//	    if (!P_SetMobjState (mobj, mobj->state->nextstate) )
+//		return;		// freed itself
+//    }
+//    else
+//    {
+//	// check for nightmare respawn
+//	if (! (mobj->flags & MF_COUNTKILL) )
+//	    return;
+//
+//	if (!respawnmonsters)
+//	    return;
+//
+//	mobj->movecount++;
+//
+//	if (mobj->movecount < 12*TICRATE)
+//	    return;
+//
+//	if ( leveltime&31 )
+//	    return;
+//
+//	if (P_Random () > 4)
+//	    return;
+//
+//	P_NightmareRespawn (mobj);
+//    }
+End;
+
+Function P_SpawnMobjSafe(x, y, z: fixed_t; _type: mobjtype_t; safe: boolean): Pmobj_t; // TODO: Wo werden die hier erzeugten Pointer wieder frei gegeben ?
+Var
+  mobj: Pmobj_t;
+  st: ^state_t;
+  info: ^mobjinfo_t;
+  sprdef: ^spritedef_t;
+  sprframe: ^spriteframe_t;
+  lump: int;
+  patch: Ppatch_t;
+Begin
+  new(mobj);
+  FillChar(mobj^, sizeof(mobj_t), 0);
+  info := @mobjinfo[integer(_type)];
+
+  mobj^._type := _type;
+  mobj^.info := info;
+  mobj^.x := x;
+  mobj^.y := y;
+  mobj^.radius := info^.radius;
+  mobj^.height := info^.height;
+  mobj^.flags := info^.flags;
+  mobj^.health := info^.spawnhealth;
+
+  If (gameskill <> sk_nightmare) Then Begin
+    mobj^.reactiontime := info^.reactiontime;
+  End;
+
+  If safe Then Begin
+    mobj^.lastlook := Crispy_Random() Mod MAXPLAYERS;
+  End
+  Else Begin
+    mobj^.lastlook := P_Random() Mod MAXPLAYERS;
+  End;
+
+  // do not set the state with P_SetMobjState,
+  // because action routines can not be called yet
+  If safe Then Begin
+    st := @states[integer(P_LatestSafeState(info^.spawnstate))];
+  End
+  Else Begin
+    st := @states[integer(info^.spawnstate)];
+  End;
+
+  mobj^.state := st;
+  mobj^.tics := st^.tics;
+  mobj^.sprite := st^.sprite;
+  mobj^.frame := st^.frame;
+
+  // set subsector and/or block links
+  P_SetThingPosition(mobj);
+
+  mobj^.floorz := mobj^.subsector^.sector^.floorheight;
+  mobj^.ceilingz := mobj^.subsector^.sector^.ceilingheight;
+
+  If (z = ONFLOORZ) Then
+    mobj^.z := mobj^.floorz
+  Else If (z = ONCEILINGZ) Then
+    mobj^.z := mobj^.ceilingz - mobj^.info^.height
+  Else
+    mobj^.z := z;
+
+  // [crispy] randomly flip corpse, blood and death animation sprites
+  If ((mobj^.flags And MF_FLIPPABLE) <> 0) And ((mobj^.flags And MF_SHOOTABLE) = 0) Then Begin
+    mobj^.health := (mobj^.health And Not int(1)) - (Crispy_Random() And 1);
+  End;
+
+  // [AM] Do not interpolate on spawn.
+  mobj^.interp := false;
+
+  // [AM] Just in case interpolation is attempted...
+  mobj^.oldx := mobj^.x;
+  mobj^.oldy := mobj^.y;
+  mobj^.oldz := mobj^.z;
+  mobj^.oldangle := mobj^.angle;
+
+  // [crispy] height of the spawnstate's first sprite in pixels
+  If (info^.actualheight = 0) Then Begin
+
+    hier knallt es weil die Sprites noch nicht initialisiert sind
+    \-> Das muss als nächstes sauber geladen werden, aber bis hier her scheint es zu stimmen ;)
+    sprdef := @sprites[integer(mobj^.sprite)];
+
+    If ((sprdef^.numframes = 0) Or ((mobj^.flags And (MF_SOLID Or MF_SHOOTABLE)) = 0)) Then Begin
+      info^.actualheight := info^.height;
+    End
+    Else Begin
+
+      //
+      sprframe := @sprdef^.spriteframes[mobj^.frame And FF_FRAMEMASK];
+      lump := sprframe^.lump[0];
+      patch := W_CacheLumpNum(lump + firstspritelump, PU_CACHE);
+
+      // [crispy] round up to the next integer multiple of 8
+      info^.actualheight := ((SHORT(patch^.height) + 7) Shr 3) Shl (FRACBITS + 3);
+    End;
+  End;
+
+  mobj^.thinker._function.acp1 := @P_MobjThinker;
+
+  P_AddThinker(@mobj^.thinker);
+
+  result := mobj;
+End;
+
+Function P_SpawnMobj(x, y, z: fixed_t; _type: mobjtype_t): Pmobj_t;
+Begin
+  result := P_SpawnMobjSafe(x, y, z, _Type, false);
 End;
 
 End.

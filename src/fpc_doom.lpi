@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="72">
+    <Units Count="77">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -335,6 +335,26 @@
         <Filename Value="units/r_plane.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit71>
+      <Unit72>
+        <Filename Value="units/deh_misc.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit72>
+      <Unit73>
+        <Filename Value="units/p_inter.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit73>
+      <Unit74>
+        <Filename Value="units/p_maputl.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit74>
+      <Unit75>
+        <Filename Value="units/r_things.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit75>
+      <Unit76>
+        <Filename Value="units/st_stuff.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit76>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

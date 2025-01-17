@@ -21,6 +21,7 @@ Var
   gamestate: gamestate_t;
   gameaction: gameaction_t = ga_nothing;
   gameepisode: int;
+  gameskill: skill_t;
   demorecording: Boolean;
   demoplayback: boolean = false;
 
@@ -52,6 +53,12 @@ Var
 
   savedleveltime: int = 0; // [crispy] moved here for level time logging
   totalleveltimes: int; // [crispy] CPhipps - total time for all completed levels
+  bodyqueslot: int;
+  demo_gotonextlvl: boolean;
+
+  timingdemo: boolean = false; // if true, exit with report on completion
+  totalkills, totalitems, totalsecret: int; // for intermission
+
 
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
@@ -69,15 +76,19 @@ Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 
 Procedure G_ExitLevel();
 
+Procedure G_DemoGotoNextLevel(start: Boolean);
+
+Procedure G_PlayerReborn(player: int);
+
 Implementation
 
 Uses
-  doomdata, doomstat, info, sounds
+  doomdata, doomstat, info, sounds, deh_misc
   , am_map
   , d_main, d_loop
   , i_video, i_timer
   , m_menu, m_argv, m_random, m_fixed
-  , p_setup, p_mobj
+  , p_setup, p_mobj, p_inter
   , r_data, r_sky
   , s_sound
   ;
@@ -91,7 +102,6 @@ Var
 
   turbodetected: Array[0..MAXPLAYERS - 1] Of boolean;
 
-  gameskill: skill_t;
   gamemap: int;
   demostarttic: int; // [crispy] fix revenant internal demo bug
   levelstarttic: int; // gametic at level start
@@ -1582,6 +1592,116 @@ Begin
   //    }
 End;
 
+(*
+===================
+=
+= G_CheckDemoStatus
+=
+= Called after a death or level completion to allow demos to be cleaned up
+= Returns true if a new demo loop action will take place
+===================
+*)
+
+Function G_CheckDemoStatus(): boolean;
+Begin
+  //    int             endtime;
+  //
+  //    // [crispy] catch the last cmd to track joins
+  //    ticcmd_t* cmd = last_cmd;
+  //    last_cmd = NULL;
+  //
+  //    if (timingdemo)
+  //    {
+  //        float fps;
+  //        int realtics;
+  //
+  //	endtime = I_GetTime ();
+  //        realtics = endtime - starttime;
+  //        fps = ((float) gametic * TICRATE) / realtics;
+  //
+  //        // Prevent recursive calls
+  //        timingdemo = false;
+  //        demoplayback = false;
+  //
+  //	I_Error ("timed %i gametics in %i realtics (%f fps)",
+  //                 gametic, realtics, fps);
+  //    }
+  //
+  //    if (demoplayback)
+  //    {
+  //        W_ReleaseLumpName(defdemoname);
+  //	demoplayback = false;
+  //	netdemo = false;
+  //	netgame = false;
+  //	deathmatch = false;
+  //	playeringame[1] = playeringame[2] = playeringame[3] = 0;
+  //	// [crispy] leave game parameters intact when continuing a demo
+  //	if (!demorecording)
+  //	{
+  //	respawnparm = false;
+  //	fastparm = false;
+  //	nomonsters = false;
+  //	}
+  //	consoleplayer = 0;
+  //
+  //        // [crispy] in demo continue mode increase the demo buffer and
+  //        // continue recording once we are done with playback
+  //        if (demorecording)
+  //        {
+  //            demoend = demo_p;
+  //            IncreaseDemoBuffer();
+  //
+  //            nodrawers = false;
+  //            singletics = false;
+  //
+  //            // [crispy] start music for the current level
+  //            if (gamestate == GS_LEVEL)
+  //            {
+  //                S_Start();
+  //            }
+  //
+  //            // [crispy] record demo join
+  //            if (cmd != NULL)
+  //            {
+  //                cmd->buttons |= BT_JOIN;
+  //            }
+  //
+  //            return true;
+  //        }
+  //
+  //        if (singledemo)
+  //            I_Quit ();
+  //        else
+  //            D_AdvanceDemo ();
+  //
+  //	return true;
+  //    }
+  //
+  //    if (demorecording)
+  //    {
+  //	boolean success;
+  //	char *msg;
+  //
+  //	*demo_p++ = DEMOMARKER;
+  //	G_AddDemoFooter();
+  //	success = M_WriteFile (demoname, demobuffer, demo_p - demobuffer);
+  //	msg = success ? "Demo %s recorded%c" : "Failed to record Demo %s%c";
+  //	Z_Free (demobuffer);
+  //	demorecording = false;
+  //	// [crispy] if a new game is started during demo recording, start a new demo
+  //	if (gameaction != ga_newgame)
+  //	{
+  //	    I_Error (msg, demoname, '\0');
+  //	}
+  //	else
+  //	{
+  //	    fprintf(stderr, msg, demoname, '\n');
+  //	}
+  //    }
+  result := false;
+End;
+
+
 //
 // G_InitNew
 // Can be called by the startup code or the menu task,
@@ -1602,13 +1722,12 @@ Begin
 //    AM_ResetIDDTcheat();
 //    AM_ResetIDDTcheat();
 //
-//    G_CheckDemoStatus();
-//    Z_Free(demoname);
-//
-//    G_RecordDemo(orig_demoname);
-//    G_BeginRecording();
+    G_CheckDemoStatus();
+    //    Z_Free(demoname);
+    //
+    //    G_RecordDemo(orig_demoname);
+    //    G_BeginRecording();
   End;
-
 End;
 
 Procedure G_ExitLevel();
@@ -1616,6 +1735,62 @@ Begin
   secretexit := false;
   G_ClearSavename();
   gameaction := ga_completed;
+End;
+
+Procedure G_DemoGotoNextLevel(start: Boolean);
+Begin
+  // disable screen rendering while fast forwarding
+  nodrawers := start;
+
+  // switch to fast tics running mode if not in -timedemo
+  If (timingdemo) Then Begin
+    singletics := start;
+  End;
+End;
+
+//
+// G_PlayerReborn
+// Called after a player dies
+// almost everything is cleared and initialized
+//
+
+Procedure G_PlayerReborn(player: int);
+Var
+  p: ^player_t;
+  i: int;
+  frags: Array[0..MAXPLAYERS - 1] Of int;
+  killcount: int;
+  itemcount: int;
+  secretcount: int;
+Begin
+  move(players[player].frags[0], frags[0], sizeof(frags));
+  killcount := players[player].killcount;
+  itemcount := players[player].itemcount;
+  secretcount := players[player].secretcount;
+
+  p := @players[player];
+  FillChar(p^, sizeof(player_t), 0);
+
+  move(frags[0], players[player].frags[0], sizeof(frags));
+  players[player].killcount := killcount;
+  players[player].itemcount := itemcount;
+  players[player].secretcount := secretcount;
+
+  p^.usedown := true; // don't do anything immediately
+  p^.attackdown := true; // don't do anything immediately
+  p^.playerstate := PST_LIVE;
+  p^.health := deh_initial_health; // Use dehacked value
+  // [crispy] negative player health
+  p^.neghealth := p^.health;
+  p^.readyweapon := wp_pistol;
+  p^.pendingweapon := wp_pistol;
+  p^.weaponowned[wp_fist] := true;
+  p^.weaponowned[wp_pistol] := true;
+  p^.ammo[integer(am_clip)] := deh_initial_bullets;
+
+  For i := 0 To integer(NUMAMMO) - 1 Do Begin
+    p^.maxammo[i] := maxammo[i];
+  End;
 End;
 
 End.

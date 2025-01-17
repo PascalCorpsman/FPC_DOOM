@@ -56,6 +56,7 @@ Function R_FlatNumForName(Const name: String): int;
 
 Var
   textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
+  firstspritelump: int;
 
   //  colormaps: lighttable_t;
 
@@ -119,7 +120,7 @@ Var
   //int		lastpatch;
   //int		numpatches;
   //
-  //int		firstspritelump;
+
   //int		lastspritelump;
   //int		numspritelumps;
 

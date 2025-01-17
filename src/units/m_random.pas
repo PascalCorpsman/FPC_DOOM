@@ -16,7 +16,7 @@ Function M_Random(): int;
 Function P_Random(): int;
 
 // [crispy] our own private random function
-//Function Crispy_Random(): int;
+Function Crispy_Random(): int;
 
 // Fix randoms for demos.
 Procedure M_ClearRandom();
@@ -66,6 +66,12 @@ Function P_Random(): int;
 Begin
   prndindex := (prndindex + 1) And $FF;
   result := rndtable[prndindex];
+End;
+
+Function Crispy_Random(): int;
+Begin
+  crndindex := (crndindex + 1) And $FF;
+  result := rndtable[crndindex];
 End;
 
 Procedure M_ClearRandom();

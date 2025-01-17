@@ -11,6 +11,18 @@ Const
   // The maximum number of players, multiplayer/networking.
   MAXPLAYERS = 4; // !! ACHTUNG !!  es gibt auch eine Konstante die Heist NET_MAXPLAYERS und die ist 8
 
+  //
+  // Difficulty/skill settings/filters.
+  //
+
+  // Skill flags.
+  MTF_EASY = 1;
+  MTF_NORMAL = 2;
+  MTF_HARD = 4;
+
+  // Deaf monsters/do not react to sound.
+  MTF_AMBUSH = 8;
+
   // The current state of the game: whether we are
   // playing, gazing at the intermission screen,
   // the game final animation, or a demo.

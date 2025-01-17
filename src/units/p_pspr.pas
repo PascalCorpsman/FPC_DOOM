@@ -8,6 +8,15 @@ Uses
   ufpc_doom_types, Classes, SysUtils
   , info_types
   ;
+Const
+  //
+  // Frame flags:
+  // handles maximum brightness (torches, muzzle flare, light sources)
+  //
+  FF_FULLBRIGHT = $8000; // flag in thing->frame
+  FF_FRAMEMASK = $7FFF;
+
+  //  psprnum_t -> info_types.pas
 
 Procedure A_Light0(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_Light1(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);

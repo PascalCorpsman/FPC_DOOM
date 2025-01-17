@@ -6,7 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , tables
+  , tables, info_types
   , m_fixed
   ;
 
@@ -30,11 +30,15 @@ Var
 
 Function R_PointToAngleCrispy(x, y: fixed_t): angle_t;
 
+Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;
+
 Implementation
 
 Uses
-  r_data, r_sky, r_draw, r_plane
+  doomdata
+  , r_data, r_sky, r_draw, r_plane
   , m_menu
+  , p_setup
   ;
 
 Var
@@ -288,6 +292,80 @@ Begin
   End;
 
   result := R_PointToAngleSlope(x, y, @SlopeDivCrispy);
+End;
+
+//
+// R_PointOnSide
+// Traverse BSP (sub) tree,
+//  check point against partition plane.
+// Returns side 0 (front) or 1 (back).
+//
+
+Function R_PointOnSide(x, y: fixed_t; node: Pnode_t): int;
+Var
+  dx: fixed_t;
+  dy: fixed_t;
+  left: fixed_t;
+  right: fixed_t;
+Begin
+  If (node^.dx = 0) Then Begin
+    If (x <= node^.x) Then Begin
+      result := ord(node^.dy > 0);
+      exit;
+    End;
+
+    result := ord(node^.dy < 0);
+  End;
+  If (node^.dy = 0) Then Begin
+    If (y <= node^.y) Then Begin
+      result := ord(node^.dx < 0);
+      exit;
+    End;
+
+    result := ord(node^.dx > 0);
+    exit;
+  End;
+
+  dx := (x - node^.x);
+  dy := (y - node^.y);
+
+  // Try to quickly decide by looking at sign bits.
+  If ((node^.dy Xor node^.dx Xor dx Xor dy) And $80000000) <> 0 Then Begin
+    If ((node^.dy Xor dx) And $80000000) <> 0 Then Begin
+      // (left is negative)
+      result := 1;
+    End;
+    result := 0;
+  End;
+
+  left := FixedMul(SarLongint(node^.dy, FRACBITS), dx);
+  right := FixedMul(dy, SarLongint(node^.dx, FRACBITS));
+
+  If (right < left) Then Begin
+    // front side
+    result := 0;
+    exit;
+  End;
+  // back side
+  result := 1;
+End;
+
+Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;
+Var
+  side: int;
+  nodenum: int;
+Begin
+  // single subsector is a special case
+  If (numnodes = 0) Then Begin
+    result := @subsectors[0];
+  End;
+  nodenum := numnodes - 1;
+
+  While ((nodenum And NF_SUBSECTOR) = 0) Do Begin
+    side := R_PointOnSide(x, y, @nodes[nodenum]);
+    nodenum := nodes[nodenum].children[side];
+  End;
+  result := @subsectors[integer(nodenum And (Not NF_SUBSECTOR))];
 End;
 
 

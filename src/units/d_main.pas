@@ -29,6 +29,7 @@ Var
   nomonsters: boolean; // checkparm of -nomonsters
   fastparm: boolean; // checkparm of -fast
   respawnparm: boolean; // checkparm of -respawn
+  coop_spawns: boolean = false; // [crispy] checkparm of -coop_spawns
 
 Implementation
 
@@ -1980,7 +1981,7 @@ Begin
   p := ord(M_ParmExists('-coop_spawns'));
 
   If (p <> 0) Then Begin
-    //    coop_spawns := true;
+    coop_spawns := true;
   End;
 
   //!
