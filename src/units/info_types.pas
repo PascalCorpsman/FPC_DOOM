@@ -13,7 +13,7 @@ Uses
   , doomdata, doomdef, tables, sounds
   , d_player, d_ticcmd
   , m_fixed
-  , r_defs
+  //  , r_defs
   ;
 
 Type
@@ -1449,8 +1449,37 @@ Type
     MT_EXTRA90, MT_EXTRA91, MT_EXTRA92, MT_EXTRA93, MT_EXTRA94,
     MT_EXTRA95, MT_EXTRA96, MT_EXTRA97, MT_EXTRA98, MT_EXTRA99,
     NUMMOBJTYPES
-
     );
+
+  //
+  // Move clipping aid for LineDefs.
+  //
+  slopetype_t =
+    (
+    ST_HORIZONTAL,
+    ST_VERTICAL,
+    ST_POSITIVE,
+    ST_NEGATIVE
+    );
+
+  //
+  // Your plain vanilla vertex.
+  // Note: transformed values not buffered locally,
+  //  like some DOOM-alikes ("wt", "WebView") did.
+  //
+  vertex_t = Record
+    x: fixed_t;
+    y: fixed_t;
+
+    // [crispy] remove slime trails
+    // vertex coordinates *only* used in rendering that have been
+    // moved towards the linedef associated with their seg by projecting them
+    // using the law of cosines in p_setup.c:P_RemoveSlimeTrails();
+    r_x: fixed_t;
+    r_y: fixed_t;
+    moved: boolean;
+  End;
+  Pvertex_t = ^vertex_t;
 
   mobjinfo_t = Record
     index: mobjtype_t;
@@ -1557,6 +1586,23 @@ Type
   End;
 
   Psubsector_t = ^subsector_t;
+
+  //
+  // BSP node.
+  //
+  node_t = Record
+    // Partition line.
+    x: fixed_t;
+    y: fixed_t;
+    dx: fixed_t;
+    dy: fixed_t;
+
+    // Bounding box for each child.
+    bbox: Array[0..1, 0..3] Of fixed_t;
+
+    // If NF_SUBSECTOR its a subsector.
+    children: Array[0..1] Of int; // [crispy] extended nodes
+  End;
 
   mobj_t = Record
 

@@ -18,13 +18,13 @@ Const
   // bbox coordinates
 
   // Bounding box functions.
-Procedure M_ClearBox(Var box: Array Of fixed_t);
+Procedure M_ClearBox(Out box: Array Of fixed_t);
 
 Procedure M_AddToBox(Var box: Array Of fixed_t; x, y: fixed_t);
 
 Implementation
 
-Procedure M_ClearBox(Var box: Array Of fixed_t);
+Procedure M_ClearBox(Out box: Array Of fixed_t);
 Begin
   box[BOXTOP] := INT_MIN;
   box[BOXRIGHT] := INT_MIN;

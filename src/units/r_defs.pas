@@ -6,46 +6,73 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , doomtype
+  , doomtype, tables
   , m_fixed
+  , info_types
   ;
 
 Type
 
+
+
+  // Psector_t,  sector_t -> Moved nach info_types
+
+  // Psubsector_t, subsector_t -> Moved nach info_types
+
+
+
+
   //
-  // Move clipping aid for LineDefs.
+  // The SideDef.
   //
-  slopetype_t =
-    (
-    ST_HORIZONTAL,
-    ST_VERTICAL,
-    ST_POSITIVE,
-    ST_NEGATIVE
-    );
 
-  // Psector_t,  sector_t -> Moved nach p_mobj
+  side_t = Record
 
-  // Psubsector_t, subsector_t -> Moved nach p_mobj
+    // add this to the calculated texture column
+    textureoffset: fixed_t;
 
+    // add this to the calculated texture top
+    rowoffset: fixed_t;
 
-//
-// Your plain vanilla vertex.
-// Note: transformed values not buffered locally,
-//  like some DOOM-alikes ("wt", "WebView") did.
-//
-  vertex_t = Record
-    x: fixed_t;
-    y: fixed_t;
+    // Texture indices.
+    // We do not maintain names here.
+    toptexture: short;
+    bottomtexture: short;
+    midtexture: short;
 
-    // [crispy] remove slime trails
-    // vertex coordinates *only* used in rendering that have been
-    // moved towards the linedef associated with their seg by projecting them
-    // using the law of cosines in p_setup.c:P_RemoveSlimeTrails();
-    r_x: fixed_t;
-    r_y: fixed_t;
-    moved: boolean;
+    // Sector the SideDef is facing.
+    sector: ^sector_t;
+
+    // [crispy] smooth texture scrolling
+    basetextureoffset: fixed_t;
   End;
-  Pvertex_t = ^vertex_t;
+
+  //
+  // The LineSeg.
+  //
+
+  seg_t = Record
+
+    v1: Pvertex_t; // Ist tatsächlich nur 1er aber halt ein pointer darauf
+    v2: Pvertex_t; // Ist tatsächlich nur 1er aber halt ein pointer darauf
+
+    offset: fixed_t;
+
+    angle: angle_t;
+
+    sidedef: ^side_t;
+    linedef: ^line_t;
+
+    // Sector references.
+    // Could be retrieved from linedef, too.
+    // backsector is NULL for one sided lines
+    frontsector: ^sector_t;
+    backsector: ^sector_t;
+
+    length: uint32_t; // [crispy] fix long wall wobble
+    r_angle: angle_t; // [crispy] re-calculated angle used for rendering
+    fakecontrast: int;
+  End;
 
   // This could be wider for >8 bit display.
   // Indeed, true color support is posibble

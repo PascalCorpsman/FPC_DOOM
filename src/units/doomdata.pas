@@ -32,43 +32,42 @@ Const
   ML_REJECT = 9; // LUT, sector-sector visibility
   ML_BLOCKMAP = 10; // LUT, motion clipping, walls/grid element
 
+  NF_SUBSECTOR_VANILLA = $8000;
+  NF_SUBSECTOR = $80000000; // [crispy] extended nodes
+  NO_INDEX = ($FFFF); // [crispy] extended nodes
+
 Type
   // A single Vertex.
-  //typedef PACKED_STRUCT (
-  //{
-  //  short		x;
-  //  short		y;
-  //}) mapvertex_t;
-  //
-  //
-  //// A SideDef, defining the visual appearance of a wall,
-  //// by setting textures and offsets.
-  //typedef PACKED_STRUCT (
-  //{
-  //  short		textureoffset;
-  //  short		rowoffset;
-  //  char		toptexture[8];
-  //  char		bottomtexture[8];
-  //  char		midtexture[8];
-  //  // Front sector, towards viewer.
-  //  short		sector;
-  //}) mapsidedef_t;
-  //
-  //
-  //
-  //// A LineDef, as used for editing, and as input
-  //// to the BSP builder.
-  //typedef PACKED_STRUCT (
-  //{
-  //  unsigned short		v1; // [crispy] extended nodes
-  //  unsigned short		v2; // [crispy] extended nodes
-  //  unsigned short		flags; // [crispy] extended nodes
-  //  short		special;
-  //  short		tag;
-  //  // sidenum[1] will be -1 (NO_INDEX) if one sided
-  //  unsigned short		sidenum[2]; // [crispy] extended nodes
-  //}) maplinedef_t;
-  //
+  mapvertex_t = Packed Record
+    x: short;
+    y: short;
+  End;
+
+  // A SideDef, defining the visual appearance of a wall,
+  // by setting textures and offsets.
+  mapsidedef_t = Packed Record
+
+    textureoffset: short;
+    rowoffset: short;
+    toptexture: Array[0..7] Of char;
+    bottomtexture: Array[0..7] Of char;
+    midtexture: Array[0..7] Of char;
+    // Front sector, towards viewer.
+    sector: short;
+  End;
+
+  // A LineDef, as used for editing, and as input
+  // to the BSP builder.
+  maplinedef_t = Packed Record
+    v1: unsigned_short; // [crispy] extended nodes
+    v2: unsigned_short; // [crispy] extended nodes
+    flags: unsigned_short; // [crispy] extended nodes
+    special: short;
+    tag: short;
+    // sidenum[1] will be -1 (NO_INDEX) if one sided
+    sidenum: Array[0..1] Of unsigned_short; // [crispy] extended nodes
+  End;
+
   //// [crispy] allow loading of Hexen-format maps
   //// taken from chocolate-doom/src/hexen/xddefs.h:63-75
   //typedef PACKED_STRUCT (
@@ -84,73 +83,69 @@ Type
   //    byte arg5;
   //    short sidenum[2];
   //}) maplinedef_hexen_t;
+Const
   //
-  ////
-  //// LineDef attributes.
-  ////
+  // LineDef attributes.
   //
-  //// Solid, is an obstacle.
-  //#define ML_BLOCKING		1
-  //
-  //// Blocks monsters only.
-  //#define ML_BLOCKMONSTERS	2
-  //
-  //// Backside will not be present at all
-  ////  if not two sided.
-  //#define ML_TWOSIDED		4
-  //
-  //// If a texture is pegged, the texture will have
-  //// the end exposed to air held constant at the
-  //// top or bottom of the texture (stairs or pulled
-  //// down things) and will move with a height change
-  //// of one of the neighbor sectors.
-  //// Unpegged textures allways have the first row of
-  //// the texture at the top pixel of the line for both
-  //// top and bottom textures (use next to windows).
-  //
-  //// upper texture unpegged
-  //#define ML_DONTPEGTOP		8
-  //
-  //// lower texture unpegged
-  //#define ML_DONTPEGBOTTOM	16
-  //
-  //// In AutoMap: don't map as two sided: IT'S A SECRET!
-  //#define ML_SECRET		32
-  //
-  //// Sound rendering: don't let sound cross two of these.
-  //#define ML_SOUNDBLOCK		64
-  //
-  //// Don't draw on the automap at all.
-  //#define ML_DONTDRAW		128
-  //
-  //// Set if already seen, thus drawn in automap.
-  //#define ML_MAPPED		256
 
+  // Solid, is an obstacle.
+  ML_BLOCKING = 1;
 
+  // Blocks monsters only.
+  ML_BLOCKMONSTERS = 2;
 
+  // Backside will not be present at all
+  //  if not two sided.
+  ML_TWOSIDED = 4;
 
+  // If a texture is pegged, the texture will have
+  // the end exposed to air held constant at the
+  // top or bottom of the texture (stairs or pulled
+  // down things) and will move with a height change
+  // of one of the neighbor sectors.
+  // Unpegged textures allways have the first row of
+  // the texture at the top pixel of the line for both
+  // top and bottom textures (use next to windows).
+
+  // upper texture unpegged
+  ML_DONTPEGTOP = 8;
+
+  // lower texture unpegged
+  ML_DONTPEGBOTTOM = 16;
+
+  // In AutoMap: don't map as two sided: IT'S A SECRET!
+  ML_SECRET = 32;
+
+  // Sound rendering: don't let sound cross two of these.
+  ML_SOUNDBLOCK = 64;
+
+  // Don't draw on the automap at all.
+  ML_DONTDRAW = 128;
+
+  // Set if already seen, thus drawn in automap.
+  ML_MAPPED = 256;
+
+Type
   // Sector definition, from editing.
-  //typedef	PACKED_STRUCT (
-  //{
-  //  short		floorheight;
-  //  short		ceilingheight;
-  //  char		floorpic[8];
-  //  char		ceilingpic[8];
-  //  short		lightlevel;
-  //  short		special;
-  //  short		tag;
-  //}) mapsector_t;
+  mapsector_t = Packed Record
+    floorheight: short;
+    ceilingheight: short;
+    floorpic: Array[0..7] Of char;
+    ceilingpic: Array[0..7] Of char;
+    lightlevel: short;
+    special: short;
+    tag: short;
+  End;
 
   // SubSector, as generated by BSP.
-  //typedef PACKED_STRUCT (
-  //{
-  //  unsigned short		numsegs; // [crispy] extended nodes
-  //  // Index of first one, segs are stored sequentially.
-  //  unsigned short		firstseg; // [crispy] extended nodes
-  //}) mapsubsector_t;
+  mapsubsector_t = Packed Record
+    numsegs: unsigned_short; // [crispy] extended nodes
+    // Index of first one, segs are stored sequentially.
+    firstseg: unsigned_short; // [crispy] extended nodes
+  End;
 
-  //// [crispy] allow loading of maps with DeePBSP nodes
-  //// taken from prboom-plus/src/doomdata.h:163-166
+  // [crispy] allow loading of maps with DeePBSP nodes
+  // taken from prboom-plus/src/doomdata.h:163-166
   //typedef PACKED_STRUCT (
   //{
   //    unsigned short numsegs;
@@ -164,17 +159,16 @@ Type
   //    unsigned int numsegs;
   //}) mapsubsector_zdbsp_t;
 
-  //// LineSeg, generated by splitting LineDefs
-  //// using partition lines selected by BSP builder.
-  //typedef PACKED_STRUCT (
-  //{
-  //  unsigned short		v1; // [crispy] extended nodes
-  //  unsigned short		v2; // [crispy] extended nodes
-  //  short		angle;
-  //  unsigned short		linedef; // [crispy] extended nodes
-  //  short		side;
-  //  short		offset;
-  //}) mapseg_t;
+  // LineSeg, generated by splitting LineDefs
+  // using partition lines selected by BSP builder.
+  mapseg_t = Packed Record
+    v1: unsigned_short; // [crispy] extended nodes
+    v2: unsigned_short; // [crispy] extended nodes
+    angle: short;
+    linedef: unsigned_short; // [crispy] extended nodes
+    side: short;
+    offset: short;
+  End;
 
   //// [crispy] allow loading of maps with DeePBSP nodes
   //// taken from prboom-plus/src/doomdata.h:183-190
@@ -199,29 +193,21 @@ Type
 
 
   // BSP node structure.
+  mapnode_t = Packed Record
+    // Partition line from (x,y) to x+dx,y+dy)
+    x: Short;
+    y: Short;
+    dx: Short;
+    dy: Short;
 
-  //// Indicate a leaf.
-  //#define	NF_SUBSECTOR_VANILLA	0x8000
-  //#define	NF_SUBSECTOR	0x80000000 // [crispy] extended nodes
-  //#define	NO_INDEX	((unsigned short)-1) // [crispy] extended nodes
+    // Bounding box for each child,
+    // clip against view frustum.
+    bbox: Array[0..1, 0..3] Of short;
 
-  //typedef PACKED_STRUCT (
-  //{
-  //  // Partition line from (x,y) to x+dx,y+dy)
-  //  short		x;
-  //  short		y;
-  //  short		dx;
-  //  short		dy;
-
-  //  // Bounding box for each child,
-  //  // clip against view frustum.
-  //  short		bbox[2][4];
-
-  //  // If NF_SUBSECTOR its a subsector,
-  //  // else it's a node of another subtree.
-  //  unsigned short	children[2];
-
-  //}) mapnode_t;
+    // If NF_SUBSECTOR its a subsector,
+    // else it's a node of another subtree.
+    children: Array[0..1] Of unsigned_short;
+  End;
 
   //// [crispy] allow loading of maps with DeePBSP nodes
   //// taken from prboom-plus/src/doomdata.h:216-225

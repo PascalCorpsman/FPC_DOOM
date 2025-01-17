@@ -24,6 +24,7 @@ Type
 
   int = int32;
   int32_t = Int32;
+  uint32_t = UInt32;
   unsigned = UInt32; // Geraten, den dass steht nirgends, könnte auch PTR_int sein ??
   P_int = ^int;
   unsigned_int = uint32;

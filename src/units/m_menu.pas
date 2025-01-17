@@ -52,6 +52,10 @@ Var
   menuactive: Boolean;
   inhelpscreens: boolean;
 
+  // Blocky mode, has default, 0 = high, 1 = normal
+  detailLevel: int = 0;
+  screenblocks: int = 10; // [crispy] increased
+
 Implementation
 
 Uses

@@ -5,12 +5,13 @@ Unit i_system;
 Interface
 
 Uses
-  Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils;
 
 Procedure I_PrintStartupBanner(gamedescription: String);
 Procedure I_PrintBanner(msg: String);
 Procedure I_Error(Error: String);
 Procedure I_Quit(); // Wenn Aufgerufen beendet sich die Anwending ohne weiteres Nachfragen
+Procedure I_GetMemoryValue(offset: unsigned_int; value: pointer; size: int);
 
 Implementation
 
@@ -40,6 +41,11 @@ Begin
   //
 
   Application.Terminate;
+End;
+
+Procedure I_GetMemoryValue(offset: unsigned_int; value: pointer; size: int);
+Begin
+  Raise Exception.create('I_GetMemoryValue');
 End;
 
 Procedure I_PrintDivider();
