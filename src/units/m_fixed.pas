@@ -27,19 +27,22 @@ Implementation
 Uses math;
 
 Function FixedMul(a, b: fixed_t): fixed_t;
+Var
+  t: int64;
 Begin
-  result := (int64_t(a) * int64_t(b)) Shr FRACBITS;
+  t := int64_t(a) * int64_t(b);
+  result := SarInt64(t, FRACBITS); // das ist ein Vorzeichen korrektes shr
 End;
 
 Function FixedDiv(a, b: fixed_t): fixed_t;
 Var
   res: Int64;
 Begin
-  If ((abs(a) Shr 14) >= abs(b)) Then Begin
+  If ((abs(a) Shr 14) >= abs(b)) Then Begin // Hier ist das Vorzeichen egal deswegen braucht es kein SarLongint
     result := IfThen((a Xor b) < 0, INT_MIN, INT_MAX);
   End
   Else Begin
-    res := (int64_t(a) Shr FRACBITS) Div b;
+    res := (int64(a) Shl FRACBITS) Div b;
     result := fixed_t(res);
   End;
 End;
