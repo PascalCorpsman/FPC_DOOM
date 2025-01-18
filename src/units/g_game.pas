@@ -58,7 +58,9 @@ Var
 
   timingdemo: boolean = false; // if true, exit with report on completion
   totalkills, totalitems, totalsecret: int; // for intermission
+  displayplayer: int; // view being displayed
 
+  precache: boolean = true; // if true, load all graphics at start
 
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
@@ -79,6 +81,7 @@ Procedure G_ExitLevel();
 Procedure G_DemoGotoNextLevel(start: Boolean);
 
 Procedure G_PlayerReborn(player: int);
+Procedure G_DeathMatchSpawnPlayer(playernum: int);
 
 Implementation
 

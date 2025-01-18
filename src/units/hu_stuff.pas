@@ -18,6 +18,7 @@ Var
   hu_font: Array[0..HU_FONTSIZE - 1] Of Ppatch_t;
 
 Procedure HU_Init();
+Procedure HU_Start();
 
 Implementation
 
@@ -113,6 +114,181 @@ Begin
     //	CrispyReplaceColor(HUSTR_PLRBROWN,  CR_GOLD,  "Brown: ");
     //	CrispyReplaceColor(HUSTR_PLRRED,    CR_RED,   "Red: ");
   End;
+End;
+
+Procedure HU_Start();
+Begin
+  //   int		i;
+  //    const char *s;
+  //    // [crispy] string buffers for map title and WAD file name
+  //    char	buf[8], *ptr;
+  //
+  //    if (headsupactive)
+  //	HU_Stop();
+  //
+  //    plr = &players[displayplayer];
+  //    message_on = false;
+  //    message_dontfuckwithme = false;
+  //    message_nottobefuckedwith = false;
+  //    secret_on = false;
+  //    chat_on = false;
+  //
+  //    // [crispy] re-calculate WIDESCREENDELTA
+  //    I_GetScreenDimensions();
+  //    hu_widescreendelta = WIDESCREENDELTA;
+  //
+  //    // create the message widget
+  //    HUlib_initSText(&w_message,
+  //		    HU_MSGX, HU_MSGY, HU_MSGHEIGHT,
+  //		    hu_font,
+  //		    HU_FONTSTART, &message_on);
+  //
+  //    // [crispy] create the secret message widget
+  //    HUlib_initSText(&w_secret,
+  //		    88, 86, HU_MSGHEIGHT,
+  //		    hu_font,
+  //		    HU_FONTSTART, &secret_on);
+  //
+  //    // create the map title widget
+  //    HUlib_initTextLine(&w_title,
+  //		       HU_TITLEX, HU_TITLEY,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    // [crispy] create the generic map title, kills, items, secrets and level time widgets
+  //    HUlib_initTextLine(&w_map,
+  //		       HU_TITLEX, HU_TITLEY - SHORT(hu_font[0]->height + 1),
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_kills,
+  //		       HU_TITLEX, HU_MSGY + 1 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_items,
+  //		       HU_TITLEX, HU_MSGY + 2 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_scrts,
+  //		       HU_TITLEX, HU_MSGY + 3 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_ltime,
+  //		       HU_TITLEX, HU_MSGY + 4 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_coordx,
+  //		       HU_COORDX, HU_MSGY + 1 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_coordy,
+  //		       HU_COORDX, HU_MSGY + 2 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_coorda,
+  //		       HU_COORDX, HU_MSGY + 3 * 8,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //    HUlib_initTextLine(&w_fps,
+  //		       HU_COORDX, HU_MSGY,
+  //		       hu_font,
+  //		       HU_FONTSTART);
+  //
+  //
+  //    switch ( logical_gamemission )
+  //    {
+  //      case doom:
+  //	s = HU_TITLE;
+  //	break;
+  //      case doom2:
+  //	 s = HU_TITLE2;
+  //         // Pre-Final Doom compatibility: map33-map35 names don't spill over
+  //         if (gameversion <= exe_doom_1_9 && gamemap >= 33 && false) // [crispy] disable
+  //         {
+  //             s = "";
+  //         }
+  //	 break;
+  //      case pack_plut:
+  //	s = HU_TITLEP;
+  //	break;
+  //      case pack_tnt:
+  //	s = HU_TITLET;
+  //	break;
+  //      case pack_nerve:
+  //	if (gamemap <= 9)
+  //	  s = HU_TITLEN;
+  //	else
+  //	  s = HU_TITLE2;
+  //	break;
+  //      case pack_master:
+  //	if (gamemap <= 21)
+  //	  s = HU_TITLEM;
+  //	else
+  //	  s = HU_TITLE2;
+  //	break;
+  //      default:
+  //         s = "Unknown level";
+  //         break;
+  //    }
+  //
+  //    if (logical_gamemission == doom && gameversion == exe_chex)
+  //    {
+  //        s = HU_TITLE_CHEX;
+  //    }
+  //
+  //    // [crispy] display names of single special levels in Automap
+  //    HU_SetSpecialLevelName(W_WadNameForLump(maplumpinfo), &s);
+  //
+  //    // [crispy] explicitely display (episode and) map if the
+  //    // map is from a PWAD or if the map title string has been dehacked
+  //    if (!W_IsIWADLump(maplumpinfo) &&
+  //        (DEH_HasStringReplacement(s) ||
+  //        (!(crispy->havenerve && gamemission == pack_nerve) &&
+  //        !(crispy->havemaster && gamemission == pack_master))))
+  //    {
+  //	char *m;
+  //
+  //	ptr = M_StringJoin(crstr[CR_GOLD], W_WadNameForLump(maplumpinfo), ": ", crstr[CR_GRAY], maplumpinfo->name, NULL);
+  //	m = ptr;
+  //
+  //	while (*m)
+  //	    HUlib_addCharToTextLine(&w_map, *(m++));
+  //
+  //	free(ptr);
+  //    }
+  //
+  //    // dehacked substitution to get modified level name
+  //
+  //    s = DEH_String(s);
+  //
+  //    // [crispy] print the map title in white from the first colon onward
+  //    M_snprintf(buf, sizeof(buf), "%s%s", ":", crstr[CR_GRAY]);
+  //    ptr = M_StringReplace(s, ":", buf);
+  //    s = ptr;
+  //
+  //    while (*s)
+  //	HUlib_addCharToTextLine(&w_title, *(s++));
+  //
+  //    free(ptr);
+  //
+  //    // create the chat widget
+  //    HUlib_initIText(&w_chat,
+  //		    HU_INPUTX, HU_INPUTY,
+  //		    hu_font,
+  //		    HU_FONTSTART, &chat_on);
+  //
+  //    // create the inputbuffer widgets
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //	HUlib_initIText(&w_inputbuffer[i], 0, 0, 0, 0, &always_off);
+  //
+  //    headsupactive = true;
 End;
 
 End.

@@ -1188,35 +1188,33 @@ Begin
     P_LoadThings(lumpnum + ML_THINGS);
   End;
 
-  //    // if deathmatch, randomly spawn the active players
-  //    if (deathmatch)
-  //    {
-  //	for (i=0 ; i<MAXPLAYERS ; i++)
-  //	    if (playeringame[i])
-  //	    {
-  //		players[i].mo = NULL;
-  //		G_DeathMatchSpawnPlayer (i);
-  //	    }
-  //
-  //    }
-  //    // [crispy] support MUSINFO lump (dynamic music changing)
-  //    if (gamemode != shareware)
-  //    {
-  //	S_ParseMusInfo(lumpname);
-  //    }
-  //
-  //    // clear special respawning que
-  //    iquehead = iquetail = 0;
-  //
-  //    // set up world state
-  //    P_SpawnSpecials ();
-  //
-  //    // build subsector connect matrix
-  //    //	UNUSED P_ConnectSubsectors ();
-  //
-  //    // preload graphics
-  //    if (precache)
-  //	R_PrecacheLevel ();
+  // if deathmatch, randomly spawn the active players
+  If (deathmatch <> 0) Then Begin
+    For i := 0 To MAXPLAYERS - 1 Do Begin
+      If (playeringame[i]) Then Begin
+        players[i].mo := Nil;
+        G_DeathMatchSpawnPlayer(i);
+      End;
+    End;
+  End;
+
+  // [crispy] support MUSINFO lump (dynamic music changing)
+  If (gamemode <> shareware) Then Begin
+    S_ParseMusInfo(lumpinfo[lumpnum].name);
+  End;
+
+  // clear special respawning que
+  iquehead := 0;
+  iquetail := 0;
+
+  // set up world state
+  P_SpawnSpecials();
+
+  // build subsector connect matrix
+  //	UNUSED P_ConnectSubsectors ();
+
+  // preload graphics
+  If (precache) Then R_PrecacheLevel();
 
   //printf ("free memory: 0x%x\n", Z_FreeMemory());
 End;

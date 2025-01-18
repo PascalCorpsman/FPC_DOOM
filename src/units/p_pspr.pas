@@ -44,8 +44,7 @@ Procedure P_SetupPsprites(player: Pplayer_t);
 Implementation
 
 Uses
-  doomdef, sounds
-  , a11y_weapon_pspr
+  doomdef, sounds, a11y_weapon_pspr, info
   , d_items
   , m_fixed
   , r_things
@@ -59,7 +58,6 @@ Const
   WEAPONBOTTOM = 128 * FRACUNIT;
   WEAPONTOP = 32 * FRACUNIT;
 
-
   //
   // P_SetPsprite
   //
@@ -67,48 +65,44 @@ Const
 Procedure P_SetPsprite(player: Pplayer_t; position: psprnum_t; stnum: statenum_t);
 Var
   psp: ^pspdef_t;
-  //      state_t*	state;
+  state: ^state_t;
 Begin
   psp := @player^.psprites[position];
-
-  hier gehts weiter ..
-
   //      do
-  //      {
-  //  	if (!stnum)
-  //  	{
-  //  	    // object removed itself
-  //  	    psp->state = NULL;
-  //  	    break;
-  //  	}
-  //
-  //  	state = &states[stnum];
-  //  	psp->state = state;
-  //  	psp->tics = state->tics;	// could be 0
-  //
-  //  	if (state->misc1)
-  //  	{
-  //  	    // coordinate set
-  //  	    psp->sx = state->misc1 << FRACBITS;
-  //  	    psp->sy = state->misc2 << FRACBITS;
-  //  	    // [crispy] variable weapon sprite bob
-  //  	    psp->sx2 = psp->sx;
-  //  	    psp->sy2 = psp->sy;
-  //  	}
-  //
-  //  	// Call action routine.
-  //  	// Modified handling.
-  //  	if (state->action.acp3)
-  //  	{
-  //  	    state->action.acp3(player->mo, player, psp); // [crispy] let mobj action pointers get called from pspr states
-  //  	    if (!psp->state)
-  //  		break;
-  //  	}
-  //
-  //  	stnum = psp->state->nextstate;
-  //
-  //      } while (!psp->tics);
-        // an initial state of 0 could cycle through
+  Repeat
+
+    If (stnum = S_NULL) Then Begin
+      // object removed itself
+      psp^.state := Nil;
+      break;
+    End;
+
+    state := @states[integer(stnum)];
+    psp^.state := state;
+    psp^.tics := state^.tics; // could be 0
+
+    If (state^.misc1 <> 0) Then Begin
+      // coordinate set
+      psp^.sx := state^.misc1 Shl FRACBITS;
+      psp^.sy := state^.misc2 Shl FRACBITS;
+      // [crispy] variable weapon sprite bob
+      psp^.sx2 := psp^.sx;
+      psp^.sy2 := psp^.sy;
+    End;
+
+    // Call action routine.
+    // Modified handling.
+    If assigned(state^.action.acp3) Then Begin
+      state^.action.acp3(player^.mo, player, psp); // [crispy] let mobj action pointers get called from pspr states
+      If (psp^.state = Nil) Then
+        break;
+    End;
+
+    stnum := psp^.state^.nextstate;
+
+    //      } while (!psp->tics);
+  Until psp^.tics <> 0;
+  // an initial state of 0 could cycle through
 End;
 
 //

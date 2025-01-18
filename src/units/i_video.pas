@@ -29,6 +29,7 @@ Procedure I_StartFrame();
 Procedure I_FinishUpdate();
 
 Procedure I_ReadScreen(Var scr: pixel_tArray);
+Procedure I_GetScreenDimensions();
 
 Var
   SCREENWIDTH: int; // Eigentlich unnötig Redundant

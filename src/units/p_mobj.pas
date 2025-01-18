@@ -9,6 +9,7 @@ Uses
   , doomdata, doomdef, tables, info_types
   , d_player //, d_ticcmd
   , m_fixed
+  , p_local
   , r_defs
   ;
 
@@ -112,6 +113,11 @@ Const
   // [crispy] translucent sprite
   MF_TRANSLUCENT = $80000000;
 
+Var
+  itemrespawnque: Array[0..ITEMQUESIZE - 1] Of mapthing_t;
+  itemrespawntime: Array[0..ITEMQUESIZE - 1] Of int;
+  iquehead: int;
+  iquetail: int;
 
 Procedure P_SpawnPlayer(Const mthing: mapthing_t);
 
@@ -125,8 +131,9 @@ Uses
   info
   , d_mode, d_main
   , g_game
+  , hu_stuff
   , m_random
-  , p_setup, p_local, p_maputl, p_pspr, p_tick
+  , p_setup, p_maputl, p_pspr, p_tick
   , r_things, r_data
   , st_stuff
   , v_patch
@@ -206,18 +213,18 @@ Begin
   // setup gun psprite
   P_SetupPsprites(p);
 
-  //    // give all cards in death match mode
-  //    if (deathmatch)
-  //	for (i=0 ; i<NUMCARDS ; i++)
-  //	    p.cards[i] = true;
-  //
-  //    if (mthing._type-1 == consoleplayer)
-  //    {
-  //	// wake up the status bar
-  //	ST_Start ();
-  //	// wake up the heads up text
-  //	HU_Start ();
-  //    }
+  // give all cards in death match mode
+  If (deathmatch <> 0) Then Begin
+    For i := 0 To integer(NUMCARDS) - 1 Do Begin
+      p^.cards[card_t(i)] := true;
+    End;
+  End;
+  If (mthing._type - 1 = consoleplayer) Then Begin
+    // wake up the status bar
+    ST_Start();
+    // wake up the heads up text
+    HU_Start();
+  End;
 End;
 
 //

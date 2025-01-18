@@ -20,7 +20,14 @@ Var
 
   musinfo: musinfo_t;
 
+Procedure S_ParseMusInfo(mapid: String);
+
 Implementation
+
+Procedure S_ParseMusInfo(mapid: String);
+Begin
+
+End;
 
 End.
 
