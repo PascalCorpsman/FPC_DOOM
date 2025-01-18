@@ -57,6 +57,8 @@ Function R_FlatNumForName(Const name: String): int;
 Var
   textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
   firstspritelump: int;
+  lastspritelump: int;
+  numspritelumps: int;
 
   //  colormaps: lighttable_t;
 
@@ -119,10 +121,6 @@ Var
   //int		firstpatch;
   //int		lastpatch;
   //int		numpatches;
-  //
-
-  //int		lastspritelump;
-  //int		numspritelumps;
 
   numtextures: int = 0;
   textures: Array Of texture_t;
@@ -143,10 +141,10 @@ Var
   flattranslation: Array Of Int;
   texturetranslation: Array Of Int;
 
-  //  // needed for pre rendering
-  //  fixed_t*	spritewidth;
-  //  fixed_t*	spriteoffset;
-  //  fixed_t*	spritetopoffset;
+  // needed for pre rendering
+  spritewidth: Array Of fixed_t;
+  spriteoffset: Array Of fixed_t;
+  spritetopoffset: Array Of fixed_t;
 
   //  lighttable_t	*colormaps;
   //  lighttable_t	*pal_color; // [crispy] array holding palette colors for true color mode
@@ -805,6 +803,37 @@ Begin
   GenerateTextureHashTable();
 End;
 
+//
+// R_InitSpriteLumps
+// Finds the width and hoffset of all sprites in the wad,
+//  so the sprite does not need to be cached completely
+//  just for having the header info ready during rendering.
+//
+
+Procedure R_InitSpriteLumps();
+Var
+  i: int;
+  patch: ^patch_t;
+Begin
+  firstspritelump := W_GetNumForName('S_START') + 1;
+  lastspritelump := W_GetNumForName('S_END') - 1;
+
+  numspritelumps := lastspritelump - firstspritelump + 1;
+  setlength(spritewidth, numspritelumps);
+  setlength(spriteoffset, numspritelumps);
+  setlength(spritetopoffset, numspritelumps);
+
+  For i := 0 To numspritelumps - 1 Do Begin
+    If ((i And 63) = 0) Then
+      write('.');
+
+    patch := W_CacheLumpNum(firstspritelump + i, PU_CACHE);
+    spritewidth[i] := patch^.width Shl FRACBITS;
+    spriteoffset[i] := patch^.leftoffset Shl FRACBITS;
+    spritetopoffset[i] := patch^.topoffset Shl FRACBITS;
+  End;
+End;
+
 Procedure R_InitData();
 Begin
   // [crispy] Moved R_InitFlats() to the top, because it sets firstflat/lastflat
@@ -815,11 +844,11 @@ Begin
   R_InitFlats();
   R_InitBrightmaps();
   R_InitTextures();
-  //    printf (".");
-  ////  R_InitFlats (); [crispy] moved ...
-  //    printf (".");
-  //    R_InitSpriteLumps ();
-  //    printf (".");
+  write('.');
+  //  R_InitFlats (); [crispy] moved ...
+  write('.');
+  R_InitSpriteLumps();
+  write('.');
   //    // [crispy] Initialize and generate gamma-correction levels.
   //    I_SetGammaTable ();
   R_InitColormaps();

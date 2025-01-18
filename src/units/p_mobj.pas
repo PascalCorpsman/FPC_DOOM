@@ -134,6 +134,12 @@ Uses
   , z_zone
   ;
 
+Function Crispy_PlayerSO(p: int): Pmobj_t;
+Begin
+  //	return crispy->soundfull ? (mobj_t *) &muzzles[p] : players[p].mo;
+  result := players[p].mo;
+End;
+
 //
 // P_SpawnPlayer
 // Called when a player is spawned on the level.
@@ -173,32 +179,33 @@ Begin
   z := ONFLOORZ;
   mobj := P_SpawnMobj(x, y, z, MT_PLAYER);
 
-  //    // set color translations for player sprites
-  //    if (mthing._type > 1)
-  //	mobj.flags |= (mthing._type-1)<<MF_TRANSSHIFT;
-  //
-  //    mobj.angle	= ANG45 * (mthing.angle/45);
-  //    mobj.player = p;
-  //    mobj.health = p.health;
-  //
-  //    p.mo = mobj;
-  //    p.playerstate = PST_LIVE;
-  //    p.refire = 0;
-  //    p.message = NULL;
-  //    p.damagecount = 0;
-  //    p.bonuscount = 0;
-  //    p.extralight = 0;
-  //    p.fixedcolormap = 0;
-  //    p.viewheight = VIEWHEIGHT;
-  //
-  //    // [crispy] weapon sound source
-  //    p.so = Crispy_PlayerSO(mthing._type-1);
-  //
-  //    pspr_interp = false; // interpolate weapon bobbing
-  //
-  //    // setup gun psprite
-  //    P_SetupPsprites (p);
-  //
+  // set color translations for player sprites
+  If (mthing._type > 1) Then Begin
+    mobj^.flags := mobj^.flags Or (mthing._type - 1) Shl MF_TRANSSHIFT;
+  End;
+
+  mobj^.angle := ANG45 * (mthing.angle Div 45);
+  mobj^.player := p;
+  mobj^.health := p^.health;
+
+  p^.mo := mobj;
+  p^.playerstate := PST_LIVE;
+  p^.refire := 0;
+  p^.message := '';
+  p^.damagecount := 0;
+  p^.bonuscount := 0;
+  p^.extralight := 0;
+  p^.fixedcolormap := 0;
+  p^.viewheight := VIEWHEIGHT;
+
+  // [crispy] weapon sound source
+  p^.so := Crispy_PlayerSO(mthing._type - 1);
+
+  pspr_interp := false; // interpolate weapon bobbing
+
+  // setup gun psprite
+  P_SetupPsprites(p);
+
   //    // give all cards in death match mode
   //    if (deathmatch)
   //	for (i=0 ; i<NUMCARDS ; i++)
@@ -247,7 +254,6 @@ Begin
 
   // check for players specially
   If (mthing^._type <= MAXPLAYERS) Then Begin
-
     // save spots for respawning in network games
     playerstarts[mthing^._type - 1] := mthing^;
     playerstartsingame[mthing^._type - 1] := true;
@@ -546,8 +552,6 @@ Begin
   // [crispy] height of the spawnstate's first sprite in pixels
   If (info^.actualheight = 0) Then Begin
 
-    hier knallt es weil die Sprites noch nicht initialisiert sind
-    \-> Das muss als nächstes sauber geladen werden, aber bis hier her scheint es zu stimmen ;)
     sprdef := @sprites[integer(mobj^.sprite)];
 
     If ((sprdef^.numframes = 0) Or ((mobj^.flags And (MF_SOLID Or MF_SHOOTABLE)) = 0)) Then Begin

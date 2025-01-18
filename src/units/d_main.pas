@@ -43,6 +43,7 @@ Uses
   , hu_stuff
   , i_system, i_video, i_timer, i_sound
   , m_misc, m_config, m_argv, m_menu, m_controls
+  , p_setup
   , r_main
   , s_sound
   , v_video
@@ -1944,7 +1945,7 @@ Begin
   writeln('');
 
   // Writeln('P_Init: Init Playloop state.');
-  // P_Init ();
+  P_Init();
 
   // Writeln('S_Init: Setting up sound.');
   // S_Init(sfxVolume * 8, musicVolume * 8);

@@ -13,6 +13,10 @@ Const
   ORIGWIDTH = 320;
   ORIGHEIGHT = 200;
 
+  MAXWIDTH = (ORIGWIDTH Shl 2); // [crispy]
+  MAXHEIGHT = (ORIGHEIGHT Shl 1); // [crispy]
+
+
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
 

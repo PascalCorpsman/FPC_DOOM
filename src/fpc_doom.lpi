@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="77">
+    <Units Count="81">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -355,6 +355,22 @@
         <Filename Value="units/st_stuff.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit76>
+      <Unit77>
+        <Filename Value="units/p_switch.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit77>
+      <Unit78>
+        <Filename Value="units/p_spec.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit78>
+      <Unit79>
+        <Filename Value="units/a11y_weapon_pspr.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit79>
+      <Unit80>
+        <Filename Value="units/d_items.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit80>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

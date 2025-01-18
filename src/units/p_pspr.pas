@@ -39,12 +39,77 @@ Procedure A_BFGsound(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_FireBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_BFGSpray(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 
+Procedure P_SetupPsprites(player: Pplayer_t);
+
 Implementation
 
 Uses
-  sounds
+  doomdef, sounds
+  , a11y_weapon_pspr
+  , d_items
+  , m_fixed
+  , r_things
   , s_sound
   ;
+
+Const
+  LOWERSPEED = FRACUNIT * 6;
+  RAISESPEED = FRACUNIT * 6;
+
+  WEAPONBOTTOM = 128 * FRACUNIT;
+  WEAPONTOP = 32 * FRACUNIT;
+
+
+  //
+  // P_SetPsprite
+  //
+
+Procedure P_SetPsprite(player: Pplayer_t; position: psprnum_t; stnum: statenum_t);
+Var
+  psp: ^pspdef_t;
+  //      state_t*	state;
+Begin
+  psp := @player^.psprites[position];
+
+  hier gehts weiter ..
+
+  //      do
+  //      {
+  //  	if (!stnum)
+  //  	{
+  //  	    // object removed itself
+  //  	    psp->state = NULL;
+  //  	    break;
+  //  	}
+  //
+  //  	state = &states[stnum];
+  //  	psp->state = state;
+  //  	psp->tics = state->tics;	// could be 0
+  //
+  //  	if (state->misc1)
+  //  	{
+  //  	    // coordinate set
+  //  	    psp->sx = state->misc1 << FRACBITS;
+  //  	    psp->sy = state->misc2 << FRACBITS;
+  //  	    // [crispy] variable weapon sprite bob
+  //  	    psp->sx2 = psp->sx;
+  //  	    psp->sy2 = psp->sy;
+  //  	}
+  //
+  //  	// Call action routine.
+  //  	// Modified handling.
+  //  	if (state->action.acp3)
+  //  	{
+  //  	    state->action.acp3(player->mo, player, psp); // [crispy] let mobj action pointers get called from pspr states
+  //  	    if (!psp->state)
+  //  		break;
+  //  	}
+  //
+  //  	stnum = psp->state->nextstate;
+  //
+  //      } while (!psp->tics);
+        // an initial state of 0 could cycle through
+End;
 
 //
 // P_CheckAmmo
@@ -540,6 +605,72 @@ Begin
   //
   //	P_DamageMobj (linetarget, mo->target,mo->target, damage);
   //    }
+End;
+
+//
+// P_BringUpWeapon
+// Starts bringing the pending weapon up
+// from the bottom of the screen.
+// Uses player
+//
+
+Procedure P_BringUpWeapon(player: Pplayer_t);
+Var
+  newstate: statenum_t;
+Begin
+  If (player^.pendingweapon = wp_nochange) Then Begin
+    player^.pendingweapon := player^.readyweapon;
+  End;
+
+  If (player^.pendingweapon = wp_chainsaw) Then Begin
+    S_StartSound(player^.mo, sfx_sawup); // [crispy] intentionally not weapon sound source
+  End;
+
+  (*
+      // [crispy] play "power up" sound when selecting berserk fist...
+      if (player->pendingweapon == wp_fist && player->powers[pw_strength])
+      {
+   // [crispy] ...only if not playing already
+   if (player == &players[consoleplayer])
+   {
+       S_StartSoundOnce (NULL, sfx_getpow);
+   }
+      }
+  *)
+
+  newstate := weaponinfo[integer(player^.pendingweapon)].upstate;
+
+  player^.pendingweapon := wp_nochange;
+  player^.psprites[ps_weapon].sy := WEAPONBOTTOM;
+
+  P_SetPsprite(player, ps_weapon, newstate);
+End;
+
+//
+// P_SetupPsprites
+// Called at start of level for each player.
+//
+
+Procedure P_SetupPsprites(player: Pplayer_t);
+Var
+  i: int;
+Begin
+  // remove all psprites
+  For i := 0 To integer(NUMSPRITES) - 1 Do Begin
+    player^.psprites[psprnum_t(i)].state := Nil;
+  End;
+
+  // spawn the gun
+  player^.pendingweapon := player^.readyweapon;
+  P_BringUpWeapon(player);
+
+  // [crispy] A11Y
+  If a11y_weapon_pspr_ <> 0 Then Begin
+    numrpsprites := integer(NUMSPRITES);
+  End
+  Else Begin
+    numrpsprites := integer(NUMSPRITES) - 1;
+  End;
 End;
 
 End.

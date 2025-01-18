@@ -43,16 +43,18 @@ Function P_GetNumForMap(episode, map: int; critical: boolean): int;
 
 Procedure P_SetupLevel(episode, map, playermask: int; skill: skill_t);
 
+Procedure P_Init();
+
 Implementation
 
 Uses
-  doomstat, tables
+  doomstat, tables, info
   , d_loop, d_main
   , i_timer, i_system
   , g_game
   , m_argv, m_bbox
-  , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter
-  , r_defs, r_data, r_main
+  , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter, p_switch, p_spec
+  , r_defs, r_data, r_main, r_things
   , s_musinfo, s_sound
   , w_wad
   , z_zone
@@ -1217,6 +1219,14 @@ Begin
   //	R_PrecacheLevel ();
 
   //printf ("free memory: 0x%x\n", Z_FreeMemory());
+End;
+
+
+Procedure P_Init();
+Begin
+  P_InitSwitchList();
+  P_InitPicAnims();
+  R_InitSprites(sprnames);
 End;
 
 

@@ -103,15 +103,15 @@ Type
     flip: Array[0..15] Of byte; // [crispy] support 16 sprite rotations
 
   End;
-  Pspriteframe_t = ^spriteframe_t;
+  //  Pspriteframe_t = ^spriteframe_t;
 
-  //
-  // A sprite definition:
-  //  a number of animation frames.
-  //
+    //
+    // A sprite definition:
+    //  a number of animation frames.
+    //
   spritedef_t = Record
     numframes: int;
-    spriteframes: Pspriteframe_t;
+    spriteframes: Array Of spriteframe_t;
   End;
 
   // This could be wider for >8 bit display.
