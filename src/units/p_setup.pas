@@ -575,26 +575,23 @@ End;
 Procedure P_LoadSegs(lump: int);
 Var
   i: int;
-  ml: Array Of mapseg_t;
+  ml: ^mapseg_t; // Als Array of Crasht der Code, beim Laden von Doom1.wad
   linedef: int;
   side: int;
   sidenum: int;
-
 Begin
   numsegs := W_LumpLength(lump) Div sizeof(mapseg_t);
   setlength(segs, numsegs);
   FillChar(segs[0], numsegs * sizeof(seg_t), 0);
 
   ml := W_CacheLumpNum(lump, PU_STATIC);
-  //    for (i=0 ; i<numsegs ; i++, li++, ml++)
   For i := 0 To numsegs - 1 Do Begin
     segs[i].v1 := @vertexes[ml[i].v1]; // [crispy] extended nodes
     segs[i].v2 := @vertexes[ml[i].v2]; // [crispy] extended nodes
 
     segs[i].angle := unsigned_int(short(ml[i].angle) Shl FRACBITS);
-    //	segs[i].offset := ml[i].offset shl FRACBITS; // [crispy] recalculated below
+    // segs[i].offset := ml[i].offset shl FRACBITS; // [crispy] recalculated below
     linedef := ml[i].linedef; // [crispy] extended nodes
-    //    ldef := @lines[linedef];
     segs[i].linedef := @lines[linedef];
     side := ml[i].side;
 
