@@ -650,7 +650,7 @@ Var
   i: int;
 Begin
   // remove all psprites
-  For i := 0 To integer(NUMSPRITES) - 1 Do Begin
+  For i := 0 To integer(NUMPSPRITES) - 1 Do Begin
     player^.psprites[psprnum_t(i)].state := Nil;
   End;
 

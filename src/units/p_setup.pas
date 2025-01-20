@@ -9,6 +9,7 @@ Uses
   , doomdef, doomdata, info_types
   , d_mode
   , m_fixed
+  , r_defs
   ;
 
 Const
@@ -24,6 +25,12 @@ Var
 
   numnodes: int;
   nodes: Array Of node_t;
+
+  numsectors: int;
+  sectors: Array Of sector_t;
+
+  numsides: int;
+  sides: Array Of side_t;
 
   numsubsectors: int;
   subsectors: Array Of subsector_t;
@@ -54,7 +61,7 @@ Uses
   , g_game
   , m_argv, m_bbox
   , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter, p_switch, p_spec
-  , r_defs, r_data, r_main, r_things
+  , r_data, r_main, r_things
   , s_musinfo, s_sound
   , w_wad
   , z_zone
@@ -96,14 +103,8 @@ Var
   numsegs: int;
   segs: Array Of seg_t;
 
-  numsectors: int;
-  sectors: Array Of sector_t;
-
   numlines: int;
   lines: Array Of line_t;
-
-  numsides: int;
-  sides: Array Of side_t;
 
   totallines: int;
 
@@ -1218,7 +1219,6 @@ Begin
 
   //printf ("free memory: 0x%x\n", Z_FreeMemory());
 End;
-
 
 Procedure P_Init();
 Begin

@@ -8,6 +8,7 @@ Uses
   ufpc_doom_types, Classes, SysUtils;
 
 Procedure P_InitPicAnims();
+Procedure P_SpawnSpecials();
 
 Implementation
 
@@ -95,6 +96,92 @@ Begin
   //    {
   //	R_InitDistortedFlats();
   //    }
+End;
+
+Procedure P_SpawnSpecials();
+//sector_t*	sector;
+// int		i;
+
+Begin
+  // See if -TIMER was specified.
+
+//    if (timelimit > 0 && deathmatch)
+//    {
+//        levelTimer = true;
+//        levelTimeCount = timelimit * 60 * TICRATE;
+//    }
+//    else
+//    {
+//	levelTimer = false;
+//    }
+//
+//    //	Init special SECTORs.
+//    sector = sectors;
+//    for (i=0 ; i<numsectors ; i++, sector++)
+//    {
+//	if (!sector->special)
+//	    continue;
+//
+//	switch (sector->special)
+//	{
+//	  case 1:
+//	    // FLICKERING LIGHTS
+//	    P_SpawnLightFlash (sector);
+//	    break;
+//
+//	  case 2:
+//	    // STROBE FAST
+//	    P_SpawnStrobeFlash(sector,FASTDARK,0);
+//	    break;
+//
+//	  case 3:
+//	    // STROBE SLOW
+//	    P_SpawnStrobeFlash(sector,SLOWDARK,0);
+//	    break;
+//
+//	  case 4:
+//	    // STROBE FAST/DEATH SLIME
+//	    P_SpawnStrobeFlash(sector,FASTDARK,0);
+//	    sector->special = 4;
+//	    break;
+//
+//	  case 8:
+//	    // GLOWING LIGHT
+//	    P_SpawnGlowingLight(sector);
+//	    break;
+//	  case 9:
+//	    // SECRET SECTOR
+//	    totalsecret++;
+//	    break;
+//
+//	  case 10:
+//	    // DOOR CLOSE IN 30 SECONDS
+//	    P_SpawnDoorCloseIn30 (sector);
+//	    break;
+//
+//	  case 12:
+//	    // SYNC STROBE SLOW
+//	    P_SpawnStrobeFlash (sector, SLOWDARK, 1);
+//	    break;
+//
+//	  case 13:
+//	    // SYNC STROBE FAST
+//	    P_SpawnStrobeFlash (sector, FASTDARK, 1);
+//	    break;
+//
+//	  case 14:
+//	    // DOOR RAISE IN 5 MINUTES
+//	    P_SpawnDoorRaiseIn5Mins (sector, i);
+//	    break;
+//
+//        case 17:
+//            // first introduced in official v1.4 beta
+//            if (gameversion > exe_doom_1_2)
+//            {
+//                P_SpawnFireFlicker(sector);
+//            }
+//            break;
+//	}
 End;
 
 End.

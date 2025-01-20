@@ -9,14 +9,14 @@ Uses
   info_types
   ;
 
+Var
+  thinkercap: thinker_t;
+
 Procedure P_InitThinkers();
 
 Procedure P_AddThinker(thinker: Pthinker_t);
 
 Implementation
-
-Var
-  thinkercap: thinker_t;
 
 Procedure P_InitThinkers();
 Begin

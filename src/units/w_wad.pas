@@ -22,7 +22,7 @@ Type
     name: String; // Der wird als Uppercase initialisiert !
     wad_file: String;
     //    int		position;
-    //    int		size;
+    size: int;
     //    void       *cache;
 
     // Used for hash table lookups
@@ -134,6 +134,7 @@ Begin
     lumpinfo[i].wad_file := filename;
     lumpinfo[i].name := UpperCase(Lumps[i].name);
     Lumps[i].name := LowerCase(Lumps[i].name);
+    Lumps[i].size := Lumps[i].size;
   End;
   m.free;
   result := true;

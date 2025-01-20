@@ -125,6 +125,8 @@ Procedure P_SpawnMapThing(mthing: Pmapthing_t);
 
 Function P_SpawnMobj(x, y, z: fixed_t; _type: mobjtype_t): Pmobj_t;
 
+Procedure P_MobjThinker(mobj: Pmobj_t);
+
 Implementation
 
 Uses
