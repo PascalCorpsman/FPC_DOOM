@@ -5,11 +5,12 @@ Unit i_timer;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , m_fixed
+  ;
 
 Const
   TICRATE = 35;
-
 
   // Called by D_DoomLoop,
   // returns current time in tics.
@@ -31,7 +32,7 @@ Procedure I_InitTimer();
 Procedure I_WaitVBL(count: int);
 
 // [crispy]
-//Function I_GetFracRealTime(): fixed_t;
+Function I_GetFracRealTime(): fixed_t;
 
 
 Implementation
@@ -78,6 +79,11 @@ End;
 Procedure I_WaitVBL(count: int);
 Begin
   I_Sleep((count * 1000) Div 70);
+End;
+
+Function I_GetFracRealTime(): fixed_t;
+Begin
+  result := I_GetTimeMS() * TICRATE Mod 1000 * FRACUNIT Div 1000;
 End;
 
 End.

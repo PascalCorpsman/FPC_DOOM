@@ -53,6 +53,7 @@ Procedure TryRunTics();
 Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 Procedure D_StartGameLoop();
 Procedure D_StartNetGame(Var settings: net_gamesettings_t; callback: netgame_startup_callback_t);
+Procedure NetUpdate();
 
 Implementation
 

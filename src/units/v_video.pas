@@ -37,6 +37,8 @@ Var
 
   Doom8BitTo24RGBBit: Array[0..255] Of uint32; // Das ist im Prinzip die Farbpalette, welche Doom zur Darstellung der RGB Farben nutzt..
 
+  dp_translucent: boolean = false;
+
 Implementation
 
 Uses
@@ -228,6 +230,4 @@ Begin
 End;
 
 End.
-
-
 

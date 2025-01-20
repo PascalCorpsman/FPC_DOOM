@@ -16,6 +16,7 @@ Const
 
 Type
   fixed_t = int;
+  Pfixed_t = ^fixed_t;
 
 Function FixedMul(a, b: fixed_t): fixed_t;
 Function FixedDiv(a, b: fixed_t): fixed_t;

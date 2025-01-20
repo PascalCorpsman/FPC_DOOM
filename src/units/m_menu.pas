@@ -1271,12 +1271,10 @@ Var
   nlIndex: integer;
 Begin
   //    char		string[80];
-  //    const char          *name;
-  //    int			;
 
   inhelpscreens := false;
 
-  //    // Horiz. & Vertically center string and print it.
+  // Horiz. & Vertically center string and print it.
   If (messageToPrint <> 0) Then Begin
 
     // [crispy] draw a background for important questions

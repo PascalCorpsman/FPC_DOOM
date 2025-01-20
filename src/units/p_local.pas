@@ -15,7 +15,7 @@ Const
   FLOATSPEED = (FRACUNIT * 4);
 
   MAXHEALTH = 100;
-  VIEWHEIGHT = (41 * FRACUNIT);
+  DEFINE_VIEWHEIGHT = (41 * FRACUNIT);
 
   // mapblocks are used to check movement
   // against lines and things
@@ -295,10 +295,4 @@ Const
 Implementation
 
 End.
-
-
-
-
-
-
 

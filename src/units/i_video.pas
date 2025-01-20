@@ -7,6 +7,7 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomtype
+  , m_fixed
   ;
 
 Const
@@ -15,7 +16,6 @@ Const
 
   MAXWIDTH = (ORIGWIDTH Shl 2); // [crispy]
   MAXHEIGHT = (ORIGHEIGHT Shl 1); // [crispy]
-
 
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
@@ -33,6 +33,8 @@ Procedure I_GetScreenDimensions();
 
 Procedure I_UpdateNoBlit();
 
+Procedure I_StartDisplay(); // [crispy]
+
 Var
   SCREENWIDTH: int; // Eigentlich unnötig Redundant
   SCREENHEIGHT: int; // Eigentlich unnötig Redundant
@@ -44,6 +46,11 @@ Var
   OpenGLTexture: Integer = 0;
   OpenGLControlWidth: Integer = 0;
   OpenGLControlHeight: Integer = 0;
+  NONWIDEWIDTH: int; // [crispy] non-widescreen SCREENWIDTH
+
+  // [AM] Fractional part of the current tic, in the half-open
+  //      range of [0.0, 1.0).  Used for interpolation.
+  fractionaltic: fixed_t;
 
   // Joystick/gamepad hysteresis
   joywait: unsigned_int = 0;
@@ -54,6 +61,7 @@ Implementation
 
 Uses Graphics, config, dglOpenGL
   , usdl_wrapper
+  , i_timer
   , v_video, v_diskicon
   ;
 
@@ -70,6 +78,9 @@ Var
   icon_w: int = 0;
   icon_h: int = 0;
   initialized: Boolean = false;
+Var
+  OpenGLData: Array Of Array[0..2] Of Byte;
+
 
 Procedure I_InitWindowTitle();
 Begin
@@ -95,11 +106,11 @@ Begin
   //	int w = 16, h = 10;
   //	int ah;
   //
-  SCREENWIDTH := ORIGWIDTH Shl 0; // crispy->hires; ist eigentlich 1 -> Brauchen wir aber nicht, da das OpenGL macht ;)
-  SCREENHEIGHT := ORIGHEIGHT Shl 0; // crispy->hires; ist eigentlich 1 -> Brauchen wir aber nicht, da das OpenGL macht ;)
-  //
-  //	NONWIDEWIDTH = SCREENWIDTH;
-  //
+  SCREENWIDTH := ORIGWIDTH Shl crispy.hires;
+  SCREENHEIGHT := ORIGHEIGHT Shl crispy.hires;
+
+  NONWIDEWIDTH := SCREENWIDTH;
+
   //	ah = (aspect_ratio_correct == 1) ? (6 * SCREENHEIGHT / 5) : SCREENHEIGHT;
   //
   //	if (SDL_GetCurrentDisplayMode(video_display, &mode) == 0)
@@ -146,6 +157,19 @@ End;
 Procedure I_UpdateNoBlit();
 Begin
   // what is this?
+End;
+
+Procedure I_StartDisplay();
+Begin
+  // [AM] Figure out how far into the current tic we're in as a fixed_t.
+  fractionaltic := I_GetFracRealTime();
+
+  //    SDL_PumpEvents();
+
+  //    if (usemouse && !nomouse && window_focused)
+  //    {
+  //        I_ReadMouseUncapped();
+  //    }
 End;
 
 Var
@@ -435,16 +459,7 @@ Begin
 End;
 
 Procedure I_InitGraphics;
-Var
-  OpenGLData: Array[0..ORIGWIDTH * ORIGHEIGHT - 1] Of Array[0..2] Of Byte;
 Begin
-  // Create the Texture where we can render to ;)
-  glGenTextures(1, @OpenGLTexture);
-  glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, gl_RGB, ORIGWIDTH, ORIGHEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
-
   //   SDL_Event dummy;
   //#ifndef CRISPY_TRUECOLOR
   //    byte *doompal;
@@ -484,6 +499,14 @@ Begin
 
   // [crispy] run-time variable high-resolution rendering
   I_GetScreenDimensions();
+
+  setlength(OpenGLData, SCREENWIDTH * SCREENHEIGHT);
+  // Create the Texture where we can render to ;)
+  glGenTextures(1, @OpenGLTexture);
+  glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, gl_RGB, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
 
   //#ifndef CRISPY_TRUECOLOR
   //    blit_rect.w = SCREENWIDTH;
@@ -538,7 +561,7 @@ Begin
   // 32-bit RGBA screen buffer that gets loaded into a texture that gets
   // finally rendered into our window or full screen in I_FinishUpdate().
 
-  setlength(I_VideoBuffer, ORIGWIDTH * ORIGHEIGHT);
+  setlength(I_VideoBuffer, SCREENWIDTH * SCREENHEIGHT);
   V_RestoreBuffer();
 
   //    // Clear the screen to black.
@@ -588,7 +611,6 @@ End;
 
 Procedure I_FinishUpdate();
 Var
-  OpenGLData: Array[0..ORIGWIDTH * ORIGHEIGHT - 1] Of Array[0..2] Of Byte;
   rgb, i: Integer;
 Begin
   //   static int lasttic;

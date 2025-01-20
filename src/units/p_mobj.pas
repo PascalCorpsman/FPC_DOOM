@@ -127,6 +127,8 @@ Function P_SpawnMobj(x, y, z: fixed_t; _type: mobjtype_t): Pmobj_t;
 
 Procedure P_MobjThinker(mobj: Pmobj_t);
 
+Procedure FreeAllocations();
+
 Implementation
 
 Uses
@@ -142,6 +144,19 @@ Uses
   , w_wad
   , z_zone
   ;
+
+Var
+  GlobalAllocs: Array Of Pmobj_t = Nil;
+  GlobalAllocCounter: integer = 0;
+
+Procedure SafeGlobalAllocsObj(Const obj: Pmobj_t);
+Begin
+  If GlobalAllocCounter > high(GlobalAllocs) Then Begin
+    setlength(GlobalAllocs, high(GlobalAllocs) + 1024);
+  End;
+  GlobalAllocs[GlobalAllocCounter] := obj;
+  GlobalAllocCounter := GlobalAllocCounter + 1;
+End;
 
 Function Crispy_PlayerSO(p: int): Pmobj_t;
 Begin
@@ -205,7 +220,7 @@ Begin
   p^.bonuscount := 0;
   p^.extralight := 0;
   p^.fixedcolormap := 0;
-  p^.viewheight := VIEWHEIGHT;
+  p^.viewheight := DEFINE_VIEWHEIGHT;
 
   // [crispy] weapon sound source
   p^.so := Crispy_PlayerSO(mthing._type - 1);
@@ -494,6 +509,7 @@ Var
   patch: Ppatch_t;
 Begin
   new(mobj);
+  SafeGlobalAllocsObj(mobj);
   FillChar(mobj^, sizeof(mobj_t), 0);
   info := @mobjinfo[integer(_type)];
 
@@ -589,6 +605,22 @@ Function P_SpawnMobj(x, y, z: fixed_t; _type: mobjtype_t): Pmobj_t;
 Begin
   result := P_SpawnMobjSafe(x, y, z, _Type, false);
 End;
+
+Procedure FreeAllocations();
+Var
+  i: Integer;
+Begin
+  For i := 0 To GlobalAllocCounter - 1 Do Begin
+    Dispose(GlobalAllocs[i]);
+  End;
+  GlobalAllocCounter := 0;
+End;
+
+Finalization
+
+  FreeAllocations();
+
+
 
 End.
 

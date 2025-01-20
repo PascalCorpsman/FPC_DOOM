@@ -29,6 +29,9 @@ Var
   numsectors: int;
   sectors: Array Of sector_t;
 
+  numsegs: int;
+  segs: Array Of seg_t;
+
   numsides: int;
   sides: Array Of side_t;
 
@@ -99,9 +102,6 @@ Var
   //
   numvertexes: int;
   vertexes: Array Of vertex_t;
-
-  numsegs: int;
-  segs: Array Of seg_t;
 
   numlines: int;
   lines: Array Of line_t;
@@ -959,6 +959,7 @@ Var
   numthings: int;
   spawn: Boolean;
 Begin
+  FreeAllocations(); // Alle bisher erstellen Map Opjecte werden nicht mehr gebraucht, also weg damit ..
   numthings := W_LumpLength(lump) Div sizeof(mapthing_t);
 
   mt := W_CacheLumpNum(lump, PU_STATIC);
@@ -1108,7 +1109,6 @@ Begin
 
   maplumpinfo := @lumpinfo[lumpnum];
   //lumpname := lumpinfo[lumpnum].name;
-
 
   leveltime := 0;
   oldleveltime := 0;

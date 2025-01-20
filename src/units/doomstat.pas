@@ -29,7 +29,6 @@ Var
 
   // Timer, for scores.
   //extern  int	levelstarttic;	// gametic at level start
-  leveltime: int; // tics in game play for par
   //extern  int	totalleveltimes; // [crispy] CPhipps - total time for all completed levels
 
 

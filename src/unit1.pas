@@ -62,6 +62,7 @@ Type
     OpenGLControl1: TOpenGLControl;
     Timer1: TTimer;
     Procedure FormCreate(Sender: TObject);
+    Procedure FormResize(Sender: TObject);
     Procedure OpenGLControl1KeyDown(Sender: TObject; Var Key: Word;
       Shift: TShiftState);
     Procedure OpenGLControl1KeyUp(Sender: TObject; Var Key: Word;
@@ -238,6 +239,9 @@ Var
 Begin
   Constraints.MinWidth := ORIGWIDTH;
   Constraints.MinHeight := ORIGHEIGHT;
+//  width :=   ;
+//  height := ;
+
   // Init dglOpenGL.pas , Teil 1
   If Not InitOpenGl Then Begin
     showmessage('Error, could not init dglOpenGL.pas');
@@ -296,6 +300,11 @@ Begin
   //  D_DoomMain (); --> Wird in MakeCurrent gemacht.
 End;
 
+Procedure TForm1.FormResize(Sender: TObject);
+Begin
+  caption := format('%d %d', [Width, Height]);
+End;
+
 Procedure TForm1.OpenGLControl1KeyDown(Sender: TObject; Var Key: Word;
   Shift: TShiftState);
 Var
@@ -346,4 +355,6 @@ Begin
 End;
 
 End.
+
+
 

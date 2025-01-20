@@ -9,8 +9,14 @@ Uses
 
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
+Procedure R_InterpolateTextureOffsets();
 
 Implementation
+
+Uses
+  d_loop
+  , p_tick
+  ;
 
 Procedure P_InitPicAnims();
 Begin
@@ -182,6 +188,29 @@ Begin
 //            }
 //            break;
 //	}
+End;
+
+Procedure R_InterpolateTextureOffsets();
+Begin
+  If (crispy.uncapped <> 0) And (leveltime > oldleveltime) Then Begin
+    //		int i;
+    //
+    //		for (i = 0; i < numlinespecials; i++)
+    //		{
+    //			const line_t *const line = linespeciallist[i];
+    //			side_t *const side = &sides[line->sidenum[0]];
+    //
+    //			if (line->special == 48)
+    //			{
+    //				side->textureoffset = side->basetextureoffset + fractionaltic;
+    //			}
+    //			else
+    //			if (line->special == 85)
+    //			{
+    //				side->textureoffset = side->basetextureoffset - fractionaltic;
+    //			}
+    //		}
+  End;
 End;
 
 End.

@@ -23,6 +23,8 @@ Var
 
 Procedure R_InitSprites(Const namelist: Array Of String);
 
+Procedure R_ClearSprites();
+
 Implementation
 
 Uses
@@ -41,6 +43,14 @@ Var
   maxframe: int;
   sprtemp: Array[0..28] Of spriteframe_t;
   spritename: String;
+
+  //
+  // GAME FUNCTIONS
+  //
+  vissprites: Pvissprite_t = Nil;
+  vissprite_p: Pvissprite_t;
+  newvissprite: int;
+  numvissprites: int;
 
   //
   // R_InstallSpriteLump
@@ -251,6 +261,16 @@ Begin
   End;
 
   R_InitSpriteDefs(namelist);
+End;
+
+//
+// R_ClearSprites
+// Called at frame start.
+//
+
+Procedure R_ClearSprites();
+Begin
+  vissprite_p := vissprites;
 End;
 
 End.

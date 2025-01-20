@@ -53,7 +53,7 @@ Begin
     setlength(wipe_scr_end, ORIGWIDTH * ORIGHEIGHT);
   End;
   I_ReadScreen(wipe_scr_end);
-  FillChar(wipe_scr_end[0], length(wipe_scr_end), 0); // DEBUG: to be removed makes the Wipe target screen black
+  // FillChar(wipe_scr_end[0], length(wipe_scr_end), 0); // DEBUG: to be removed makes the Wipe target screen black
   V_DrawBlock(x, y, width, height, wipe_scr_start); // restore start scr.
   result := 0;
 End;

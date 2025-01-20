@@ -7,11 +7,21 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomtype, tables
+  , i_video
   , m_fixed
   , info_types
   ;
 
 Type
+
+  // This could be wider for >8 bit display.
+  // Indeed, true color support is posibble
+  //  precalculating 24bpp lightmap/colormap LUT.
+  //  from darkening PLAYPAL to all black.
+  // Could even us emore than 32 levels.
+  lighttable_t = pixel_t;
+
+  Plighttable_t = ^lighttable_t;
 
   (*
 
@@ -72,6 +82,54 @@ Type
     r_angle: angle_t; // [crispy] re-calculated angle used for rendering
     fakecontrast: int;
   End;
+  pseg_t = ^seg_t;
+
+
+  Pvissprite_t = ^vissprite_t;
+  // A vissprite_t is a thing
+  //  that will be drawn during a refresh.
+  // I.e. a sprite object that is partly visible.
+  vissprite_t = Record
+
+    // Doubly linked list.
+    prev: Pvissprite_t;
+    next: Pvissprite_t;
+
+    x1: int;
+    x2: int;
+
+    // for line side calculation
+    gx: fixed_t;
+    gy: fixed_t;
+
+    // global bottom / top for silhouette clipping
+    gz: fixed_t;
+    gzt: fixed_t;
+
+    // horizontal position of x1
+    startfrac: fixed_t;
+
+    scale: fixed_t;
+
+    // negative if flipped
+    xiscale: fixed_t;
+
+    texturemid: fixed_t;
+    patch: int;
+
+    // for color translation and shadow draw,
+    //  maxbright frames as well
+    // [crispy] brightmaps for select sprites
+    colormap: Array[0..1] Of Plighttable_t;
+    brightmap: Array Of byte;
+
+    mobjflags: int;
+    // [crispy] color translation table for blood colored by monster class
+    translation: Array Of byte;
+    //#ifdef CRISPY_TRUECOLOR
+    //    const pixel_t	(*blendfunc)(const pixel_t fg, const pixel_t bg);
+    //#endif
+  End;
 
 
   //
@@ -114,15 +172,67 @@ Type
     spriteframes: Array Of spriteframe_t;
   End;
 
-  // This could be wider for >8 bit display.
-  // Indeed, true color support is posibble
-  //  precalculating 24bpp lightmap/colormap LUT.
-  //  from darkening PLAYPAL to all black.
-  // Could even us emore than 32 levels.
 
-//  lighttable_t = Array Of pixel_t;
+  //
+  // Now what is a visplane, anyway?
+  //
+  visplane_t = Record
+
+    height: fixed_t;
+    picnum: int;
+    lightlevel: int;
+    minx: int;
+    maxx: int;
+
+    // leave pads for [minx-1]/[maxx+1]
+
+    pad1: unsigned_int; // [crispy] hires / 32-bit integer math
+    // Here lies the rub for all
+    //  dynamic resize/change of resolution.
+    top: Array[0..MAXWIDTH - 1] Of unsigned_int; // [crispy] hires / 32-bit integer math
+    pad2: unsigned_int; // [crispy] hires / 32-bit integer math
+    pad3: unsigned_int; // [crispy] hires / 32-bit integer math
+    // See above.
+    bottom: Array[0..MAXWIDTH - 1] Of unsigned_int; // [crispy] hires / 32-bit integer math
+    pad4: unsigned_int; // [crispy] hires / 32-bit integer math
+  End;
+
+  Pvisplane_t = ^visplane_t;
+//  PPvisplane_t = ^Pvisplane_t;
+
+  //
+  // ?
+  //
+  drawseg_t = Record
+
+    curline: Pseg_t;
+    x1: int;
+    x2: int;
+
+    scale1: fixed_t;
+    scale2: fixed_t;
+    scalestep: fixed_t;
+
+    // 0=none, 1=bottom, 2=top, 3=both
+    silhouette: int;
+
+    // do not clip sprites above this
+    bsilheight: fixed_t;
+
+    // do not clip sprites below this
+    tsilheight: fixed_t;
+
+    // Pointers to lists for sprite clipping,
+    //  all three adjusted so [x1] is first value.
+    sprtopclip: P_int; // [crispy] 32-bit integer math
+    sprbottomclip: P_int; // [crispy] 32-bit integer math
+    maskedtexturecol: P_int; // [crispy] 32-bit integer math
+
+  End;
+
 
 Implementation
 
 End.
+
 

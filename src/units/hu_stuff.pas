@@ -19,6 +19,7 @@ Var
 
 Procedure HU_Init();
 Procedure HU_Start();
+Procedure HU_Erase();
 
 Implementation
 
@@ -289,6 +290,22 @@ Begin
   //	HUlib_initIText(&w_inputbuffer[i], 0, 0, 0, 0, &always_off);
   //
   //    headsupactive = true;
+End;
+
+Procedure HU_Erase();
+Begin
+  //    HUlib_eraseSText(&w_message);
+  //    HUlib_eraseSText(&w_secret);
+  //    HUlib_eraseIText(&w_chat);
+  //    HUlib_eraseTextLine(&w_title);
+  //    HUlib_eraseTextLine(&w_kills);
+  //    HUlib_eraseTextLine(&w_items);
+  //    HUlib_eraseTextLine(&w_scrts);
+  //    HUlib_eraseTextLine(&w_ltime);
+  //    HUlib_eraseTextLine(&w_coordx);
+  //    HUlib_eraseTextLine(&w_coordy);
+  //    HUlib_eraseTextLine(&w_coorda);
+  //    HUlib_eraseTextLine(&w_fps);
 End;
 
 End.

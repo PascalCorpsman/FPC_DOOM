@@ -9,6 +9,11 @@ Uses
   , m_fixed
   ;
 
+Const
+  LOOKDIRMIN = 110; // [crispy] -110, actually
+  LOOKDIRMAX = 90;
+  LOOKDIRS = (LOOKDIRMIN + 1 + LOOKDIRMAX); // [crispy] lookdir range: -110..0..90
+
 Type
 
   // A single patch from a texture definition,

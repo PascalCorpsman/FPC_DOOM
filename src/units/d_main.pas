@@ -44,8 +44,8 @@ Uses
   , i_system, i_video, i_timer, i_sound
   , m_misc, m_config, m_argv, m_menu, m_controls
   , p_setup
-  , r_main
-  , s_sound
+  , r_main, r_draw
+  , s_sound, st_stuff
   , v_video
   , w_wad, w_main
   , z_zone
@@ -735,7 +735,7 @@ Begin
     wipe := false;
   End;
   If (gamestate = GS_LEVEL) And (gametic <> 0) Then Begin
-    //    HU_Erase();
+    HU_Erase();
   End;
 
   // do buffered drawing
@@ -750,12 +750,12 @@ Begin
           //	    R_RenderPlayerView (&players[displayplayer]);
           //	    AM_Drawer ();
           //	}
-          //	if (wipe || (viewheight != SCREENHEIGHT && fullscreen))
-          //	    redrawsbar = true;
-          //	if (inhelpscreensstate && !inhelpscreens)
-          //	    redrawsbar = true;              // just put away the help screen
-          //	ST_Drawer (viewheight == SCREENHEIGHT, redrawsbar );
-          //	fullscreen = viewheight == SCREENHEIGHT;
+          If (wipe {)or( (viewheight <> SCREENHEIGHT )and ( fullscreen)}) Then
+            redrawsbar := true;
+          If (inhelpscreensstate) And (Not inhelpscreens) Then
+            redrawsbar := true; // just put away the help screen
+          ST_Drawer(viewheight = SCREENHEIGHT, redrawsbar);
+          fullscreen := viewheight = SCREENHEIGHT;
         End;
       End;
 
@@ -777,7 +777,7 @@ Begin
 
   // draw the view directly
   If (gamestate = GS_LEVEL) And (Not automapactive {|| crispy->automapoverlay}) And (gametic <> 0) Then Begin
-    //	R_RenderPlayerView (&players[displayplayer]);
+    R_RenderPlayerView(@players[displayplayer]);
 
     // [crispy] Crispy HUD
     //        if (screenblocks >= CRISPY_HUD)
@@ -931,8 +931,8 @@ Begin
     If (wipe) Then Begin
       // start wipe on this frame
       wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
-
       wipestart := I_GetTime() - 1;
+      result := true; // Da der Tick ja dazu verwendet wurde den Wipe Endscreen zu rendern darf der nicht angezeigt werden !
     End
     Else Begin
       // normal update
@@ -2057,8 +2057,8 @@ Begin
   TryRunTics();
 
   //     V_RestoreBuffer();
-  //     R_ExecuteSetViewSize();
-  //
+  R_ExecuteSetViewSize();
+
   D_StartGameLoop();
   //
   //     if (testcontrols)

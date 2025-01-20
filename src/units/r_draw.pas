@@ -9,11 +9,13 @@ Uses
 
 Var
   translationtables: Array Of byte;
+  viewheight: int;
+  viewwidth: int;
+  scaledviewwidth: int;
 
 Procedure R_InitTranslationTables();
 
 Implementation
-
 
 //
 // R_InitTranslationTables

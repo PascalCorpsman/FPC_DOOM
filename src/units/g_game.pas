@@ -32,6 +32,7 @@ Var
   defdemoname: String;
 
   paused: boolean;
+  sendsave: boolean; // send a save event next tic
   sendpause: Boolean; // send a pause event next tic
   usergame: boolean; // ok to save / end game
 
@@ -90,11 +91,15 @@ Uses
   , am_map
   , d_main, d_loop
   , i_video, i_timer
+  , hu_stuff
   , m_menu, m_argv, m_random, m_fixed
-  , p_setup, p_mobj, p_inter
+  , p_setup, p_mobj, p_inter, p_tick
   , r_data, r_sky
-  , s_sound
+  , s_sound, st_stuff
   ;
+
+Const
+  NUMKEYS = 256;
 
 Var
   d_skill: skill_t;
@@ -108,6 +113,8 @@ Var
   gamemap: int;
   demostarttic: int; // [crispy] fix revenant internal demo bug
   levelstarttic: int; // gametic at level start
+
+  gamekeydown: Array[0..NUMKEYS - 1] Of boolean;
 
 Procedure G_ClearSavename();
 Begin
@@ -535,29 +542,29 @@ Begin
   //    {
   //    return;
   //    }
-  //
-  //    // do main actions
-  //    switch (gamestate)
-  //    {
-  //      case GS_LEVEL:
-  //	P_Ticker ();
-  //	ST_Ticker ();
-  //	AM_Ticker ();
-  //	HU_Ticker ();
-  //	break;
-  //
-  //      case GS_INTERMISSION:
-  //	WI_Ticker ();
-  //	break;
-  //
-  //      case GS_FINALE:
-  //	F_Ticker ();
-  //	break;
-  //
-  //      case GS_DEMOSCREEN:
-  //	D_PageTicker ();
-  //	break;
-  //    }
+
+  // do main actions
+  Case (gamestate) Of
+
+    GS_LEVEL: Begin
+        P_Ticker();
+        //	ST_Ticker ();
+        //	AM_Ticker ();
+        //	HU_Ticker ();
+      End;
+
+    GS_INTERMISSION: Begin
+        //	WI_Ticker ();
+      End;
+
+    GS_FINALE: Begin
+        //	F_Ticker ();
+      End;
+
+    GS_DEMOSCREEN: Begin
+        //	D_PageTicker ();
+      End;
+  End;
 End;
 
 //
@@ -826,28 +833,30 @@ Begin
 //    }
 
   P_SetupLevel(gameepisode, gamemap, 0, gameskill);
-  //    displayplayer = consoleplayer;		// view the guy you are playing
-  //    gameaction = ga_nothing;
-  //    Z_CheckHeap ();
-  //
-  //    // clear cmd building stuff
-  //
-  //    memset (gamekeydown, 0, sizeof(gamekeydown));
+  displayplayer := consoleplayer; // view the guy you are playing
+  gameaction := ga_nothing;
+  // Z_CheckHeap();
+
+  // clear cmd building stuff
+  FillChar(gamekeydown[0], sizeof(gamekeydown), 0);
+
   //    joyxmove = joyymove = joystrafemove = joylook = 0;
   //    mousex = mousey = 0;
   //    memset(&localview, 0, sizeof(localview)); // [crispy]
   //    memset(&carry, 0, sizeof(carry)); // [crispy]
   //    memset(&prevcarry, 0, sizeof(prevcarry)); // [crispy]
   //    memset(&basecmd, 0, sizeof(basecmd)); // [crispy]
-  //    sendpause = sendsave = paused = false;
+  sendpause := false;
+  sendsave := false;
+  paused := false;
   //    memset(mousearray, 0, sizeof(mousearray));
   //    memset(joyarray, 0, sizeof(joyarray));
   //    R_SetGoobers(false);
-  //
-  //    // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
-  //    // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
-  //    ST_Start();
-  //    HU_Start();
+
+  // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
+  // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
+  ST_Start();
+  HU_Start();
   //
   //    if (testcontrols)
   //    {
