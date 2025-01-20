@@ -27,6 +27,7 @@ Procedure V_UseBuffer(Const buffer: pixel_tArray);
 Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 
 Procedure V_RestoreBuffer();
+Procedure V_MarkRect(x, y, width, height: int);
 
 Var
   // The screen buffer; this is modified to draw things to the screen

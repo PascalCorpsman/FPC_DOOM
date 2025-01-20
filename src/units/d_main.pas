@@ -773,9 +773,9 @@ Begin
   End;
 
   // draw buffered stuff to screen
-//    I_UpdateNoBlit ();
+  I_UpdateNoBlit();
 
-    // draw the view directly
+  // draw the view directly
   If (gamestate = GS_LEVEL) And (Not automapactive {|| crispy->automapoverlay}) And (gametic <> 0) Then Begin
     //	R_RenderPlayerView (&players[displayplayer]);
 
@@ -900,16 +900,15 @@ Begin
   End;
   oldgametic := tics;
   If (wipe) Then Begin
-    //  TODO: Das Aufrufen von I_Sleep ist hier natürlich Tödlich, weil wir ja grad beim Rendern sind, das muss dann noch anders realisiert werden
-    Repeat
-      nowtime := I_GetTime();
-      tics := nowtime - wipestart;
-      I_Sleep(1);
-    Until tics > 0;
-
+    // So Lange warten bis mindestens 1 Tick vergangen ist -> das wird aber oben schon erledigt, also brauchen wir das hier nicht mehr..
+    // Repeat
+    nowtime := I_GetTime();
+    tics := nowtime - wipestart;
+    // I_Sleep(1);
+    //Until tics > 0;
     wipestart := nowtime;
-    //    wipe := Not wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
-    //    I_UpdateNoBlit();
+    wipe := Not wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
+    I_UpdateNoBlit();
     M_Drawer(); // menu is drawn even on top of wipes
     I_FinishUpdate(); // page flip or blit buffer
     exit;

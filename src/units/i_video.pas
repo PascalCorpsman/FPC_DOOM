@@ -31,6 +31,8 @@ Procedure I_FinishUpdate();
 Procedure I_ReadScreen(Var scr: pixel_tArray);
 Procedure I_GetScreenDimensions();
 
+Procedure I_UpdateNoBlit();
+
 Var
   SCREENWIDTH: int; // Eigentlich unnötig Redundant
   SCREENHEIGHT: int; // Eigentlich unnötig Redundant
@@ -45,6 +47,8 @@ Var
 
   // Joystick/gamepad hysteresis
   joywait: unsigned_int = 0;
+
+Procedure DumpScreenToFile(Const source: pixel_tArray); // Debug, dumbs the given Screen to a file (with I_VideoBuffer as param this is more or less a screenshot ;) )
 
 Implementation
 
@@ -137,6 +141,32 @@ Begin
   //	}
   //
   //	WIDESCREENDELTA = ((SCREENWIDTH - NONWIDEWIDTH) >> crispy->hires) / 2;
+End;
+
+Procedure I_UpdateNoBlit();
+Begin
+  // what is this?
+End;
+
+Var
+  dumpIndex: integer = 0;
+
+Procedure DumpScreenToFile(Const source: pixel_tArray);
+Var
+  i, j: Integer;
+  b: Tbitmap;
+Begin
+  b := TBitmap.Create;
+  b.Width := ORIGWIDTH;
+  b.Height := ORIGHEIGHT;
+  For i := 0 To ORIGWIDTH - 1 Do Begin
+    For j := 0 To ORIGHEIGHT - 1 Do Begin
+      b.canvas.pixels[i, j] := Doom8BitTo24RGBBit[source[j * ORIGWIDTH + i]];
+    End;
+  End;
+  b.SaveToFile(format('DumpScreen%0.3d.bmp', [dumpIndex]));
+  inc(dumpIndex);
+  b.free;
 End;
 
 Procedure SetVideoMode();
@@ -611,27 +641,26 @@ Begin
   //
   //    // draws little dots on the bottom of the screen
   //
-  //    if (display_fps_dots)
-  //    {
-  //	i = I_GetTime();
-  //	tics = i - lasttic;
-  //	lasttic = i;
-  //	if (tics > 20) tics = 20;
-  //
-  //	for (i=0 ; i<tics*4 ; i+=4)
-  //#ifndef CRISPY_TRUECOLOR
-  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
-  //#else
-  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0xff];
-  //#endif
-  //	for ( ; i<20*4 ; i+=4)
-  //#ifndef CRISPY_TRUECOLOR
-  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
-  //#else
-  //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0x0];
-  //#endif
-  //    }
-  //
+  If (display_fps_dots) Then Begin
+    //	i = I_GetTime();
+    //	tics = i - lasttic;
+    //	lasttic = i;
+    //	if (tics > 20) tics = 20;
+    //
+    //	for (i=0 ; i<tics*4 ; i+=4)
+    //#ifndef CRISPY_TRUECOLOR
+    //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
+    //#else
+    //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0xff];
+    //#endif
+    //	for ( ; i<20*4 ; i+=4)
+    //#ifndef CRISPY_TRUECOLOR
+    //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
+    //#else
+    //	    I_VideoBuffer[ (SCREENHEIGHT-1)*SCREENWIDTH + i] = pal_color[0x0];
+    //#endif
+  End;
+
   //	// [crispy] [AM] Real FPS counter
   //	{
   //		static int lastmili;
@@ -651,10 +680,10 @@ Begin
   //			lastmili = i;
   //		}
   //	}
-  //
-  //    // Draw disk icon before blit, if necessary.
-  //    V_DrawDiskIcon();
-  //
+
+  // Draw disk icon before blit, if necessary.
+  // V_DrawDiskIcon();
+
   //#ifndef CRISPY_TRUECOLOR
   //    if (palette_to_set)
   //    {
@@ -681,9 +710,9 @@ Begin
   //#else
   //    SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
   //#endif
-  //
-  //    // Make sure the pillarboxes are kept clear each frame.
-  //
+
+  // Make sure the pillarboxes are kept clear each frame.
+
   //    SDL_RenderClear(renderer);
   //
   //    if (crispy->smoothscaling && !force_software_renderer)
@@ -781,7 +810,7 @@ End;
 
 Procedure I_ReadScreen(Var scr: pixel_tArray);
 Begin
-  move(I_VideoBuffer[0], scr[0], sizeof(I_VideoBuffer) * sizeof(I_VideoBuffer[0]));
+  move(I_VideoBuffer[0], scr[0], length(I_VideoBuffer) * sizeof(pixel_t));
 End;
 
 //Finalization
