@@ -306,7 +306,7 @@ Begin
   //       Aber so wie es aussieht wird die "Widescreen" "ScreenWidth", Verreichnerei nicht richtig gemacht -> deswegen schepperts hier ..
   If (angle1 >= 4096) Or
     (angle2 >= 4096) Then Begin
-      nop();
+    nop();
     exit;
   End;
   x1 := viewangletox[angle1];
@@ -401,7 +401,7 @@ Begin
     End;
   End
   Else
-    floorplane := Nil;
+    floorplane := -1;
 
   If (frontsector^.interpceilingheight > viewz) Or (
     frontsector^.ceilingpic = skyflatnum) Then Begin
@@ -419,7 +419,7 @@ Begin
     End;
   End
   Else
-    ceilingplane := Nil;
+    ceilingplane := -1;
 
   R_AddSprites(frontsector);
 

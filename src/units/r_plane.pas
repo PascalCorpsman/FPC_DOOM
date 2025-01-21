@@ -18,27 +18,12 @@ Var
   yslope: ^Fixed_t;
   yslopes: Array[0..LOOKDIRS - 1, 0..MAXHEIGHT - 1] Of fixed_t;
 
-  floorplane: Pvisplane_t;
-  ceilingplane: Pvisplane_t;
+  visplanes: Array Of visplane_t = Nil;
+  floorplane: int;
+  ceilingplane: int;
+
   distscale: Array[0..MAXWIDTH - 1] Of fixed_t;
   lastopening: P_int; // [crispy] 32-bit integer math
-
-Procedure R_InitPlanes();
-Procedure R_ClearPlanes();
-
-Function R_FindPlane(height: fixed_t; picnum: int; lightlevel: int): Pvisplane_t;
-
-Function R_CheckPlane(pl: Pvisplane_t; start, stop: int): Pvisplane_t;
-
-Implementation
-
-Uses
-  tables
-  , r_draw, r_main, r_sky
-  ;
-
-Var
-
   //
   // Clip values are the solid pixel bounding the range.
   //  floorclip starts out SCREENHEIGHT
@@ -47,13 +32,26 @@ Var
   floorclip: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
   ceilingclip: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
 
+Procedure R_InitPlanes();
+Procedure R_ClearPlanes();
+
+Function R_FindPlane(height: fixed_t; picnum: int; lightlevel: int): int;
+
+Function R_CheckPlane(pl: int; start, stop: int): int;
+
+Implementation
+
+Uses
+  tables
+  , r_draw, r_main, r_sky, r_segs
+  ;
+
 Const
   // Here comes the obnoxious "visplane".
   MAXVISPLANES = 128;
   MAXOPENINGS = MAXWIDTH * 64 * 4;
 
 Var
-  visplanes: Array Of visplane_t = Nil;
   lastvisplane: int;
   numvisplanes: int = 0;
 
@@ -136,8 +134,8 @@ Begin
     For k := numvisplanes_old To high(visplanes) Do Begin
       FillChar(visplanes[k], sizeof(visplanes[k]), 0);
     End;
-    floorplane := @visplanes[0];
-    ceilingplane := @visplanes[0];
+    floorplane := 0;
+    ceilingplane := 0;
 
     If (numvisplanes_old <> 0) Then Begin
       writeln(stderr, format('R_FindPlane: Hit MAXVISPLANES limit at %d, raised to %d.', [numvisplanes_old, numvisplanes]));
@@ -146,7 +144,7 @@ Begin
 End;
 
 Function R_FindPlane(height: fixed_t; picnum: int; lightlevel: int
-  ): Pvisplane_t;
+  ): int;
 Var
   check: int;
 Begin
@@ -168,7 +166,7 @@ Begin
     If (height = visplanes[check].height)
       And (picnum = visplanes[check].picnum)
       And (lightlevel = visplanes[check].lightlevel) Then Begin
-      result := @visplanes[check];
+      result := check;
       exit;
     End;
   End;
@@ -188,73 +186,68 @@ Begin
   visplanes[check].maxx := -1;
   FillChar(visplanes[check].top, sizeof(visplanes[check].top), 0);
 
-  result := @visplanes[check];
+  result := check;
 End;
 
-Function R_CheckPlane(pl: Pvisplane_t; start, stop: int): Pvisplane_t;
+Function R_CheckPlane(pl: int; start, stop: int): int;
+Var
+  intrl: int;
+  intrh: int;
+  unionl: int;
+  unionh: int;
+  x: int;
 Begin
-  //    int		intrl;
-  //    int		intrh;
-  //    int		unionl;
-  //    int		unionh;
-  //    int		x;
-  //
-  //    if (start < pl->minx)
-  //    {
-  //	intrl = pl->minx;
-  //	unionl = start;
-  //    }
-  //    else
-  //    {
-  //	unionl = pl->minx;
-  //	intrl = start;
-  //    }
-  //
-  //    if (stop > pl->maxx)
-  //    {
-  //	intrh = pl->maxx;
-  //	unionh = stop;
-  //    }
-  //    else
-  //    {
-  //	unionh = pl->maxx;
-  //	intrh = stop;
-  //    }
-  //
-  //    for (x=intrl ; x<= intrh ; x++)
-  //	if (pl->top[x] != 0xffffffffu) // [crispy] hires / 32-bit integer math
-  //	    break;
-  //
-  //  // [crispy] fix HOM if ceilingplane and floorplane are the same
-  //  // visplane (e.g. both are skies)
-  //  if (!(pl == floorplane && markceiling && floorplane == ceilingplane))
-  //  {
-  //    if (x > intrh)
-  //    {
-  //	pl->minx = unionl;
-  //	pl->maxx = unionh;
-  //
-  //	// use the same one
-  //	return pl;
-  //    }
-  //  }
-  //
-  //    // make a new visplane
-  //    R_RaiseVisplanes(&pl); // [crispy] remove VISPLANES limit
-  //    lastvisplane->height = pl->height;
-  //    lastvisplane->picnum = pl->picnum;
-  //    lastvisplane->lightlevel = pl->lightlevel;
-  //
-  //    if (lastvisplane - visplanes == MAXVISPLANES && false) // [crispy] remove VISPLANES limit
-  //	I_Error ("R_CheckPlane: no more visplanes");
-  //
-  //    pl = lastvisplane++;
-  //    pl->minx = start;
-  //    pl->maxx = stop;
-  //
-  //    memset (pl->top,0xff,sizeof(pl->top));
-  //
-  //    return pl;
+  If (start < visplanes[pl].minx) Then Begin
+    intrl := visplanes[pl].minx;
+    unionl := start;
+  End
+  Else Begin
+    unionl := visplanes[pl].minx;
+    intrl := start;
+  End;
+  If (stop > visplanes[pl].maxx) Then Begin
+    intrh := visplanes[pl].maxx;
+    unionh := stop;
+  End
+  Else Begin
+    unionh := visplanes[pl].maxx;
+    intrh := stop;
+  End;
+
+
+  For x := intrl To intrh Do
+    If (visplanes[pl].top[x] <> $FFFFFFFF) Then // [crispy] hires / 32-bit integer math
+      break;
+
+  // [crispy] fix HOM if ceilingplane and floorplane are the same
+  // visplane (e.g. both are skies)
+  If (Not (pl = floorplane) And (markceiling) And (floorplane = ceilingplane)) Then Begin
+    If (x > intrh) Then Begin
+      visplanes[pl].minx := unionl;
+      visplanes[pl].maxx := unionh;
+      // use the same one
+      result := pl;
+      exit;
+    End;
+  End;
+
+  // make a new visplane
+//  R_RaiseVisplanes(pl); // [crispy] remove VISPLANES limit
+  R_RaiseVisplanes(lastvisplane); // Corpsman
+  visplanes[lastvisplane].height := visplanes[pl].height;
+  visplanes[lastvisplane].picnum := visplanes[pl].picnum;
+  visplanes[lastvisplane].lightlevel := visplanes[pl].lightlevel;
+
+  //  If (lastvisplane - visplanes = MAXVISPLANES) And (false) Then // [crispy] remove VISPLANES limit
+  //    I_Error('R_CheckPlane: no more visplanes');
+  inc(lastvisplane);
+  pl := lastvisplane;
+  visplanes[pl].minx := start;
+  visplanes[pl].maxx := stop;
+
+  FillChar(visplanes[pl].top[0], sizeof(visplanes[pl].top), $FF);
+
+  result := pl;
 End;
 
 End.

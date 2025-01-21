@@ -15,6 +15,7 @@ Var
   rw_angle1: angle_t;
 
   walllights: Array Of Plighttable_t;
+  markceiling: boolean;
 
 Procedure R_StoreWallRange(start, stop: int);
 
@@ -24,7 +25,7 @@ Uses
   doomdata, info_types
   , am_map
   , m_fixed
-  , r_bsp, r_main, r_data, r_things, r_sky, r_plane
+  , r_bsp, r_main, r_data, r_things, r_sky, r_plane, r_draw, r_bmaps
   ;
 
 Const
@@ -45,7 +46,6 @@ Var
 
   // False if the back side is the same plane.
   markfloor: boolean;
-  markceiling: boolean;
 
   maskedtexture: boolean;
   toptexture: int;
@@ -109,200 +109,220 @@ Var
   top: int;
   bottom: int;
 Begin
+  While rw_x < rw_stopx Do Begin
 
-  //    for ( ; rw_x < rw_stopx ; rw_x++)
-  //    {
-  //	// mark floor / ceiling areas
-  //	yl = (int)((topfrac+heightunit-1)>>heightbits); // [crispy] WiggleFix
-  //
-  //	// no space above wall?
-  //	if (yl < ceilingclip[rw_x]+1)
-  //	    yl = ceilingclip[rw_x]+1;
-  //
-  //	if (markceiling)
-  //	{
-  //	    top = ceilingclip[rw_x]+1;
-  //	    bottom = yl-1;
-  //
-  //	    if (bottom >= floorclip[rw_x])
-  //		bottom = floorclip[rw_x]-1;
-  //
-  //	    if (top <= bottom)
-  //	    {
-  //		ceilingplane->top[rw_x] = top;
-  //		ceilingplane->bottom[rw_x] = bottom;
-  //	    }
-  //	}
-  //
-  //	yh = (int)(bottomfrac>>heightbits); // [crispy] WiggleFix
-  //
-  //	if (yh >= floorclip[rw_x])
-  //	    yh = floorclip[rw_x]-1;
-  //
-  //	if (markfloor)
-  //	{
-  //	    top = yh+1;
-  //	    bottom = floorclip[rw_x]-1;
-  //	    if (top <= ceilingclip[rw_x])
-  //		top = ceilingclip[rw_x]+1;
-  //	    if (top <= bottom)
-  //	    {
-  //		floorplane->top[rw_x] = top;
-  //		floorplane->bottom[rw_x] = bottom;
-  //	    }
-  //	}
-  //
-  //	// texturecolumn and lighting are independent of wall tiers
-  //	if (segtextured)
-  //	{
-  //	    // calculate texture offset
-  //	    angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
-  //	    texturecolumn = rw_offset-FixedMul(finetangent[angle],rw_distance);
-  //	    texturecolumn >>= FRACBITS;
-  //	    // calculate lighting
-  //	    index = rw_scale>>(LIGHTSCALESHIFT + crispy->hires);
-  //
-  //	    if (index >=  MAXLIGHTSCALE )
-  //		index = MAXLIGHTSCALE-1;
-  //
-  //	    // [crispy] optional brightmaps
-  //	    dc_colormap[0] = walllights[index];
-  //	    dc_colormap[1] = (!fixedcolormap && (crispy->brightmaps & BRIGHTMAPS_TEXTURES)) ? colormaps : dc_colormap[0];
-  //	    dc_x = rw_x;
-  //	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
-  //	}
-  //        else
-  //        {
-  //            // purely to shut up the compiler
-  //
-  //            texturecolumn = 0;
-  //        }
-  //
-  //	// draw the wall tiers
-  //	if (midtexture)
-  //	{
-  //	    // single sided line
-  //	    dc_yl = yl;
-  //	    dc_yh = yh;
-  //	    dc_texturemid = rw_midtexturemid;
-  //	    dc_source = R_GetColumn(midtexture,texturecolumn);
-  //	    dc_texheight = textureheight[midtexture]>>FRACBITS; // [crispy] Tutti-Frutti fix
-  //	    dc_brightmap = texturebrightmap[midtexture];
-  //	    colfunc ();
-  //	    ceilingclip[rw_x] = viewheight;
-  //	    floorclip[rw_x] = -1;
-  //	}
-  //	else
-  //	{
-  //	    // two sided line
-  //	    if (toptexture)
-  //	    {
-  //		// top wall
-  //		mid = (int)(pixhigh>>heightbits); // [crispy] WiggleFix
-  //		pixhigh += pixhighstep;
-  //
-  //		if (mid >= floorclip[rw_x])
-  //		    mid = floorclip[rw_x]-1;
-  //
-  //		if (mid >= yl)
-  //		{
-  //		    dc_yl = yl;
-  //		    dc_yh = mid;
-  //		    dc_texturemid = rw_toptexturemid;
-  //		    dc_source = R_GetColumn(toptexture,texturecolumn);
-  //		    dc_texheight = textureheight[toptexture]>>FRACBITS; // [crispy] Tutti-Frutti fix
-  //		    dc_brightmap = texturebrightmap[toptexture];
-  //		    colfunc ();
-  //		    ceilingclip[rw_x] = mid;
-  //		}
-  //		else
-  //		    ceilingclip[rw_x] = yl-1;
-  //	    }
-  //	    else
-  //	    {
-  //		// no top wall
-  //		if (markceiling)
-  //		    ceilingclip[rw_x] = yl-1;
-  //	    }
-  //
-  //	    if (bottomtexture)
-  //	    {
-  //		// bottom wall
-  //		mid = (int)((pixlow+heightunit-1)>>heightbits); // [crispy] WiggleFix
-  //		pixlow += pixlowstep;
-  //
-  //		// no space above wall?
-  //		if (mid <= ceilingclip[rw_x])
-  //		    mid = ceilingclip[rw_x]+1;
-  //
-  //		if (mid <= yh)
-  //		{
-  //		    dc_yl = mid;
-  //		    dc_yh = yh;
-  //		    dc_texturemid = rw_bottomtexturemid;
-  //		    dc_source = R_GetColumn(bottomtexture,
-  //					    texturecolumn);
-  //		    dc_texheight = textureheight[bottomtexture]>>FRACBITS; // [crispy] Tutti-Frutti fix
-  //		    dc_brightmap = texturebrightmap[bottomtexture];
-  //		    colfunc ();
-  //		    floorclip[rw_x] = mid;
-  //		}
-  //		else
-  //		    floorclip[rw_x] = yh+1;
-  //	    }
-  //	    else
-  //	    {
-  //		// no bottom wall
-  //		if (markfloor)
-  //		    floorclip[rw_x] = yh+1;
-  //	    }
-  //
-  //	    if (maskedtexture)
-  //	    {
-  //		// save texturecol
-  //		//  for backdrawing of masked mid texture
-  //		maskedtexturecol[rw_x] = texturecolumn;
-  //	    }
-  //	}
-  //
-  //	rw_scale += rw_scalestep;
-  //	topfrac += topstep;
-  //	bottomfrac += bottomstep;
-  //    }
+    // mark floor / ceiling areas
+    yl := SarLongint((topfrac + heightunit - 1), heightbits); // [crispy] WiggleFix
+
+    // no space above wall?
+    If (yl < ceilingclip[rw_x] + 1) Then
+      yl := ceilingclip[rw_x] + 1;
+
+    If (markceiling) Then Begin
+
+      top := ceilingclip[rw_x] + 1;
+      bottom := yl - 1;
+
+      If (bottom >= floorclip[rw_x]) Then
+        bottom := floorclip[rw_x] - 1;
+
+      If (top <= bottom) Then Begin
+        visplanes[ceilingplane].top[rw_x] := top;
+        visplanes[ceilingplane].bottom[rw_x] := bottom;
+      End;
+    End;
+
+    yh := SarLongint(bottomfrac, heightbits); // [crispy] WiggleFix
+
+    If (yh >= floorclip[rw_x]) Then
+      yh := floorclip[rw_x] - 1;
+
+    If (markfloor) Then Begin
+
+      top := yh + 1;
+      bottom := floorclip[rw_x] - 1;
+      If (top <= ceilingclip[rw_x]) Then
+        top := ceilingclip[rw_x] + 1;
+      If (top <= bottom) Then Begin
+        visplanes[floorplane].top[rw_x] := top;
+        visplanes[floorplane].bottom[rw_x] := bottom;
+      End;
+    End;
+
+    // texturecolumn and lighting are independent of wall tiers
+    If (segtextured) Then Begin
+
+      // calculate texture offset
+      angle := SarLongint(rw_centerangle + xtoviewangle[rw_x], ANGLETOFINESHIFT);
+      texturecolumn := rw_offset - FixedMul(finetangent[angle], rw_distance);
+      texturecolumn := SarLongint(texturecolumn, FRACBITS);
+      // calculate lighting
+      index := SarLongint(rw_scale, (LIGHTSCALESHIFT + crispy.hires));
+
+      If (index >= MAXLIGHTSCALE) Then
+        index := MAXLIGHTSCALE - 1;
+
+      // [crispy] optional brightmaps
+      dc_colormap[0] := walllights[index];
+
+      If (Not assigned(fixedcolormap)) And ((crispy.brightmaps And BRIGHTMAPS_TEXTURES) <> 0) Then Begin
+        dc_colormap[1] := colormaps;
+      End
+      Else Begin
+        dc_colormap[1] := dc_colormap[0];
+      End;
+      dc_x := rw_x;
+      dc_iscale := $FFFFFFFF Div unsigned(rw_scale);
+    End
+    Else Begin
+      // purely to shut up the compiler
+      texturecolumn := 0;
+    End;
+
+    // draw the wall tiers
+    If (midtexture <> 0) Then Begin
+      // single sided line
+      dc_yl := yl;
+      dc_yh := yh;
+      dc_texturemid := rw_midtexturemid;
+      dc_source := R_GetColumn(midtexture, texturecolumn);
+      if not assigned(dc_source) then begin
+        dc_source := R_GetColumn(midtexture, texturecolumn);
+        end;
+      dc_texheight := SarLongint(textureheight[midtexture], FRACBITS); // [crispy] Tutti-Frutti fix
+      dc_brightmap := texturebrightmap[midtexture];
+      colfunc();
+      ceilingclip[rw_x] := viewheight;
+      floorclip[rw_x] := -1;
+    End
+    Else Begin
+      // two sided line
+      If (toptexture <> 0) Then Begin
+        // top wall
+        mid := SarInt64(pixhigh, heightbits); // [crispy] WiggleFix
+        pixhigh := pixhigh + pixhighstep;
+
+        If (mid >= floorclip[rw_x]) Then
+          mid := floorclip[rw_x] - 1;
+
+        If (mid >= yl) Then Begin
+          dc_yl := yl;
+          dc_yh := mid;
+          dc_texturemid := rw_toptexturemid;
+          dc_source := R_GetColumn(toptexture, texturecolumn);
+          dc_texheight := SarLongint(textureheight[toptexture], FRACBITS); // [crispy] Tutti-Frutti fix
+          dc_brightmap := texturebrightmap[toptexture];
+          colfunc();
+          ceilingclip[rw_x] := mid;
+        End
+        Else
+          ceilingclip[rw_x] := yl - 1;
+      End
+      Else Begin
+        // no top wall
+        If (markceiling) Then
+          ceilingclip[rw_x] := yl - 1;
+      End;
+
+      If (bottomtexture <> 0) Then Begin
+
+        // bottom wall
+        mid := SarInt64((pixlow + heightunit - 1), heightbits); // [crispy] WiggleFix
+        pixlow := pixlow + pixlowstep;
+
+        // no space above wall?
+        If (mid <= ceilingclip[rw_x]) Then
+          mid := ceilingclip[rw_x] + 1;
+
+        If (mid <= yh) Then Begin
+          dc_yl := mid;
+          dc_yh := yh;
+          dc_texturemid := rw_bottomtexturemid;
+          dc_source := R_GetColumn(bottomtexture, texturecolumn);
+          dc_texheight := SarLongint(textureheight[bottomtexture], FRACBITS); // [crispy] Tutti-Frutti fix
+          dc_brightmap := texturebrightmap[bottomtexture];
+          colfunc();
+          floorclip[rw_x] := mid;
+        End
+        Else
+          floorclip[rw_x] := yh + 1;
+      End
+      Else Begin
+        // no bottom wall
+        If (markfloor) Then
+          floorclip[rw_x] := yh + 1;
+      End;
+
+      If (maskedtexture) Then Begin
+        // save texturecol
+        //  for backdrawing of masked mid texture
+        maskedtexturecol[rw_x] := texturecolumn;
+      End;
+    End;
+
+    rw_scale := rw_scale + rw_scalestep;
+    topfrac := topfrac + topstep;
+    bottomfrac := bottomfrac + bottomstep;
+    rw_x := rw_x + 1;
+  End;
 End;
 
+Type
+  TScaleValue = Record
+    clamp: int;
+    heightbits: int;
+  End;
+
+Const
+  scale_values: Array[0..7] Of TScaleValue =
+  (
+    (clamp: 2048 * FRACUNIT; heightbits: 12),
+    (clamp: 1024 * FRACUNIT; heightbits: 12),
+    (clamp: 1024 * FRACUNIT; heightbits: 11),
+    (clamp: 512 * FRACUNIT; heightbits: 11),
+    (clamp: 512 * FRACUNIT; heightbits: 10),
+    (clamp: 256 * FRACUNIT; heightbits: 10),
+    (clamp: 256 * FRACUNIT; heightbits: 9),
+    (clamp: 128 * FRACUNIT; heightbits: 9)
+    );
+
 Procedure R_FixWiggle(sector: Psector_t);
+Const
+  lastheight: int = 0;
+Var
+  height: int;
 Begin
-  //    static int	lastheight = 0;
-  //    int		height = (sector->interpceilingheight - sector->interpfloorheight) >> FRACBITS;
-  //
-  //    // disallow negative heights. using 1 forces cache initialization
-  //    if (height < 1)
-  //	height = 1;
-  //
-  //    // early out?
-  //    if (height != lastheight)
-  //    {
-  //	lastheight = height;
-  //
-  //	// initialize, or handle moving sector
-  //	if (height != sector->cachedheight)
-  //	{
-  //	    sector->cachedheight = height;
-  //	    sector->scaleindex = 0;
-  //	    height >>= 7;
-  //
-  //	    // calculate adjustment
-  //	    while (height >>= 1)
-  //		sector->scaleindex++;
-  //	}
-  //
-  //	// fine-tune renderer for this wall
-  //	max_rwscale = scale_values[sector->scaleindex].clamp;
-  //	heightbits = scale_values[sector->scaleindex].heightbits;
-  //	heightunit = (1 << heightbits);
-  //	invhgtbits = FRACBITS - heightbits;
-  //    }
+  height := SarLongint(sector^.interpceilingheight - sector^.interpfloorheight, FRACBITS);
+
+  // disallow negative heights. using 1 forces cache initialization
+  If (height < 1) Then
+    height := 1;
+
+  // early out?
+  If (height <> lastheight) Then Begin
+
+    lastheight := height;
+
+    // initialize, or handle moving sector
+    If (height <> sector^.cachedheight) Then Begin
+
+      sector^.cachedheight := height;
+      sector^.scaleindex := 0;
+      height := height Shr 7;
+
+      // calculate adjustment
+      While (height <> 0) Do Begin
+        height := height Shr 1;
+        sector^.scaleindex := sector^.scaleindex + 1
+      End;
+    End;
+
+    // fine-tune renderer for this wall
+    max_rwscale := scale_values[sector^.scaleindex].clamp;
+    heightbits := scale_values[sector^.scaleindex].heightbits;
+    heightunit := (1 Shl heightbits);
+    invhgtbits := FRACBITS - heightbits;
+  End;
 End;
 
 
@@ -310,28 +330,32 @@ End;
 // above R_StoreWallRange
 
 Function R_ScaleFromGlobalAngle(visangle: angle_t): fixed_t;
+Var
+  anglea: angle_t;
+  angleb: angle_t;
+  den: int;
+  scale, num: fixed_t;
 Begin
-  //    angle_t	anglea = ANG90 + (visangle - viewangle);
-  //    angle_t	angleb = ANG90 + (visangle - rw_normalangle);
-  //    int		den = FixedMul(rw_distance, finesine[anglea >> ANGLETOFINESHIFT]);
-  //    fixed_t	num = FixedMul(projection, finesine[angleb >> ANGLETOFINESHIFT])<<detailshift;
-  //    fixed_t 	scale;
-  //
-  //    if (den > (num >> 16))
-  //    {
-  //	scale = FixedDiv(num, den);
-  //
-  //	// [kb] When this evaluates True, the scale is clamped,
-  //	//  and there will be some wiggling.
-  //	if (scale > max_rwscale)
-  //	    scale = max_rwscale;
-  //	else if (scale < 256)
-  //	    scale = 256;
-  //    }
-  //    else
-  //	scale = max_rwscale;
-  //
-  //    return scale;
+  anglea := ANG90 + (visangle - viewangle);
+  angleb := ANG90 + (visangle - rw_normalangle);
+  den := FixedMul(rw_distance, finesine[anglea Shr ANGLETOFINESHIFT]);
+  num := FixedMul(projection, finesine[angleb Shr ANGLETOFINESHIFT]) Shl detailshift;
+
+  If (den > (num Shr 16)) Then Begin
+
+    scale := FixedDiv(num, den);
+
+    // [kb] When this evaluates True, the scale is clamped,
+    //  and there will be some wiggling.
+    If (scale > max_rwscale) Then
+      scale := max_rwscale
+    Else If (scale < 256) Then
+      scale := 256;
+  End
+  Else
+    scale := max_rwscale;
+
+  result := scale;
 End;
 
 //
@@ -658,7 +682,6 @@ Begin
     markceiling := false;
   End;
 
-
   // calculate incremental stepping values for texture edges
   worldtop := SarLongint(worldtop, invhgtbits);
   worldbottom := SarLongint(worldbottom, invhgtbits);
@@ -685,8 +708,6 @@ Begin
       pixlowstep := -FixedMul(rw_scalestep, worldlow);
     End;
   End;
-
-   R_CheckPlane, dann R_RenderSegLoop -> dann fehlt nur noch das zeug in r_draw
 
   // render it
   If (markceiling) Then

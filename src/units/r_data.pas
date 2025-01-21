@@ -63,6 +63,7 @@ Var
   // for global animation
   flattranslation: Array Of int;
   texturetranslation: Array Of int;
+  texturebrightmap: Array Of TBytes; // [crispy] brightmaps
 
 Procedure R_InitData();
 
@@ -72,6 +73,8 @@ Function R_CheckTextureNumForName(name: String): int;
 Function R_FlatNumForName(Const name: String): int;
 
 Procedure R_PrecacheLevel();
+
+Function R_GetColumn(tex, col: int): TBytes;
 
 Var
   textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
@@ -159,7 +162,6 @@ Var
   texturecolumnofs2: Array Of Array Of unsigned; // [crispy] column offsets for composited opaque textures
   texturecomposite: Array Of Array Of byte; // [crispy] composited translucent mid-textures on 2S walls
   texturecomposite2: Array Of Array Of byte; // [crispy] composited opaque textures
-  texturebrightmap: Array Of TBytes; // [crispy] brightmaps
 
   //  lighttable_t	*colormaps;
   //  lighttable_t	*pal_color; // [crispy] array holding palette colors for true color mode
@@ -257,7 +259,7 @@ Begin
   If (size < 13) Then exit;
   patch := W_CacheLumpNum(lump, PU_CACHE);
   // [FG] detect patches in PNG format early
-  Move(pointer(patch), LumpHeader, 8); // TODO: ungetestet, da keine .wad datei mit .png Dateien zur Verfügung stehen ..
+  Move(pointer(patch)^, LumpHeader[0], 8); // TODO: ungetestet, da keine .wad datei mit .png Dateien zur Verfügung stehen ..
   If LumpHeader = PNGFileSignature Then exit;
 
   width := patch^.width;
@@ -291,8 +293,8 @@ Var
   patch: ^texpatch_t;
   realpatch: ^patch_t;
   x, x1, x2, i: int;
-  collump: ^short;
-  colofs, colofs2: ^unsigned; // killough 4/9/98: make 32-bit
+  collump: Array Of short;
+  colofs, colofs2: Array Of Unsigned; // killough 4/9/98: make 32-bit
   csize: int = 0; // killough 10/98
   err: int = 0; // killough 10/98
   cofs: P_int;
@@ -310,9 +312,9 @@ Begin
   texturecomposite2[texnum] := Nil;
 
   texturecompositesize[texnum] := 0;
-  collump := @texturecolumnlump[texnum];
-  colofs := @texturecolumnofs[texnum];
-  colofs2 := @texturecolumnofs2[texnum];
+  collump := texturecolumnlump[texnum];
+  colofs := texturecolumnofs[texnum];
+  colofs2 := texturecolumnofs2[texnum];
 
   // Now count the number of columns
   //  that are covered by more than one patch.
@@ -812,7 +814,7 @@ Begin
 
   // Precalculate whatever possible.
   For i := 0 To numtextures - 1 Do Begin
-    //    R_GenerateLookup(i); -- WTF: Wenn diese Zeile Aktiv ist, dann Knallts beim beenden, so wies aussieht braucht man das ggf aber gar nicht ..
+    R_GenerateLookup(i);
   End;
 
   // Create translation table for global animation.
@@ -927,6 +929,77 @@ Begin
   result := i - firstflat;
 End;
 
+
+//
+// MAPTEXTURE_T CACHING
+// When a texture is first needed,
+//  it counts the number of composite columns
+//  required in the texture and allocates space
+//  for a column directory and any new columns.
+// The directory will simply point inside other patches
+//  if there is only one patch in a given column,
+//  but any columns with multiple patches
+//  will have new column_ts generated.
+//
+
+
+
+// [crispy] replace R_DrawColumnInCache(), R_GenerateComposite() and R_GenerateLookup()
+// with Lee Killough's implementations found in MBF to fix Medusa bug
+// taken from mbfsrc/R_DATA.C:136-425
+//
+// R_DrawColumnInCache
+// Clip and draw a column
+//  from a patch into a cached post.
+//
+// Rewritten by Lee Killough for performance and to fix Medusa bug
+//
+
+Procedure R_DrawColumnInCache(patch: Pcolumn_t; cache: Pbyte; originy: int; cacheheight: int; marks: Pbyte);
+Var
+  count: int;
+  position: int;
+  source: ^byte;
+  top: int;
+Begin
+  top := -1;
+
+  While (patch^.topdelta <> $FF) Do Begin
+    // [crispy] support for DeePsea tall patches
+    If (patch^.topdelta <= top) Then Begin
+      top := top + patch^.topdelta;
+    End
+    Else Begin
+      top := patch^.topdelta;
+    End;
+    source := Pointer(patch) + 3;
+    count := patch^.length;
+    position := originy + top;
+
+    If (position < 0) Then Begin
+      count := count + position;
+      position := 0;
+    End;
+
+    If (position + count > cacheheight) Then
+      count := cacheheight - position;
+
+    If (count > 0) Then Begin
+      //	    memcpy (cache + position, source, count);
+      Move(Pointer(PtrUInt(cache) + position)^, source^, count);
+      // killough 4/9/98: remember which cells in column have been drawn,
+      // so that column can later be converted into a series of posts, to
+      // fix the Medusa bug.
+
+ //	    memset (marks + position, 0xff, count);
+      FillChar(Pointer(PtrUInt(marks) + position)^, count, $FF);
+    End;
+
+    //	patch = (column_t *)(  (byte *)patch + patch^.length + 4);
+    patch := (Pointer(PtrUInt(patch) + patch^.length + 4));
+  End;
+End;
+
 //
 // R_GenerateComposite
 // Using the texture definition,
@@ -936,143 +1009,183 @@ End;
 // Rewritten by Lee Killough for performance and to fix Medusa bug
 
 Procedure R_GenerateComposite(texnum: int);
-//    byte*		block, *block2;
-//    texture_t*		texture;
-//    texpatch_t*		patch;
-//    patch_t*		realpatch;
-//    int			x;
-//    int			x1;
-//    int			x2;
-//    int			i;
-//    column_t*		patchcol;
-//    short*		collump;
-//    unsigned*		colofs, *colofs2; // killough 4/9/98: make 32-bit
-//    byte*		marks; // killough 4/9/98: transparency marks
-//    byte*		source; // killough 4/9/98: temporary column
-
+Var
+  block, block2: Array Of byte;
+  texture: ^texture_t;
+  patch: ^texpatch_t;
+  realpatch: ^patch_t;
+  x, x1, x2, i: int;
+  patchcol: ^column_t;
+  collump: Array Of short;
+  colofs, colofs2: Array Of unsigned; // killough 4/9/98: make 32-bit
+  marks: Array Of Array Of byte; // killough 4/9/98: transparency marks
+  source: Array Of byte; // killough 4/9/98: temporary column
+  col: ^column_t;
+  mark: Array Of Byte;
+  j: int;
+  abstop, reltop: int;
+  relative: Boolean;
+  len: unsigned; // killough 12/98
+    cofs: P_int;
 Begin
+  texture := @textures[texnum];
+  setlength(block, texturecompositesize[texnum]);
+  texturecomposite[texnum] := block;
+  // [crispy] memory block for opaque textures
+  setlength(block2, texture^.width * texture^.height);
+  texturecomposite2[texnum] := block2;
 
-  //    texture = textures[texnum];
-  //
-  //    block = Z_Malloc (texturecompositesize[texnum],
-  //		      PU_STATIC,
-  //		      &texturecomposite[texnum]);
-  //    // [crispy] memory block for opaque textures
-  //    block2 = Z_Malloc (texture->width * texture->height,
-  //		      PU_STATIC,
-  //		      &texturecomposite2[texnum]);
-  //
-  //    collump = texturecolumnlump[texnum];
-  //    colofs = texturecolumnofs[texnum];
-  //    colofs2 = texturecolumnofs2[texnum];
-  //
-  //    // killough 4/9/98: marks to identify transparent regions in merged textures
-  //    marks = calloc(texture->width, texture->height);
-  //
-  //    // [crispy] initialize composite background to palette index 0 (usually black)
-  //    memset(block, 0, texturecompositesize[texnum]);
-  //
-  //    // Composite the columns together.
-  //    for (i=0 , patch = texture->patches;
-  //	 i<texture->patchcount;
-  //	 i++, patch++)
-  //    {
-  //	realpatch = W_CacheLumpNum (patch->patch, PU_CACHE);
-  //	x1 = patch->originx;
-  //	x2 = x1 + SHORT(realpatch->width);
-  //
-  //	if (x1<0)
-  //	    x = 0;
-  //	else
-  //	    x = x1;
-  //
-  //	if (x2 > texture->width)
-  //	    x2 = texture->width;
-  //
-  //	for ( ; x<x2 ; x++)
-  //	{
-  //	    // Column does not have multiple patches?
-  //	    // [crispy] generate composites for single-patched columns as well
-  //	    /*
-  //	    if (collump[x] >= 0)
-  //		continue;
-  //	    */
-  //
-  //	    patchcol = (column_t *)((byte *)realpatch
-  //				    + LONG(realpatch->columnofs[x-x1]));
-  //	    R_DrawColumnInCache (patchcol,
-  //				 block + colofs[x],
-  //				 // [crispy] single-patched columns are normally not composited
-  //				 // but directly read from the patch lump ignoring their originy
-  //				 collump[x] >= 0 ? 0 : patch->originy,
-  //				 texture->height,
-  //				 marks + x * texture->height);
-  //	}
-  //
-  //    }
-  //
-  //    // killough 4/9/98: Next, convert multipatched columns into true columns,
-  //    // to fix Medusa bug while still allowing for transparent regions.
-  //
-  //    source = I_Realloc(NULL, texture->height); // temporary column
-  //    for (i = 0; i < texture->width; i++)
-  //    {
-  //	// [crispy] generate composites for all columns
-  ////	if (collump[i] == -1) // process only multipatched columns
-  //	{
-  //	    column_t *col = (column_t *)(block + colofs[i] - 3); // cached column
-  //	    const byte *mark = marks + i * texture->height;
-  //	    int j = 0;
-  //	    // [crispy] absolut topdelta for first 254 pixels, then relative
-  //	    int abstop, reltop = 0;
-  //	    boolean relative = false;
-  //
-  //	    // save column in temporary so we can shuffle it around
-  //	    memcpy(source, (byte *) col + 3, texture->height);
-  //	    // [crispy] copy composited columns to opaque texture
-  //	    memcpy(block2 + colofs2[i], source, texture->height);
-  //
-  //	    for ( ; ; ) // reconstruct the column by scanning transparency marks
-  //	    {
-  //		unsigned len; // killough 12/98
-  //
-  //		while (j < texture->height && reltop < 254 && !mark[j]) // skip transparent cells
-  //		    j++, reltop++;
-  //
-  //		if (j >= texture->height) // if at end of column
-  //		{
-  //		    col->topdelta = -1; // end-of-column marker
-  //		    break;
-  //		}
-  //
-  //		// [crispy] absolut topdelta for first 254 pixels, then relative
-  //		col->topdelta = relative ? reltop : j; // starting offset of post
-  //
-  //		// [crispy] once we pass the 254 boundary, topdelta becomes relative
-  //		if ((abstop = j) >= 254)
-  //		{
-  //			relative = true;
-  //			reltop = 0;
-  //		}
-  //
-  //		// killough 12/98:
-  //		// Use 32-bit len counter, to support tall 1s multipatched textures
-  //
-  //		for (len = 0; j < texture->height && reltop < 254 && mark[j]; j++, reltop++)
-  //		    len++; // count opaque cells
-  //
-  //		col->length = len; // killough 12/98: intentionally truncate length
-  //
-  //		// copy opaque cells from the temporary back into the column
-  //		memcpy((byte *) col + 3, source + abstop, len);
-  //		col = (column_t *)((byte *) col + len + 4); // next post
-  //	    }
-  //	}
-  //    }
-  //
-  //    free(source); // free temporary column
-  //    free(marks); // free transparency marks
-  //
+  collump := texturecolumnlump[texnum];
+  colofs := texturecolumnofs[texnum];
+  colofs2 := texturecolumnofs2[texnum];
+
+  // killough 4/9/98: marks to identify transparent regions in merged textures
+  marks := Nil;
+  setlength(marks, texture^.width, texture^.height);
+
+  // [crispy] initialize composite background to palette index 0 (usually black)
+  FillChar(block[0], texturecompositesize[texnum], 0);
+
+  // Composite the columns together.
+
+//      for (i=0 , patch = texture^.patches;
+//	 i<texture^.patchcount;
+//	 i++, patch++)
+  For i := 0 To texture^.patchcount - 1 Do Begin
+    patch := @texture^.patches[i];
+    realpatch := W_CacheLumpNum(patch^.patch, PU_CACHE);
+    x1 := patch^.originx;
+    x2 := x1 + realpatch^.width;
+
+    If (x1 < 0) Then
+      x := 0
+    Else
+      x := x1;
+
+    If (x2 > texture^.width) Then
+      x2 := texture^.width;
+    cofs := @realpatch^.columnofs[0];
+    While x < x2 Do Begin
+      // Column does not have multiple patches?
+      // [crispy] generate composites for single-patched columns as well
+      (*
+      if (collump[x] >= 0) then
+   continue;
+      *)
+//      patchcol := @cofs[x - x1];
+      patchcol := pointer(realpatch) +cofs[x - x1];
+      If collump[x] >= 0 Then Begin
+        R_DrawColumnInCache(patchcol,
+          @block[colofs[x]],
+          // [crispy] single-patched columns are normally not composited
+          // but directly read from the patch lump ignoring their originy
+          0,
+          texture^.height,
+          @marks[x][0]);
+
+      End
+      Else Begin
+        R_DrawColumnInCache(patchcol,
+          @block[colofs[x]],
+          // [crispy] single-patched columns are normally not composited
+          // but directly read from the patch lump ignoring their originy
+          patch^.originy,
+          texture^.height,
+          @marks[x][0]);
+      End;
+      x := x + 1;
+    End;
+  End;
+
+  // killough 4/9/98: Next, convert multipatched columns into true columns,
+  // to fix Medusa bug while still allowing for transparent regions.
+
+//    source = I_Realloc(NULL, texture^.height); // temporary column
+  setlength(source, texture^.height);
+  //    for (i = 0; i < texture^.width; i++)
+  For i := 0 To texture^.width - 1 Do Begin
+
+    // [crispy] generate composites for all columns
+   //	if (collump[i] = -1)then  // process only multipatched columns
+    Begin
+      col := @block[colofs[i] - 3]; // cached column
+      mark := marks[i];
+      j := 0;
+      // [crispy] absolut topdelta for first 254 pixels, then relative
+
+      reltop := 0;
+      relative := false;
+
+      Das hier geht nicht laut Screenshot sollte in source[0] eine 77 sein
+      Aber nach dem Move ist das nicht der Fall
+      Wahrscheinlich weil das gepointere auf col mal wieder nicht stimmt :/
+
+      // save column in temporary so we can shuffle it around
+      // memcpy(source, (byte *) col + 3, texture^.height);
+
+      Move(Pointer(PtrUInt(col) + 3)^, source[0], texture^.height);
+
+      // [crispy] copy composited columns to opaque texture
+      // memcpy(block2 + colofs2[i], source, texture^.height);
+
+      Move(source[0], Pointer(PtrUInt(block2) + colofs2[i])^, texture^.height);
+
+      While true Do Begin // reconstruct the column by scanning transparency marks
+
+        While (j < texture^.height) And (reltop < 254) And (mark[j] = 0) Do Begin // skip transparent cells
+          inc(j);
+          inc(reltop);
+        End;
+
+        If (j >= texture^.height) Then Begin // if at end of column
+          col^.topdelta := $FF; // end-of-column marker
+          break;
+        End;
+
+        // [crispy] absolut topdelta for first 254 pixels, then relative
+        If relative Then Begin
+          col^.topdelta := reltop; // starting offset of post
+        End
+        Else Begin
+          col^.topdelta := j; // starting offset of post
+        End;
+
+        // [crispy] once we pass the 254 boundary, topdelta becomes relative
+        abstop := j;
+        If (abstop >= 254) Then Begin
+          relative := true;
+          reltop := 0;
+        End;
+
+        // killough 12/98:
+        // Use 32-bit len counter, to support tall 1s multipatched textures
+
+      //		for (len = 0; j < texture^.height && reltop < 254 && mark[j]; j++, reltop++)
+      //		    len++; // count opaque cells
+
+        len := 0;
+        While (j < texture^.height) And (reltop < 254) And (mark[j] <> 0) Do Begin
+          Inc(len); // count opaque cells
+          Inc(j); // increment j
+          Inc(reltop); // increment reltop
+        End;
+
+
+        col^.length := len; // killough 12/98: intentionally truncate length
+
+        // copy opaque cells from the temporary back into the column
+        // memcpy((byte *) col + 3, source + abstop, len);
+        Move(Pointer(PtrUInt(col) + 3)^, Pointer(PtrUInt(source) + abstop)^, len);
+        // col = (column_t * )((byte * )col + len + 4); // next post
+        col := Pcolumn_t(Pointer(PtrUInt(col) + len + 4));
+      End;
+    End;
+  End;
+
+  setlength(source, 0); // free temporary column
+  setlength(marks, 0, 0); // free transparency marks
+
+
   //    // Now that the texture has been built in column cache,
   //    //  it is purgable from zone memory.
   //    Z_ChangeTag (block, PU_CACHE);
@@ -1171,6 +1284,16 @@ Begin
     End;
   End;
   setlength(spritepresent, 0);
+End;
+
+Function R_GetColumn(tex, col: int): TBytes;
+Var
+  ofs: int;
+Begin
+  col := col And texturewidthmask[tex];
+  ofs := texturecolumnofs2[tex][col];
+  If Not assigned(texturecomposite2[tex]) Then R_GenerateComposite(tex);
+  result := texturecomposite2[tex + ofs];
 End;
 
 //

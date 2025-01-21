@@ -5,13 +5,36 @@ Unit r_draw;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , r_defs
+  , m_fixed
+  ;
 
 Var
   translationtables: Array Of byte;
   viewheight: int;
   viewwidth: int;
   scaledviewwidth: int;
+
+
+  //
+  // R_DrawColumn
+  // Source is the top of the column to scale.
+  //
+  dc_colormap: Array[0..1] Of Plighttable_t; // [crispy] brightmaps
+  dc_x: int;
+  dc_yl: int;
+  dc_yh: int;
+  dc_iscale: fixed_t;
+  dc_texturemid: fixed_t;
+  dc_texheight: int; // [crispy] Tutti-Frutti fix
+
+  // first pixel in a column (possibly virtual)
+  dc_source: Array Of Byte;
+
+  // just for profiling
+  ccount: int;
+
 
 Procedure R_InitTranslationTables();
 
@@ -27,7 +50,10 @@ Procedure R_DrawSpan();
 Implementation
 
 Uses
-  m_fixed
+  doomtype
+  , i_video
+  , r_bmaps
+  , v_video
   ;
 
 //
@@ -67,11 +93,14 @@ End;
 //  for getting the framebuffer address
 //  of a pixel to draw.
 //
+Var
+  CENTERY: int;
 
 Procedure R_InitBuffer(width, height: int);
 Var
   i: int;
 Begin
+  CENTERY := (SCREENHEIGHT Div 2);
   // Handle resize,
   //  e.g. smaller view windows
   //  with border and/or status bar.
@@ -103,78 +132,80 @@ End;
 // found in MBF to fix Tutti-Frutti, taken from mbfsrc/R_DRAW.C:99-1979
 
 Procedure R_DrawColumn();
+Var
+  count: int;
+  dest: ^pixel_t;
+  frac: fixed_t;
+  fracstep: fixed_t;
+  heightmask: int;
+  source: byte;
 Begin
-  //    int			count;
-  //    pixel_t*		dest;
-  //    fixed_t		frac;
-  //    fixed_t		fracstep;
-  //    int			heightmask = dc_texheight - 1;
-  //
-  //    count = dc_yh - dc_yl;
-  //
-  //    // Zero length, column does not exceed a pixel.
-  //    if (count < 0)
-  //	return;
-  //
+  heightmask := dc_texheight - 1;
+
+  count := dc_yh - dc_yl;
+
+  // Zero length, column does not exceed a pixel.
+  If (count < 0) Then exit;
+
   //#ifdef RANGECHECK
   //    if ((unsigned)dc_x >= SCREENWIDTH
   //	|| dc_yl < 0
   //	|| dc_yh >= SCREENHEIGHT)
   //	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
   //#endif
-  //
-  //    // Framebuffer destination address.
-  //    // Use ylookup LUT to avoid multiply with ScreenWidth.
-  //    // Use columnofs LUT for subwindows?
-  //    dest = ylookup[dc_yl] + columnofs[flipviewwidth[dc_x]];
-  //
-  //    // Determine scaling,
-  //    //  which is the only mapping to be done.
-  //    fracstep = dc_iscale;
-  //    frac = dc_texturemid + (dc_yl-centery)*fracstep;
-  //
-  //    // Inner loop that does the actual texture mapping,
-  //    //  e.g. a DDA-lile scaling.
-  //    // This is as fast as it gets.
-  //
-  //  // heightmask is the Tutti-Frutti fix -- killough
-  //  if (dc_texheight & heightmask) // not a power of 2 -- killough
-  //  {
-  //    heightmask++;
-  //    heightmask <<= FRACBITS;
-  //
-  //    if (frac < 0)
-  //	while ((frac += heightmask) < 0);
-  //    else
-  //	while (frac >= heightmask)
-  //	    frac -= heightmask;
-  //
-  //    do
-  //    {
-  //	// [crispy] brightmaps
-  //	const byte source = dc_source[frac>>FRACBITS];
-  //	*dest = dc_colormap[dc_brightmap[source]][source];
-  //
-  //	dest += SCREENWIDTH;
-  //	if ((frac += fracstep) >= heightmask)
-  //	    frac -= heightmask;
-  //    } while (count--);
-  //  }
-  //  else // texture height is a power of 2 -- killough
-  //  {
-  //    do
-  //    {
-  //	// Re-map color indices from wall texture column
-  //	//  using a lighting/special effects LUT.
-  //	// [crispy] brightmaps
-  //	const byte source = dc_source[(frac>>FRACBITS)&heightmask];
-  //	*dest = dc_colormap[dc_brightmap[source]][source];
-  //
-  //	dest += SCREENWIDTH;
-  //	frac += fracstep;
-  //
-  //    } while (count--);
-  //  }
+
+  // Framebuffer destination address.
+  // Use ylookup LUT to avoid multiply with ScreenWidth.
+  // Use columnofs LUT for subwindows?
+  //dest := ylookup[dc_yl] + columnofs[flipviewwidth[dc_x]];
+  dest := @I_VideoBuffer[dc_yl * SCREENWIDTH + dc_x];
+
+
+  // Determine scaling,
+  //  which is the only mapping to be done.
+  fracstep := dc_iscale;
+  frac := dc_texturemid + (dc_yl - centery) * fracstep;
+
+  // Inner loop that does the actual texture mapping,
+  //  e.g. a DDA-lile scaling.
+  // This is as fast as it gets.
+
+// heightmask is the Tutti-Frutti fix -- killough
+  If (dc_texheight And heightmask) <> 0 Then Begin // not a power of 2 -- killough
+    inc(heightmask);
+    heightmask := heightmask Shl FRACBITS;
+
+    If (frac < 0) Then
+      While frac < 0 Do Begin
+        frac := frac + heightmask;
+      End
+    Else
+      While (frac >= heightmask) Do
+        frac := frac - heightmask;
+    Repeat
+
+      // [crispy] brightmaps
+      source := dc_source[frac Shr FRACBITS];
+      dest^ := dc_colormap[dc_brightmap[source]][source];
+      inc(dest, SCREENWIDTH);
+      frac := frac + fracstep;
+      If (frac >= heightmask) Then
+        frac := frac - heightmask;
+      count := count - 1;
+    Until count = 0;
+  End
+  Else Begin // texture height is a power of 2 -- killough
+    Repeat
+      // Re-map color indices from wall texture column
+      //  using a lighting/special effects LUT.
+      // [crispy] brightmaps
+      source := dc_source[(frac Shr FRACBITS) And heightmask];
+      dest^ := dc_colormap[dc_brightmap[source]][source];
+      inc(dest, SCREENWIDTH);
+      frac := frac + fracstep;
+      count := count - 1;
+    Until count = 0;
+  End;
 End;
 
 //

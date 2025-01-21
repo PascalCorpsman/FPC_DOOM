@@ -20,6 +20,9 @@ Var
   R_BrightmapForState: R_BrightmapForStateT = Nil;
 
 
+Var
+  dc_brightmap: Array Of Byte;
+
 Procedure R_InitBrightmaps();
 
 Implementation
@@ -574,6 +577,7 @@ Begin
 End;
 
 Initialization
+  dc_brightmap := nobrightmap;
 
   // [crispy] common textures
   Setfullbright_doom('COMP2', DOOM1AND2, blueandgreen);
