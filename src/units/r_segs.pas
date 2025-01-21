@@ -186,9 +186,6 @@ Begin
       dc_yh := yh;
       dc_texturemid := rw_midtexturemid;
       dc_source := R_GetColumn(midtexture, texturecolumn);
-      if not assigned(dc_source) then begin
-        dc_source := R_GetColumn(midtexture, texturecolumn);
-        end;
       dc_texheight := SarLongint(textureheight[midtexture], FRACBITS); // [crispy] Tutti-Frutti fix
       dc_brightmap := texturebrightmap[midtexture];
       colfunc();

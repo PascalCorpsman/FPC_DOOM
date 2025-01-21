@@ -985,14 +985,12 @@ Begin
       count := cacheheight - position;
 
     If (count > 0) Then Begin
-      //	    memcpy (cache + position, source, count);
-      Move(Pointer(PtrUInt(cache) + position)^, source^, count);
+      Move(source^, Pointer(cache + position)^, count);
       // killough 4/9/98: remember which cells in column have been drawn,
       // so that column can later be converted into a series of posts, to
       // fix the Medusa bug.
 
- //	    memset (marks + position, 0xff, count);
-      FillChar(Pointer(PtrUInt(marks) + position)^, count, $FF);
+      FillChar(Pointer(marks + position)^, count, $FF);
     End;
 
     //	patch = (column_t *)(  (byte *)patch + patch^.length + 4);
@@ -1026,7 +1024,7 @@ Var
   abstop, reltop: int;
   relative: Boolean;
   len: unsigned; // killough 12/98
-    cofs: P_int;
+  cofs: P_int;
 Begin
   texture := @textures[texnum];
   setlength(block, texturecompositesize[texnum]);
@@ -1073,7 +1071,7 @@ Begin
    continue;
       *)
 //      patchcol := @cofs[x - x1];
-      patchcol := pointer(realpatch) +cofs[x - x1];
+      patchcol := pointer(realpatch) + cofs[x - x1];
       If collump[x] >= 0 Then Begin
         R_DrawColumnInCache(patchcol,
           @block[colofs[x]],
@@ -1102,7 +1100,7 @@ Begin
 
 //    source = I_Realloc(NULL, texture^.height); // temporary column
   setlength(source, texture^.height);
-  //    for (i = 0; i < texture^.width; i++)
+
   For i := 0 To texture^.width - 1 Do Begin
 
     // [crispy] generate composites for all columns
@@ -1116,18 +1114,10 @@ Begin
       reltop := 0;
       relative := false;
 
-      Das hier geht nicht laut Screenshot sollte in source[0] eine 77 sein
-      Aber nach dem Move ist das nicht der Fall
-      Wahrscheinlich weil das gepointere auf col mal wieder nicht stimmt :/
-
       // save column in temporary so we can shuffle it around
-      // memcpy(source, (byte *) col + 3, texture^.height);
-
       Move(Pointer(PtrUInt(col) + 3)^, source[0], texture^.height);
 
       // [crispy] copy composited columns to opaque texture
-      // memcpy(block2 + colofs2[i], source, texture^.height);
-
       Move(source[0], Pointer(PtrUInt(block2) + colofs2[i])^, texture^.height);
 
       While true Do Begin // reconstruct the column by scanning transparency marks
@@ -1159,10 +1149,6 @@ Begin
 
         // killough 12/98:
         // Use 32-bit len counter, to support tall 1s multipatched textures
-
-      //		for (len = 0; j < texture^.height && reltop < 254 && mark[j]; j++, reltop++)
-      //		    len++; // count opaque cells
-
         len := 0;
         While (j < texture^.height) And (reltop < 254) And (mark[j] <> 0) Do Begin
           Inc(len); // count opaque cells
@@ -1175,7 +1161,8 @@ Begin
 
         // copy opaque cells from the temporary back into the column
         // memcpy((byte *) col + 3, source + abstop, len);
-        Move(Pointer(PtrUInt(col) + 3)^, Pointer(PtrUInt(source) + abstop)^, len);
+        move(Pointer(PtrUInt(source) + abstop)^, Pointer(PtrUInt(col) + 3)^, len);
+
         // col = (column_t * )((byte * )col + len + 4); // next post
         col := Pcolumn_t(Pointer(PtrUInt(col) + len + 4));
       End;
@@ -1293,7 +1280,7 @@ Begin
   col := col And texturewidthmask[tex];
   ofs := texturecolumnofs2[tex][col];
   If Not assigned(texturecomposite2[tex]) Then R_GenerateComposite(tex);
-  result := texturecomposite2[tex + ofs];
+  result := @texturecomposite2[tex][ofs];
 End;
 
 //
