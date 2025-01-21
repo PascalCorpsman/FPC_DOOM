@@ -21,7 +21,7 @@ Type
 Function FixedMul(a, b: fixed_t): fixed_t;
 Function FixedDiv(a, b: fixed_t): fixed_t;
 
-Function FIXED2DOUBLE(x: int): Double;
+Function FIXED2DOUBLE(x: int): fixed_t;
 
 Implementation
 
@@ -32,7 +32,7 @@ Var
   t: int64;
 Begin
   t := int64_t(a) * int64_t(b);
-  result := SarInt64(t, FRACBITS); // das ist ein Vorzeichen korrektes shr
+  result := fixed_t(SarInt64(t, FRACBITS)); // das ist ein Vorzeichen korrektes shr
 End;
 
 Function FixedDiv(a, b: fixed_t): fixed_t;
@@ -48,9 +48,9 @@ Begin
   End;
 End;
 
-Function FIXED2DOUBLE(x: int): Double;
+Function FIXED2DOUBLE(x: int): fixed_t;
 Begin
-  result := (x / FRACUNIT);
+  result := (x Div FRACUNIT);
 End;
 
 End.

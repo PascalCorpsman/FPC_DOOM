@@ -20,11 +20,15 @@ Var
 
   floorplane: Pvisplane_t;
   ceilingplane: Pvisplane_t;
+  distscale: Array[0..MAXWIDTH - 1] Of fixed_t;
+  lastopening: P_int; // [crispy] 32-bit integer math
 
 Procedure R_InitPlanes();
 Procedure R_ClearPlanes();
 
 Function R_FindPlane(height: fixed_t; picnum: int; lightlevel: int): Pvisplane_t;
+
+Function R_CheckPlane(pl: Pvisplane_t; start, stop: int): Pvisplane_t;
 
 Implementation
 
@@ -54,7 +58,6 @@ Var
   numvisplanes: int = 0;
 
   openings: Array[0..MAXOPENINGS - 1] Of int; // [crispy] 32-bit integer math
-  lastopening: P_int; // [crispy] 32-bit integer math
 
   //
   // spanstart holds the start of a plane span
@@ -69,7 +72,6 @@ Var
 //  lighttable_t**		planezlight;
 //  fixed_t			planeheight;
 
-  distscale: Array[0..MAXWIDTH - 1] Of fixed_t;
   basexscale: fixed_t;
   baseyscale: fixed_t;
 
@@ -189,8 +191,71 @@ Begin
   result := @visplanes[check];
 End;
 
-//Initialization
-//  setlength(visplanes, 128);
+Function R_CheckPlane(pl: Pvisplane_t; start, stop: int): Pvisplane_t;
+Begin
+  //    int		intrl;
+  //    int		intrh;
+  //    int		unionl;
+  //    int		unionh;
+  //    int		x;
+  //
+  //    if (start < pl->minx)
+  //    {
+  //	intrl = pl->minx;
+  //	unionl = start;
+  //    }
+  //    else
+  //    {
+  //	unionl = pl->minx;
+  //	intrl = start;
+  //    }
+  //
+  //    if (stop > pl->maxx)
+  //    {
+  //	intrh = pl->maxx;
+  //	unionh = stop;
+  //    }
+  //    else
+  //    {
+  //	unionh = pl->maxx;
+  //	intrh = stop;
+  //    }
+  //
+  //    for (x=intrl ; x<= intrh ; x++)
+  //	if (pl->top[x] != 0xffffffffu) // [crispy] hires / 32-bit integer math
+  //	    break;
+  //
+  //  // [crispy] fix HOM if ceilingplane and floorplane are the same
+  //  // visplane (e.g. both are skies)
+  //  if (!(pl == floorplane && markceiling && floorplane == ceilingplane))
+  //  {
+  //    if (x > intrh)
+  //    {
+  //	pl->minx = unionl;
+  //	pl->maxx = unionh;
+  //
+  //	// use the same one
+  //	return pl;
+  //    }
+  //  }
+  //
+  //    // make a new visplane
+  //    R_RaiseVisplanes(&pl); // [crispy] remove VISPLANES limit
+  //    lastvisplane->height = pl->height;
+  //    lastvisplane->picnum = pl->picnum;
+  //    lastvisplane->lightlevel = pl->lightlevel;
+  //
+  //    if (lastvisplane - visplanes == MAXVISPLANES && false) // [crispy] remove VISPLANES limit
+  //	I_Error ("R_CheckPlane: no more visplanes");
+  //
+  //    pl = lastvisplane++;
+  //    pl->minx = start;
+  //    pl->maxx = stop;
+  //
+  //    memset (pl->top,0xff,sizeof(pl->top));
+  //
+  //    return pl;
+End;
 
 End.
 

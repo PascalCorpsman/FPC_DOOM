@@ -11,6 +11,15 @@ Uses
   , m_fixed
   , info_types
   ;
+Const
+  // Silhouette, needed for clipping Segs (mainly)
+  // and sprites representing things.
+  SIL_NONE = 0;
+  SIL_BOTTOM = 1;
+  SIL_TOP = 2;
+  SIL_BOTH = 3;
+
+  MAXDRAWSEGS = 256;
 
 Type
 
@@ -198,11 +207,11 @@ Type
   End;
 
   Pvisplane_t = ^visplane_t;
-//  PPvisplane_t = ^Pvisplane_t;
+  //  PPvisplane_t = ^Pvisplane_t;
 
-  //
-  // ?
-  //
+    //
+    // ?
+    //
   drawseg_t = Record
 
     curline: Pseg_t;
@@ -234,5 +243,4 @@ Type
 Implementation
 
 End.
-
 

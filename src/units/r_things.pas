@@ -7,8 +7,13 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , info_types
+  , i_video
+  , m_fixed
   , r_defs
   ;
+
+Const
+  MAXVISSPRITES = 128;
 
 Var
   // variables used to look up
@@ -21,24 +26,43 @@ Var
   sprites: Array Of spritedef_t = Nil;
   pspr_interp: boolean = true; // interpolate weapon bobbing
 
+  //
+  // Sprite rotation 0 is facing the viewer,
+  //  rotation 1 is one angle turn CLOCKWISE around the axis.
+  // This is not the same as the angle,
+  //  which increases counter clockwise (protractor).
+  // There was a lot of stuff grabbed wrong, so I changed it...
+  //
+  pspritescale: fixed_t;
+  pspriteiscale: fixed_t;
+  // constant arrays
+  //  used for psprite clipping and initializing clipping
+  screenheightarray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
+  negonearray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
+
 Procedure R_InitSprites(Const namelist: Array Of String);
 
 Procedure R_ClearSprites();
 
+Procedure R_AddSprites(sec: Psector_t);
+
 Implementation
 
 Uses
-  doomstat
-  , i_video, i_system
-  , r_data
+  doomstat, tables, info
+  , d_loop, d_mode
+  , i_system
+  , p_tick, p_pspr, p_mobj
+  , r_data, r_main, r_draw, r_bmaps
+  , v_trans
   , w_wad
   ;
 
+Const
+  MINZ = (FRACUNIT * 4);
+  BASEYCENTER = (ORIGHEIGHT / 2);
+
 Var
-  // constant arrays
-  //  used for psprite clipping and initializing clipping
-  negonearray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
-  screenheightarray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
 
   maxframe: int;
   sprtemp: Array[0..28] Of spriteframe_t;
@@ -47,10 +71,12 @@ Var
   //
   // GAME FUNCTIONS
   //
-  vissprites: Pvissprite_t = Nil;
-  vissprite_p: Pvissprite_t;
+  vissprites: Array Of vissprite_t = Nil;
+  vissprite_p: int;
   newvissprite: int;
   numvissprites: int;
+
+  spritelights: Array Of Plighttable_t;
 
   //
   // R_InstallSpriteLump
@@ -270,8 +296,349 @@ End;
 
 Procedure R_ClearSprites();
 Begin
-  vissprite_p := vissprites;
+  vissprite_p := 0;
 End;
+
+Var
+  overflowsprite: vissprite_t;
+
+Function R_NewVisSprite(): Pvissprite_t;
+Const
+  max: int = 0;
+
+Var
+  numvissprites_old, i: int;
+Begin
+  // [crispy] remove MAXVISSPRITE Vanilla limit
+  If (vissprite_p = length(vissprites)) Then Begin
+    // Der unten stehende Code müsste eigentlich gehen, aber wenn die AV Kommt schauen wir uns das mal an ;)
+    numvissprites_old := numvissprites;
+    // [crispy] cap MAXVISSPRITES limit at 4096
+    If (max = 0) And (numvissprites = 32 * MAXVISSPRITES) Then Begin
+      writeln(stderr, format('R_NewVisSprite: MAXVISSPRITES limit capped at %d.', [numvissprites]));
+      max := max + 1;
+    End;
+
+    If (max <> 0) Then Begin
+      result := @overflowsprite;
+      exit;
+    End;
+
+    If numvissprites <> 0 Then Begin
+      numvissprites := 2 * numvissprites;
+    End
+    Else Begin
+      numvissprites := MAXVISSPRITES;
+    End;
+    setlength(vissprites, numvissprites);
+    For i := numvissprites_old To numvissprites - 1 Do Begin
+      fillchar(vissprites[i], sizeof(vissprites[i]), 0);
+    End;
+
+    If (numvissprites_old <> 0) Then
+      writeln(stderr, format('R_NewVisSprite: Hit MAXVISSPRITES limit at %d, raised to %d.', [numvissprites_old, numvissprites]));
+  End;
+  result := @vissprites[vissprite_p];
+  inc(vissprite_p);
+End;
+
+//
+// R_ProjectSprite
+// Generates a vissprite for a thing
+//  if it might be visible.
+//
+
+Procedure R_ProjectSprite(thing: Pmobj_t);
+Var
+  tr_x: fixed_t;
+  tr_y: fixed_t;
+
+  gxt: fixed_t;
+  gyt: fixed_t;
+  gzt: fixed_t; // [JN] killough 3/27/98
+
+  tx: fixed_t;
+  tz: fixed_t;
+
+  xscale: fixed_t;
+
+  x1: int;
+  x2: int;
+
+  sprdef: ^spritedef_t;
+  sprframe: ^spriteframe_t;
+  lump: int;
+
+  rot: unsigned;
+  flip: boolean;
+
+  index: int;
+
+  vis: Pvissprite_t;
+
+  ang: angle_t;
+  iscale: fixed_t;
+
+  interpx: fixed_t;
+  interpy: fixed_t;
+  interpz: fixed_t;
+  interpangle: fixed_t;
+  rot2: unsigned;
+Begin
+
+  // [AM] Interpolate between current and last position,
+  //      if prudent.
+  If (crispy.uncapped <> 0) And (
+    // Don't interpolate if the mobj did something
+    // that would necessitate turning it off for a tic.
+    thing^.interp) And (
+    // Don't interpolate during a paused state.
+    leveltime > oldleveltime)
+    Then Begin
+    interpx := LerpFixed(thing^.oldx, thing^.x);
+    interpy := LerpFixed(thing^.oldy, thing^.y);
+    interpz := LerpFixed(thing^.oldz, thing^.z);
+    interpangle := LerpAngle(thing^.oldangle, thing^.angle);
+  End
+  Else Begin
+    interpx := thing^.x;
+    interpy := thing^.y;
+    interpz := thing^.z;
+    interpangle := thing^.angle;
+  End;
+
+  // transform the origin point
+  tr_x := interpx - viewx;
+  tr_y := interpy - viewy;
+
+  gxt := FixedMul(tr_x, viewcos);
+  gyt := -FixedMul(tr_y, viewsin);
+
+  tz := gxt - gyt;
+
+  // thing is behind view plane?
+  If (tz < MINZ) Then exit;
+
+  xscale := FixedDiv(projection, tz);
+
+  gxt := -FixedMul(tr_x, viewsin);
+  gyt := FixedMul(tr_y, viewcos);
+  tx := -(gyt + gxt);
+
+  // too far off the side?
+  If (abs(tx) > (tz Shl 2)) Then exit;
+
+  // decide which patch to use for sprite relative to player
+//#ifdef RANGECHECK
+//    if ((unsigned int) thing^.sprite >= (unsigned int) numsprites)
+//	I_Error ("R_ProjectSprite: invalid sprite number %i ",
+//		 thing^.sprite);
+//#endif
+  sprdef := @sprites[integer(thing^.sprite)];
+  // [crispy] the TNT1 sprite is not supposed to be rendered anyway
+  If (sprdef^.numframes = 0) And (thing^.sprite = SPR_TNT1) Then Begin
+    exit;
+  End;
+
+  //#ifdef RANGECHECK
+  //    if ( (thing^.frame&FF_FRAMEMASK) >= sprdef^.numframes )
+  //	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
+  //		 thing^.sprite, thing^.frame);
+  //#endif
+  sprframe := @sprdef^.spriteframes[thing^.frame And FF_FRAMEMASK];
+
+  If (sprframe^.rotate <> 0) Then Begin
+    // choose a different rotation based on player view
+    ang := R_PointToAngle(interpx, interpy);
+    // [crispy] now made non-fatal
+    If (sprframe^.rotate = -1) Then Begin
+      exit;
+    End
+    Else If (sprframe^.rotate = 2) Then Begin
+      rot2 := (ang - interpangle + (ANG45 Div 4) * 17);
+      rot := (rot2 Shr 29) + ((rot2 Shr 25) And 8);
+    End
+    Else Begin
+      rot := (ang - interpangle + (ANG45 Div 2) * 9) Shr 29;
+    End;
+    lump := sprframe^.lump[rot];
+    flip := odd(sprframe^.flip[rot]);
+  End
+  Else Begin
+    // use single rotation for all views
+    lump := sprframe^.lump[0];
+    flip := odd(sprframe^.flip[0]);
+  End;
+
+  // [crispy] randomly flip corpse, blood and death animation sprites
+  If (crispy.flipcorpses <> 0) And
+    ((thing^.flags And MF_FLIPPABLE) <> 0) And
+    ((thing^.flags And MF_SHOOTABLE) = 0) And
+    ((thing^.health And 1) = 1)
+    Then Begin
+    flip := Not flip;
+  End;
+
+  // calculate edges of the shape
+  // [crispy] fix sprite offsets for mirrored sprites
+  If flip Then Begin
+    tx := tx - spritewidth[lump] - spriteoffset[lump];
+  End
+  Else Begin
+    tx := tx - spriteoffset[lump];
+  End;
+  x1 := (centerxfrac + FixedMul(tx, xscale)) Shr FRACBITS;
+
+  // off the right side?
+  If (x1 > viewwidth) Then exit;
+
+
+  tx := tx + spritewidth[lump];
+  x2 := ((centerxfrac + FixedMul(tx, xscale)) Shr FRACBITS) - 1;
+
+  // off the left side
+  If (x2 < 0) Then exit;
+
+  // [JN] killough 4/9/98: clip things which are out of view due to height
+  gzt := interpz + spritetopoffset[lump];
+  If (interpz > viewz + FixedDiv(viewheight Shl FRACBITS, xscale)) Or (
+    gzt < int64_t(viewz) - FixedDiv((viewheight Shl FRACBITS) - viewheight, xscale)) Then exit;
+
+  // [JN] quickly reject sprites with bad x ranges
+  If (x1 >= x2) Then exit;
+
+  // store information in a vissprite
+  vis := R_NewVisSprite();
+  vis^.translation := Nil; // [crispy] no color translation
+  vis^.mobjflags := thing^.flags;
+  vis^.scale := xscale Shl detailshift;
+  vis^.gx := interpx;
+  vis^.gy := interpy;
+  vis^.gz := interpz;
+  vis^.gzt := gzt; // [JN] killough 3/27/98
+  vis^.texturemid := gzt - viewz;
+  If x1 < 0 Then
+    vis^.x1 := 0
+  Else
+    vis^.x1 := x1;
+  If x2 >= viewwidth Then
+    vis^.x2 := viewwidth - 1
+  Else
+    vis^.x2 := x2;
+  iscale := FixedDiv(FRACUNIT, xscale);
+
+  If (flip) Then Begin
+    vis^.startfrac := spritewidth[lump] - 1;
+    vis^.xiscale := -iscale;
+  End
+  Else Begin
+    vis^.startfrac := 0;
+    vis^.xiscale := iscale;
+  End;
+
+  If (vis^.x1 > x1) Then
+    vis^.startfrac := vis^.startfrac + vis^.xiscale * (vis^.x1 - x1);
+  vis^.patch := lump;
+
+  // get light level
+  If (thing^.flags And MF_SHADOW) <> 0 Then Begin
+    // shadow draw
+    vis^.colormap[0] := Nil;
+    vis^.colormap[1] := Nil;
+  End
+  Else If assigned(fixedcolormap) Then Begin
+    // fixed map
+    vis^.colormap[0] := fixedcolormap;
+    vis^.colormap[1] := fixedcolormap;
+  End
+  Else If (thing^.frame And FF_FULLBRIGHT) <> 0 Then Begin
+    // full bright
+    vis^.colormap[0] := colormaps;
+    vis^.colormap[1] := colormaps;
+  End
+  Else Begin
+    // diminished light
+    index := xscale Shr (LIGHTSCALESHIFT - detailshift + crispy.hires);
+
+    If (index >= MAXLIGHTSCALE) Then index := MAXLIGHTSCALE - 1;
+
+    // [crispy] brightmaps for select sprites
+    vis^.colormap[0] := spritelights[index];
+    vis^.colormap[1] := colormaps;
+  End;
+  vis^.brightmap := R_BrightmapForSprite(integer(thing^.sprite));
+
+  // [crispy] colored blood
+  If (crispy.coloredblood <> 0) And
+    ((thing^._type = MT_BLOOD) Or ((thing^.state - @states[0]) = integer(S_GIBS))) And
+    assigned(thing^.target) Then Begin
+    // [crispy] Thorn Things in Hacx bleed green blood
+    If (gamemission = pack_hacx) Then Begin
+
+      If (thing^.target^._type = MT_BABY) Then Begin
+        vis^.translation := cr[CR_RED2GREEN];
+      End;
+    End
+    Else Begin
+      // [crispy] Barons of Hell and Hell Knights bleed green blood
+      If (thing^.target^._type = MT_BRUISER) Or (thing^.target^._type = MT_KNIGHT) Then Begin
+        vis^.translation := cr[CR_RED2GREEN];
+      End
+        // [crispy] Cacodemons bleed blue blood
+      Else If (thing^.target^._type = MT_HEAD) Then Begin
+
+        vis^.translation := cr[CR_RED2BLUE];
+      End;
+    End;
+  End;
+
+  //#ifdef CRISPY_TRUECOLOR
+  //    // [crispy] translucent sprites
+  //    if (thing^.flags & MF_TRANSLUCENT)
+  //    {
+  //	vis^.blendfunc = (thing^.frame & FF_FULLBRIGHT) ? I_BlendAdd : I_BlendOverTranmap;
+  //    }
+  //#endif
+End;
+
+//
+// R_AddSprites
+// During BSP traversal, this adds sprites by sector.
+//
+
+Procedure R_AddSprites(sec: Psector_t);
+Var
+  thing: Pmobj_t;
+  lightnum: int;
+Begin
+
+  // BSP is traversed by subsector.
+  // A sector might have been split into several
+  //  subsectors during BSP building.
+  // Thus we check whether its already added.
+  If (sec^.validcount = validcount) Then exit;
+
+
+  // Well, now it will be done.
+  sec^.validcount := validcount;
+
+  lightnum := (sec^.rlightlevel Shr LIGHTSEGSHIFT) + (extralight * LIGHTBRIGHT); // [crispy] A11Y
+
+  If (lightnum < 0) Then
+    spritelights := scalelight[0]
+  Else If (lightnum >= LIGHTLEVELS) Then
+    spritelights := scalelight[LIGHTLEVELS - 1]
+  Else
+    spritelights := scalelight[lightnum];
+
+  // Handle all things in sector.
+  thing := sec^.thinglist;
+  While assigned(thing) Do Begin
+    R_ProjectSprite(thing);
+    thing := thing^.snext;
+  End;
+End;
+
 
 End.
 

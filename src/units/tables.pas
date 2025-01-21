@@ -2103,7 +2103,7 @@ Const
 Var
   finecosine: Array Of fixed_t; // Wird im Initialization gesetzt
 
-  //Function SlopeDiv(num: unsigned_int; den: unsigned_int): int;
+Function SlopeDiv(num: unsigned_int; den: unsigned_int): int;
 Function SlopeDivCrispy(num: unsigned_int; den: unsigned_int): int;
 
 Implementation
@@ -2115,26 +2115,21 @@ Implementation
 // the case when x==y without additional checking.
 
 Function SlopeDiv(num: unsigned_int; den: unsigned_int): int;
+Var
+  ans: unsigned;
 Begin
-  //    unsigned ans;
-  //
-  //    if (den < 512)
-  //    {
-  //        return SLOPERANGE;
-  //    }
-  //    else
-  //    {
-  //        ans = (num << 3) / (den >> 8);
-  //
-  //        if (ans <= SLOPERANGE)
-  //        {
-  //            return ans;
-  //        }
-  //        else
-  //        {
-  //            return SLOPERANGE;
-  //        }
-  //    }
+  If (den < 512) Then Begin
+    result := SLOPERANGE;
+  End
+  Else Begin
+    ans := (num Shl 3) Div (den Shr 8);
+    If (ans <= SLOPERANGE) Then Begin
+      result := ans;
+    End
+    Else Begin
+      result := SLOPERANGE;
+    End;
+  End;
 End;
 
 Function SlopeDivCrispy(num: unsigned_int; den: unsigned_int): int;

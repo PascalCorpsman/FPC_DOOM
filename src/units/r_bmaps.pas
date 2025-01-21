@@ -9,7 +9,7 @@ Uses
 
 Type
   R_BrightmapForTexNameT = Function(Const texname: String): TBytes;
-  R_BrightmapForSpriteT = Function(Const _type: int): String;
+  R_BrightmapForSpriteT = Function(Const _type: int): TBytes; // TODO: das int sollte spritenum_t sein !
   R_BrightmapForFlatNumT = Function(Const num: int): String;
   R_BrightmapForStateT = Function(Const state: int): String;
 
@@ -25,7 +25,7 @@ Procedure R_InitBrightmaps();
 Implementation
 
 Uses
-  doomstat
+  doomstat, info_types
   , d_mode
   , r_data
   ;
@@ -382,7 +382,7 @@ End;
 
 // [crispy] adapted from russian-doom/src/doom/r_things.c:617-639
 
-Function R_BrightmapForSprite_Doom(Const _type: int): String;
+Function R_BrightmapForSprite_Doom(Const _type: int): TBytes;
 Begin
   //	if (crispy->brightmaps & BRIGHTMAPS_SPRITES)
   //	{
@@ -511,6 +511,49 @@ Begin
     R_BrightmapForState := @R_BrightmapForState_Doom;
   End;
 End;
+
+// [crispy] adapted from russian-doom/src/doom/r_things.c:617-639
+
+Function R_BrightmapForSprite_Doom(Const _type: int): PByte;
+Begin
+  If (crispy.brightmaps And BRIGHTMAPS_SPRITES) <> 0 Then Begin
+
+    Case (spritenum_t(_type)) Of
+
+      // Armor Bonus
+      SPR_BON2: Begin
+          result := greenonly1;
+          exit;
+        End;
+
+      // Cell Charge
+      SPR_CELL: Begin
+          result := greenonly2;
+          exit;
+        End;
+      // Barrel
+      SPR_BAR1: Begin
+          result := greenonly3;
+          exit;
+        End;
+      // Cell Charge Pack
+      SPR_CELP: Begin
+          result := yellowonly;
+          exit;
+        End;
+      // BFG9000
+      SPR_BFUG,
+        // Plasmagun
+      SPR_PLAS: Begin
+          result := redonly;
+          exit;
+        End;
+    End;
+  End;
+
+  result := nobrightmap;
+End;
+
 
 Procedure Setfullbright_doom(texture: String; game: int;
   Const colormask: TBytes);

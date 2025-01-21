@@ -7,20 +7,20 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , tables, info_types
+  , i_video
   , m_fixed
+  , r_defs
   ;
-
-Procedure R_Init();
 
 Var
   // [crispy] parameterized for smooth diminishing lighting
   NUMCOLORMAPS: int;
 
-  //int LIGHTLEVELS;
-  //int LIGHTSEGSHIFT;
+  LIGHTLEVELS: int;
+  LIGHTSEGSHIFT: int;
   LIGHTBRIGHT: int;
-  //int MAXLIGHTSCALE;
-  //int LIGHTSCALESHIFT;
+  MAXLIGHTSCALE: int;
+  LIGHTSCALESHIFT: int;
   //int MAXLIGHTZ;
   //int LIGHTZSHIFT;
 
@@ -29,12 +29,53 @@ Var
   viewz: fixed_t;
 
   viewangle: angle_t;
+  viewcos: fixed_t;
+  viewsin: fixed_t;
+  projection: fixed_t;
+
   centerxfrac: fixed_t;
   centeryfrac: fixed_t;
   sscount: int;
 
+  // 0 = high, 1 = low
+  detailshift: int;
+
+  // bumped light from gun blasts
+  extralight: int;
+
+  // increment every time a check is made
+  validcount: int = 1;
+  scalelight: Array Of Array Of Plighttable_t = Nil;
+  scalelightfixed: Array Of Plighttable_t = Nil;
+
+  //
+  // precalculated math tables
+  //
+  clipangle: angle_t;
+
+  // The viewangletox[viewangle + FINEANGLES/4] lookup
+  // maps the visible view angles to screen X coordinates,
+  // flattening the arc to a flat projection plane.
+  // There will be many angles mapped to the same X.
+  viewangletox: Array[0..FINEANGLES Div 2] Of int;
+
+  // The xtoviewangleangle[] table maps a screen pixel
+  // to the lowest viewangle that maps back to x ranges
+  // from clipangle to -clipangle.
+  xtoviewangle: Array[0..MAXWIDTH] Of angle_t;
+  fixedcolormap: Plighttable_t;
+
+  colfunc: TProcedure = Nil;
+  basecolfunc: TProcedure = Nil;
+  fuzzcolfunc: TProcedure = Nil;
+  transcolfunc: TProcedure = Nil;
+  tlcolfunc: TProcedure = Nil;
+  spanfunc: TProcedure = Nil;
+
+Procedure R_Init();
 Procedure R_ExecuteSetViewSize();
 
+Function R_PointToAngle(x, y: fixed_t): angle_t;
 Function R_PointToAngleCrispy(x, y: fixed_t): angle_t;
 
 Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;
@@ -44,6 +85,8 @@ Procedure R_RenderPlayerView(player: Pplayer_t);
 Function R_PointOnSide(x, y: fixed_t; node: Pnode_t): int;
 
 Function LerpFixed(oldvalue, newvalue: fixed_t): fixed_t;
+Function LerpAngle(oangle, nangle: angle_t): angle_t;
+Procedure R_SetGoobers(mode: boolean);
 
 Implementation
 
@@ -51,152 +94,136 @@ Uses
   a11y_weapon_pspr, doomdata
   , am_map
   , d_loop
-  , i_video
-  , r_data, r_sky, r_draw, r_plane, r_bsp, r_defs, r_things
+  , r_data, r_sky, r_draw, r_plane, r_bsp, r_things, r_segs
   , m_menu
   , p_setup, p_tick, p_local, p_spec
   , st_stuff
   ;
 
+Const
+  DISTMAP = 2;
+
+  // Fineangles in the SCREENWIDTH wide window.
+  FIELDOFVIEW = 2048;
+
 Var
   // just for profiling purposes
   framecount: int;
+  goobers_mode: boolean = false;
 
   setsizeneeded: boolean;
   setblocks: int;
   setdetail: int;
 
-  // bumped light from gun blasts
-  extralight: int;
-
   viewangleoffset: int;
-  viewcos: fixed_t;
-  viewsin: fixed_t;
-
-  // increment every time a check is made
-  validcount: int = 1;
-
-
-  fixedcolormap: Plighttable_t;
 
   viewplayer: pplayer_t;
 
   centerx: int;
   centery: int;
 
-  projection: fixed_t;
-
   scaledviewwidth_nonwide, viewwidth_nonwide: int;
   centerxfrac_nonwide: fixed_t;
-
-  // 0 = high, 1 = low
-  detailshift: int;
 
   // [crispy] lookup table for horizontal screen coordinates
   //int		flipscreenwidth[MAXWIDTH];
   //int		*flipviewwidth;
 
 
-  //  lighttable_t***		scalelight = NULL;
-  //lighttable_t**		scalelightfixed = NULL;
   //lighttable_t***		zlight = NULL;
 
 Procedure R_InitLightTables();
-//        int		i;
-//      int		j;
-//      int		level;
-//      int		startmap;
-//      int		scale;
+Var
+  i, j, level, startmap, scale: int;
 Begin
+  If assigned(scalelight) Then Begin
+    For i := 0 To high(scalelight) Do Begin
+      setlength(scalelight[i], 0);
+    End;
+    setlength(scalelight, 0);
+    scalelight := Nil;
+  End;
 
-  //  If assigned(scalelight) Then Begin
+  //      if (scalelightfixed)
+  //      {
+  //  	free(scalelightfixed);
+  //      }
+  //
+  //      if (zlight)
+  //      {
   //  	for (i = 0; i < LIGHTLEVELS; i++)
   //  	{
-  //  		free(scalelight[i]);
+  //  		free(zlight[i]);
   //  	}
-  //  	free(scalelight);
-  //  End;
-
-//      if (scalelightfixed)
-//      {
-//  	free(scalelightfixed);
-//      }
-//
-//      if (zlight)
-//      {
-//  	for (i = 0; i < LIGHTLEVELS; i++)
-//  	{
-//  		free(zlight[i]);
-//  	}
-//  	free(zlight);
-//      }
-//
-//     // [crispy] smooth diminishing lighting
-//      if (crispy->smoothlight)
-//      {
-//  #ifdef CRISPY_TRUECOLOR
-//      if (crispy->truecolor)
-//      {
-//  	    // [crispy] if in TrueColor mode, use smoothest diminished lighting
-//  	    LIGHTLEVELS =      16 << 4;
-//  	    LIGHTSEGSHIFT =     4 -  4;
-//  	    LIGHTBRIGHT =       1 << 4;
-//  	    MAXLIGHTSCALE =    48 << 3;
-//  	    LIGHTSCALESHIFT =  12 -  3;
-//  	    MAXLIGHTZ =       128 << 6;
-//  	    LIGHTZSHIFT =      20 -  6;
-//      }
-//      else
-//  #endif
-//      {
-//  	    // [crispy] else, use paletted approach
-//  	    LIGHTLEVELS =      16 << 1;
-//  	    LIGHTSEGSHIFT =     4 -  1;
-//  	    LIGHTBRIGHT =       1 << 1;
-//  	    MAXLIGHTSCALE =    48 << 0;
-//  	    LIGHTSCALESHIFT =  12 -  0;
-//  	    MAXLIGHTZ =       128 << 3;
-//  	    LIGHTZSHIFT =      20 -  3;
-//      }
-//      }
-//      else
-//      {
-//  	LIGHTLEVELS =      16;
-//  	LIGHTSEGSHIFT =     4;
+  //  	free(zlight);
+  //      }
+  //
+  //     // [crispy] smooth diminishing lighting
+  //      if (crispy->smoothlight)
+  //      {
+  //  #ifdef CRISPY_TRUECOLOR
+  //      if (crispy->truecolor)
+  //      {
+  //  	    // [crispy] if in TrueColor mode, use smoothest diminished lighting
+  //  	    LIGHTLEVELS =      16 << 4;
+  //  	    LIGHTSEGSHIFT =     4 -  4;
+  //  	    LIGHTBRIGHT =       1 << 4;
+  //  	    MAXLIGHTSCALE =    48 << 3;
+  //  	    LIGHTSCALESHIFT =  12 -  3;
+  //  	    MAXLIGHTZ =       128 << 6;
+  //  	    LIGHTZSHIFT =      20 -  6;
+  //      }
+  //      else
+  //  #endif
+  //      {
+  //  	    // [crispy] else, use paletted approach
+  //  	    LIGHTLEVELS =      16 << 1;
+  //  	    LIGHTSEGSHIFT =     4 -  1;
+  //  	    LIGHTBRIGHT =       1 << 1;
+  //  	    MAXLIGHTSCALE =    48 << 0;
+  //  	    LIGHTSCALESHIFT =  12 -  0;
+  //  	    MAXLIGHTZ =       128 << 3;
+  //  	    LIGHTZSHIFT =      20 -  3;
+  //      }
+  //      }
+  //      else
+  //      {
+  LIGHTLEVELS := 16;
+  LIGHTSEGSHIFT := 4;
   LIGHTBRIGHT := 1;
-  //  	MAXLIGHTSCALE =    48;
-  //  	LIGHTSCALESHIFT =  12;
+  MAXLIGHTSCALE := 48;
+  LIGHTSCALESHIFT := 12;
   //  	MAXLIGHTZ =       128;
   //  	LIGHTZSHIFT =      20;
   //      }
-  //
-  //      scalelight = malloc(LIGHTLEVELS * sizeof(*scalelight));
+
+
+  setlength(scalelight, LIGHTLEVELS);
   //      scalelightfixed = malloc(MAXLIGHTSCALE * sizeof(*scalelightfixed));
   //      zlight = malloc(LIGHTLEVELS * sizeof(*zlight));
-  //
-  //      // Calculate the light levels to use
-  //      //  for each level / distance combination.
-  //      for (i=0 ; i< LIGHTLEVELS ; i++)
-  //      {
-  //  	scalelight[i] = malloc(MAXLIGHTSCALE * sizeof(**scalelight));
-  //  	zlight[i] = malloc(MAXLIGHTZ * sizeof(**zlight));
-  //
-  //  	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
-  //  	for (j=0 ; j<MAXLIGHTZ ; j++)
-  //  	{
-  //  	    scale = FixedDiv ((ORIGWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
-  //  	    scale >>= LIGHTSCALESHIFT;
-  //  	    level = startmap - scale/DISTMAP;
-  //
-  //  	    if (level < 0)
-  //  		level = 0;
-  //
-  //  	    if (level >= NUMCOLORMAPS)
-  //  		level = NUMCOLORMAPS-1;
-  //
-  //  	    zlight[i][j] = colormaps + level*256;
-  //  	}
-  //      }
+
+  // Calculate the light levels to use
+  //  for each level / distance combination.
+  For i := 0 To LIGHTLEVELS - 1 Do Begin
+    setlength(scalelight[i], MAXLIGHTSCALE);
+    //  	zlight[i] = malloc(MAXLIGHTZ * sizeof(**zlight));
+
+    //  	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
+    //  	for (j=0 ; j<MAXLIGHTZ ; j++)
+    //  	{
+    //  	    scale = FixedDiv ((ORIGWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
+    //  	    scale >>= LIGHTSCALESHIFT;
+    //  	    level = startmap - scale/DISTMAP;
+    //
+    //  	    if (level < 0)
+    //  		level = 0;
+    //
+    //  	    if (level >= NUMCOLORMAPS)
+    //  		level = NUMCOLORMAPS-1;
+    //
+    //  	    zlight[i][j] = colormaps + level*256;
+    //  	}
+  End;
 End;
 
 Procedure R_InitPointToAngle();
@@ -314,8 +341,67 @@ Begin
   End;
 End;
 
-// [crispy] overflow-safe R_PointToAngle() flavor
-// called only from R_CheckBBox(), R_AddLine() and P_SegLengths()
+Function R_PointToAngle(x, y: fixed_t): angle_t;
+Begin
+  result := R_PointToAngleSlope(x, y, @SlopeDiv);
+End;
+
+Procedure R_InitTextureMapping();
+Var
+  i, x, t: int;
+  focallength: fixed_t;
+Begin
+  // Use tangent table to generate viewangletox:
+  //  viewangletox will give the next greatest x
+  //  after the view angle.
+  //
+  // Calc focallength
+  //  so FIELDOFVIEW angles covers SCREENWIDTH.
+  focallength := FixedDiv(centerxfrac_nonwide, finetangent[FINEANGLES Div 4 + FIELDOFVIEW Div 2]);
+
+  For i := 0 To FINEANGLES Div 2 - 1 Do Begin
+    If (finetangent[i] > FRACUNIT * 2) Then
+      t := -1
+    Else If (finetangent[i] < -FRACUNIT * 2) Then
+      t := viewwidth + 1
+    Else Begin
+      t := FixedMul(finetangent[i], focallength);
+      t := int((centerxfrac - t + FRACUNIT - 1) Shr FRACBITS);
+
+      If (t < -1) Then
+        t := -1
+      Else If (t > viewwidth + 1) Then
+        t := viewwidth + 1;
+    End;
+    viewangletox[i] := t;
+  End;
+
+  // Scan viewangletox[] to generate xtoviewangle[]:
+  //  xtoviewangle will give the smallest view angle
+  //  that maps to x.
+
+  For x := 0 To viewwidth Do Begin
+    i := 0;
+    While (viewangletox[i] > x) Do
+      inc(i);
+
+    xtoviewangle[x] := angle_t((i Shl ANGLETOFINESHIFT) - ANG90);
+  End;
+
+  // Take out the fencepost cases from viewangletox.
+  For i := 0 To FINEANGLES Div 2 - 1 Do Begin
+
+    t := FixedMul(finetangent[i], focallength);
+    t := centerx - t;
+
+    If (viewangletox[i] = -1) Then
+      viewangletox[i] := 0
+    Else If (viewangletox[i] = viewwidth + 1) Then
+      viewangletox[i] := viewwidth;
+  End;
+
+  clipangle := xtoviewangle[0];
+End;
 
 Procedure R_ExecuteSetViewSize();
 Var
@@ -369,36 +455,42 @@ Begin
   centerxfrac_nonwide := (viewwidth_nonwide Div 2) Shl FRACBITS;
   projection := centerxfrac_nonwide;
 
-  //    if (!detailshift)
-  //    {
-  //	colfunc = basecolfunc = R_DrawColumn;
-  //	fuzzcolfunc = R_DrawFuzzColumn;
-  //	transcolfunc = R_DrawTranslatedColumn;
-  //	tlcolfunc = R_DrawTLColumn;
-  //	spanfunc = goobers_mode ? R_DrawSpanSolid : R_DrawSpan;
-  //    }
-  //    else
-  //    {
-  //	colfunc = basecolfunc = R_DrawColumnLow;
-  //	fuzzcolfunc = R_DrawFuzzColumnLow;
-  //	transcolfunc = R_DrawTranslatedColumnLow;
-  //	tlcolfunc = R_DrawTLColumnLow;
-  //	spanfunc = goobers_mode ? R_DrawSpanSolidLow : R_DrawSpanLow;
-  //    }
-  //
-  //    R_InitBuffer (scaledviewwidth, viewheight);
-  //
-  //    R_InitTextureMapping ();
-  //
-  //    // psprite scales
-  //    pspritescale = FRACUNIT*viewwidth_nonwide/ORIGWIDTH;
-  //    pspriteiscale = FRACUNIT*ORIGWIDTH/viewwidth_nonwide;
-  //
-  //    // thing clipping
-  //    for (i=0 ; i<viewwidth ; i++)
-  //	screenheightarray[i] = viewheight;
+  If (detailshift = 0) Then Begin
+    colfunc := @R_DrawColumn;
+    basecolfunc := @R_DrawColumn;
+    fuzzcolfunc := @R_DrawFuzzColumn;
+    transcolfunc := @R_DrawTranslatedColumn;
+    tlcolfunc := @R_DrawTLColumn;
+    If goobers_mode Then Begin
+      spanfunc := @R_DrawSpanSolid;
+    End
+    Else Begin
+      spanfunc := @R_DrawSpan;
+    End;
+  End
+  Else Begin
+    Raise exception.create('Missing porting.');
+    //	colfunc = basecolfunc = R_DrawColumnLow;
+    //	fuzzcolfunc = R_DrawFuzzColumnLow;
+    //	transcolfunc = R_DrawTranslatedColumnLow;
+    //	tlcolfunc = R_DrawTLColumnLow;
+    //	spanfunc = goobers_mode ? R_DrawSpanSolidLow : R_DrawSpanLow;
+  End;
 
-      // planes
+  R_InitBuffer(scaledviewwidth, viewheight);
+
+  R_InitTextureMapping();
+
+  // psprite scales
+  pspritescale := FRACUNIT * viewwidth_nonwide Div ORIGWIDTH;
+  pspriteiscale := FRACUNIT * ORIGWIDTH Div viewwidth_nonwide;
+
+  // thing clipping
+  For i := 0 To viewwidth - 1 Do Begin
+    screenheightarray[i] := viewheight;
+  End;
+
+  // planes
 
   For i := 0 To VIEWHEIGHT - 1 Do Begin
     // [crispy] re-generate lookup-table for yslope[] (free look)
@@ -417,46 +509,45 @@ Begin
     End;
   End;
   yslope := @yslopes[LOOKDIRMIN];
-  //
-  //    for (i=0 ; i<viewwidth ; i++)
-  //    {
-  //	cosadj = abs(finecosine[xtoviewangle[i]>>ANGLETOFINESHIFT]);
-  //	distscale[i] = FixedDiv (FRACUNIT,cosadj);
-  //    }
-  //
-  //    // Calculate the light levels to use
-  //    //  for each level / scale combination.
-  //    for (i=0 ; i< LIGHTLEVELS ; i++)
-  //    {
-  //
-  //	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
-  //	for (j=0 ; j<MAXLIGHTSCALE ; j++)
-  //	{
-  //	    level = startmap - j*NONWIDEWIDTH/(viewwidth_nonwide<<detailshift)/DISTMAP;
-  //
-  //	    if (level < 0)
-  //		level = 0;
-  //
-  //	    if (level >= NUMCOLORMAPS)
-  //		level = NUMCOLORMAPS-1;
-  //
-  //	    scalelight[i][j] = colormaps + level*256;
-  //	}
-  //    }
-  //
-  //    // [crispy] lookup table for horizontal screen coordinates
+
+  For i := 0 To viewwidth - 1 Do Begin
+    cosadj := abs(finecosine[xtoviewangle[i] Shr ANGLETOFINESHIFT]);
+    distscale[i] := FixedDiv(FRACUNIT, cosadj);
+  End;
+
+  // Calculate the light levels to use
+  //  for each level / scale combination.
+
+  For i := 0 To LIGHTLEVELS - 1 Do Begin
+    startmap := ((LIGHTLEVELS - LIGHTBRIGHT - i) * 2) * NUMCOLORMAPS Div LIGHTLEVELS;
+
+    For j := 0 To MAXLIGHTSCALE - 1 Do Begin
+      level := startmap - j * NONWIDEWIDTH Div (viewwidth_nonwide Shl detailshift) Div DISTMAP;
+
+      If (level < 0) Then level := 0;
+
+      If (level >= NUMCOLORMAPS) Then level := NUMCOLORMAPS - 1;
+
+      scalelight[i][j] := @colormaps[level * 256];
+    End;
+  End;
+
+  // [crispy] lookup table for horizontal screen coordinates
   //    for (i = 0, j = SCREENWIDTH - 1; i < SCREENWIDTH; i++, j--)
   //    {
   //	flipscreenwidth[i] = crispy->fliplevels ? j : i;
   //    }
-  //
+
   //    flipviewwidth = flipscreenwidth + (crispy->fliplevels ? (SCREENWIDTH - scaledviewwidth) : 0);
-  //
-  //    // [crispy] forcefully initialize the status bar backing screen
+
+  // [crispy] forcefully initialize the status bar backing screen
   //    ST_refreshBackground(true);
-  //
-  //    pspr_interp = false; // interpolate weapon bobbing
+
+  pspr_interp := false; // interpolate weapon bobbing
 End;
+
+// [crispy] overflow-safe R_PointToAngle() flavor
+// called only from R_CheckBBox(), R_AddLine() and P_SegLengths()
 
 Function R_PointToAngleCrispy(x, y: fixed_t): angle_t;
 Var
@@ -536,6 +627,38 @@ End;
 Function LerpFixed(oldvalue, newvalue: fixed_t): fixed_t;
 Begin
   result := (oldvalue + FixedMul(newvalue - oldvalue, fractionaltic));
+End;
+
+Function LerpAngle(oangle, nangle: angle_t): angle_t;
+//function
+Begin
+  If (nangle = oangle) Then Begin
+    result := nangle;
+  End
+  Else If (nangle > oangle) Then Begin
+    If (nangle - oangle < ANG270) Then Begin
+      result := oangle + angle_t(((nangle - oangle) * FIXED2DOUBLE(fractionaltic)));
+    End
+    Else Begin // Wrapped around
+      result := oangle - angle_t(((oangle - nangle) * FIXED2DOUBLE(fractionaltic)));
+    End;
+  End
+  Else Begin // nangle < oangle
+    If (oangle - nangle < ANG270) Then Begin
+      result := oangle - angle_t(((oangle - nangle) * FIXED2DOUBLE(fractionaltic)));
+    End
+    Else Begin // Wrapped around
+      result := oangle + angle_t(((nangle - oangle) * FIXED2DOUBLE(fractionaltic)));
+    End;
+  End;
+End;
+
+Procedure R_SetGoobers(mode: boolean);
+Begin
+  If (goobers_mode <> mode) Then Begin
+    goobers_mode := mode;
+    R_ExecuteSetViewSize();
+  End;
 End;
 
 Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;
@@ -638,14 +761,14 @@ Begin
   sscount := 0;
 
   If (player^.fixedcolormap <> 0) Then Begin
-    //	fixedcolormap =
-    //	    colormaps
-    //	    + player->fixedcolormap*(NUMCOLORMAPS / 32)*256; // [crispy] smooth diminishing lighting
-    //
-    //	walllights = scalelightfixed;
-    //
-    //	for (i=0 ; i<MAXLIGHTSCALE ; i++)
-    //	    scalelightfixed[i] = fixedcolormap;
+    fixedcolormap :=
+      colormaps
+      + player^.fixedcolormap * (NUMCOLORMAPS Div 32) * 256; // [crispy] smooth diminishing lighting
+
+    walllights := scalelightfixed;
+
+    For i := 0 To MAXLIGHTSCALE - 1 Do
+      scalelightfixed[i] := fixedcolormap;
   End
   Else Begin
     fixedcolormap := Nil;

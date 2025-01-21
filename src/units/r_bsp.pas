@@ -5,8 +5,21 @@ Unit r_bsp;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , info_types
+  , r_defs
+  ;
 
+Var
+  ds_p: int; // index in drawsegs
+  drawsegs: Array Of drawseg_t = Nil;
+  numdrawsegs: int = 0;
+  curline: ^seg_t;
+  sidedef: ^side_t;
+  linedef: ^line_t;
+
+  frontsector: ^sector_t;
+  backsector: ^sector_t;
 
 Procedure R_ClearClipSegs();
 Procedure R_ClearDrawSegs();
@@ -15,12 +28,12 @@ Procedure R_RenderBSPNode(bspnum: int);
 Implementation
 
 Uses
-  info_types, doomdata
+  doomdata, tables
   , d_loop
   , i_video
   , m_fixed
   , p_setup
-  , r_draw, r_defs, r_main, r_plane, r_sky
+  , r_draw, r_main, r_plane, r_sky, r_things, r_segs
   ;
 
 //
@@ -46,16 +59,6 @@ Const
 
 Var
 
-  curline: ^seg_t;
-  sidedef: ^side_t;
-  linedef: ^line_t;
-  frontsector: ^sector_t;
-  backsector: ^sector_t;
-
-  drawsegs: ^drawseg_t = Nil;
-  ds_p: ^drawseg_t;
-  numdrawsegs: int = 0;
-
   // newend is one past the last valid seg
   newend: ^cliprange_t;
   solidsegs: Array[0..MAXSEGS - 1] Of cliprange_t;
@@ -71,7 +74,7 @@ End;
 
 Procedure R_ClearDrawSegs();
 Begin
-  ds_p := drawsegs;
+  ds_p := 0;
 End;
 
 // [AM] Interpolate the passed sector, if prudent.
@@ -100,6 +103,258 @@ Begin
     sector^.interpfloorheight := sector^.floorheight;
     sector^.interpceilingheight := sector^.ceilingheight;
   End;
+End;
+
+
+//
+// R_ClipPassWallSegment
+// Clips the given range of columns,
+//  but does not includes it in the clip list.
+// Does handle windows,
+//  e.g. LineDefs with upper and lower texture.
+//
+
+Procedure R_ClipPassWallSegment(first, last: int);
+Var
+  start: ^cliprange_t;
+Begin
+
+  // Find the first range that touches the range
+  //  (adjacent pixels are touching).
+  start := solidsegs;
+  While (start^.last < first - 1) Do
+    inc(start);
+
+  If (first < start^.first) Then Begin
+
+    If (last < start^.first - 1) Then Begin
+      // Post is entirely visible (above start).
+      R_StoreWallRange(first, last);
+      exit;
+    End;
+
+    // There is a fragment above *start.
+    R_StoreWallRange(first, start^.first - 1);
+  End;
+
+  // Bottom contained in start?
+  If (last <= start^.last) Then exit;
+
+
+  While (last >= (start + 1)^.first - 1) Do Begin
+
+    // There is a fragment between two posts.
+    R_StoreWallRange(start^.last + 1, (start + 1)^.first - 1);
+    inc(start);
+    If (last <= start^.last) Then exit;
+  End;
+
+  // There is a fragment after *next.
+  R_StoreWallRange(start^.last + 1, last);
+End;
+
+//
+// R_ClipSolidWallSegment
+// Does handle solid walls,
+//  e.g. single sided LineDefs (middle texture)
+//  that entirely block the view.
+//
+
+Procedure R_ClipSolidWallSegment(first, last: int);
+Label
+  crunch;
+Var
+  next: ^cliprange_t;
+  start: ^cliprange_t;
+Begin
+
+  // Find the first range that touches the range
+  //  (adjacent pixels are touching).
+  start := solidsegs;
+  While (start^.last < first - 1) Do
+    inc(start);
+
+  If (first < start^.first) Then Begin
+
+    If (last < start^.first - 1) Then Begin
+
+      // Post is entirely visible (above start),
+      //  so insert a new clippost.
+      R_StoreWallRange(first, last);
+      next := newend;
+      newend := newend + 1;
+
+      While (next <> start) Do Begin
+        next^ := (next - 1)^;
+        dec(next);
+      End;
+      next^.first := first;
+      next^.last := last;
+      exit;
+    End;
+
+    // There is a fragment above *start.
+    R_StoreWallRange(first, start^.first - 1);
+    // Now adjust the clip size.
+    start^.first := first;
+  End;
+
+  // Bottom contained in start?
+  If (last <= start^.last) Then exit;
+
+  next := start;
+  While (last >= (next + 1)^.first - 1) Do Begin
+
+    // There is a fragment between two posts.
+    R_StoreWallRange(next^.last + 1, (next + 1)^.first - 1);
+    inc(next);
+
+    If (last <= next^.last) Then Begin
+
+      // Bottom is contained in next.
+      // Adjust the clip size.
+      start^.last := next^.last;
+      Goto crunch;
+    End;
+  End;
+
+  // There is a fragment after *next.
+  R_StoreWallRange(next^.last + 1, last);
+  // Adjust the clip size.
+  start^.last := last;
+
+  // Remove start+1 to next from the clip list,
+  // because start now covers their area.
+  crunch:
+
+  If (next = start) Then Begin
+    // Post just extended past the bottom of one post.
+    exit;
+  End;
+
+  // Übersetzt mit ChatGPT, mal sehen ob das passt
+  // Das foglende soll alle Elemente im Array um 1 verschieben
+  While (next <> newend) Do Begin
+    inc(next);
+    inc(start);
+    // Remove a post.
+    start^ := next^;
+  End;
+
+  newend := start + 1;
+End;
+
+//
+// R_AddLine
+// Clips the given segment
+// and adds any visible pieces to the line list.
+//
+
+Procedure R_AddLine(line: Pseg_t);
+Label
+  clipsolid;
+Label
+  clippass;
+Var
+  x1: int;
+  x2: int;
+  angle1: angle_t;
+  angle2: angle_t;
+  span: angle_t;
+  tspan: angle_t;
+Begin
+  curline := line;
+
+  // OPTIMIZE: quickly reject orthogonal back sides.
+  // [crispy] remove slime trails
+  angle1 := R_PointToAngleCrispy(line^.v1^.r_x, line^.v1^.r_y);
+  angle2 := R_PointToAngleCrispy(line^.v2^.r_x, line^.v2^.r_y);
+
+  // Clip to view edges.
+  // OPTIMIZE: make constant out of 2*clipangle (FIELDOFVIEW).
+  span := angle_t(angle1 - angle2);
+
+  // Back side? I.e. backface culling?
+  If (span >= ANG180) Then exit;
+
+
+  // Global angle needed by segcalc.
+  rw_angle1 := angle1;
+  angle1 := angle_t(angle1 - viewangle);
+  angle2 := angle_t(angle2 - viewangle);
+
+  tspan := angle_t(angle1 + clipangle);
+  If (tspan > 2 * clipangle) Then Begin
+    tspan := tspan - 2 * clipangle;
+    // Totally off the left edge?
+    If (tspan >= span) Then exit;
+    angle1 := clipangle;
+  End;
+  tspan := angle_t(clipangle - angle2);
+  If (tspan > 2 * clipangle) Then Begin
+    tspan := tspan - 2 * clipangle;
+    // Totally off the left edge?
+    If (tspan >= span) Then exit;
+    angle2 := angle_t(-clipangle);
+  End;
+
+  // The seg is in the view range,
+  // but not necessarily visible.
+  angle1 := (angle1 + ANG90) Shr ANGLETOFINESHIFT;
+  angle2 := (angle2 + ANG90) Shr ANGLETOFINESHIFT;
+  // TODO: WTF: Eigentlich darf das hier gar nicht vorkommen
+  //       Aber so wie es aussieht wird die "Widescreen" "ScreenWidth", Verreichnerei nicht richtig gemacht -> deswegen schepperts hier ..
+  If (angle1 >= 4096) Or
+    (angle2 >= 4096) Then Begin
+      nop();
+    exit;
+  End;
+  x1 := viewangletox[angle1];
+  x2 := viewangletox[angle2];
+
+  // Does not cross a pixel?
+  If (x1 = x2) Then exit;
+
+  backsector := line^.backsector;
+
+  // Single sided line?
+  If Not assigned(backsector) Then
+    Goto clipsolid;
+
+  // [AM] Interpolate sector movement before
+  //      running clipping tests.  Frontsector
+  //      should already be interpolated.
+  R_MaybeInterpolateSector(backsector);
+
+  // Closed door.
+  If (backsector^.interpceilingheight <= frontsector^.interpfloorheight) Or
+    (backsector^.interpfloorheight >= frontsector^.interpceilingheight) Then
+    Goto clipsolid;
+
+  // Window.
+  If (backsector^.interpceilingheight <> frontsector^.interpceilingheight)
+    Or (backsector^.interpfloorheight <> frontsector^.interpfloorheight) Then
+    Goto clippass;
+
+  // Reject empty lines used for triggers
+  //  and special events.
+  // Identical floor and ceiling on both sides,
+  // identical light levels on both sides,
+  // and no middle texture.
+  If (backsector^.ceilingpic = frontsector^.ceilingpic)
+    And (backsector^.floorpic = frontsector^.floorpic)
+    And (backsector^.rlightlevel = frontsector^.rlightlevel)
+    And (curline^.sidedef^.midtexture = 0)
+    Then Begin
+    exit;
+  End;
+
+  clippass:
+  R_ClipPassWallSegment(x1, x2 - 1);
+  exit;
+
+  clipsolid:
+  R_ClipSolidWallSegment(x1, x2 - 1);
 End;
 
 //
@@ -166,17 +421,15 @@ Begin
   Else
     ceilingplane := Nil;
 
-  hier gehts weiter
-
   R_AddSprites(frontsector);
 
-  //    while (count--)
-  //    {
-  //	R_AddLine (line);
-  //	line++;
-  //    }
-  //
-  //    // check for solidsegs overflow - extremely unsatisfactory!
+  While (count <> 0) Do Begin
+    R_AddLine(line);
+    line := line + 1;
+    dec(count);
+  End;
+
+  // check for solidsegs overflow - extremely unsatisfactory!
   //    if(newend > &solidsegs[32] && false)
   //        I_Error("R_Subsector: solidsegs overflow (vanilla may crash here)\n");
 End;

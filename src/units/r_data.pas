@@ -52,6 +52,18 @@ Type
     patches: Array Of texpatch_t;
   End;
 
+Var
+  colormaps: ^lighttable_t;
+
+  // needed for pre rendering
+  spritewidth: Array Of fixed_t;
+  spriteoffset: Array Of fixed_t;
+  spritetopoffset: Array Of fixed_t;
+
+  // for global animation
+  flattranslation: Array Of int;
+  texturetranslation: Array Of int;
+
 Procedure R_InitData();
 
 Function R_TextureNumForName(name: String): int;
@@ -67,8 +79,6 @@ Var
   lastspritelump: int;
   numspritelumps: int;
 
-  //  colormaps: lighttable_t;
-
 Implementation
 
 Uses
@@ -76,7 +86,7 @@ Uses
   , g_game
   , i_system
   , p_setup, p_tick, p_mobj
-  , r_bmaps, r_sky, r_things
+  , r_bmaps, r_sky, r_things, r_main
   , w_wad
   , v_video, v_trans, v_patch
   , z_zone
@@ -151,15 +161,6 @@ Var
   texturecomposite2: Array Of Array Of byte; // [crispy] composited opaque textures
   texturebrightmap: Array Of TBytes; // [crispy] brightmaps
 
-  // for global animation
-  flattranslation: Array Of Int;
-  texturetranslation: Array Of Int;
-
-  // needed for pre rendering
-  spritewidth: Array Of fixed_t;
-  spriteoffset: Array Of fixed_t;
-  spritetopoffset: Array Of fixed_t;
-
   //  lighttable_t	*colormaps;
   //  lighttable_t	*pal_color; // [crispy] array holding palette colors for true color mode
 
@@ -168,7 +169,13 @@ Procedure R_InitColormaps();
 Var
   playpal: Array Of Byte;
   i: Integer;
+  lump: int;
 Begin
+  // Load in the light tables,
+//  256 byte align tables.
+  lump := W_GetNumForName('COLORMAP');
+  colormaps := W_CacheLumpNum(lump, PU_STATIC);
+  NUMCOLORMAPS := 32; // [crispy] smooth diminishing lighting
   (*
    * Auslesen der FarbPallete, die Dankenswerter weise direct im .wad file steht ;)
    *)

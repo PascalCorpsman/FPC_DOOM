@@ -11,7 +11,14 @@ Const
   INT_MIN = -2147483648; // = low(int); ?
   INT_MAX = 2147483647; // = high(int); ?
 
+  BRIGHTMAPS_OFF = 0;
+  BRIGHTMAPS_TEXTURES = 1;
+  BRIGHTMAPS_SPRITES = 2;
+  BRIGHTMAPS_BOTH = 3;
+  NUM_BRIGHTMAPS = 4;
+
 Type
+  TProcedure = Procedure();
 
   signed_char = Int8;
 
@@ -33,11 +40,89 @@ Type
   float = single;
 
   TCrispy = Record
-    hires: Int; // 0, 1
-    bobfactor: int; // 0,1,2
-    uncapped: int; // 0, ? -> Wahrscheinlich boolean
+    // [crispy] "crispness" config variables
     automapoverlay: int; // 0, ?
+    //    	int automaprotate;
+    //    	int automapstats;
+    bobfactor: int; // 0,1,2
+    brightmaps: int;
+    //    	int btusetimer;
+    //    	int centerweapon;
+    coloredblood: int;
+    //    	int coloredhud;
+    //    	int crosshair;
+    //    	int crosshairhealth;
+    //    	int crosshairtarget;
+    //    	int crosshairtype;
+    //    	int defaultskill;
+    //    	int demotimer;
+    //    	int demotimerdir;
+    //    	int demobar;
+    //    	int extautomap;
+    flipcorpses: int;
+    //    	int fpslimit;
+    //    	int freeaim;
+    //    	int freelook;
+    //    	int freelook_hh;
+    //    	int gamma;
+    hires: Int; // 0, 1
+    //    	int jump;
+    //    	int leveltime;
+    //    	int mouselook;
+    //    	int neghealth;
+    //    	int overunder;
+    //    	int pitch;
+    //    	int playercoords;
+    //    	int secretmessage;
+    //    	int smoothlight;
+    //    	int smoothmap;
+    //    	int smoothscaling;
+    //    	int soundfix;
+    //    	int soundfull;
+    //    	int soundmono;
+    //    	int statsformat;
+    //    	int translucency;
+    //    #ifdef CRISPY_TRUECOLOR
+    //    	int truecolor;
+    //    #endif
+    uncapped: int; // 0, ?
+    //    	int vsync;
+    //    	int widescreen;
+
+    //    	// [crispy] in-game switches and variables
+    //    	int screenshotmsg;
+    //    	int snowflakes;
+    //    	int cleanscreenshot;
+    //    	int demowarp;
+    //    	int fps;
+
     flashinghom: Boolean;
+    //    	boolean fliplevels;
+    //    	boolean flipweapons;
+    //    	boolean haved1e5;
+    //    	boolean haved1e6;
+    //    	boolean havee1m10;
+    //    	boolean havemap33;
+    //    	boolean havessg;
+    //    	boolean singleplayer;
+    //    	boolean stretchsky;
+
+    //    	// [crispy] custom difficulty parameters
+    //    	boolean autohealth;
+    //    	boolean fast;
+    //    	boolean keysloc;
+    //    	boolean moreammo;
+    //    	boolean pistolstart;
+
+    //    	char *havenerve;
+    //    	char *havemaster;
+    //    	char *havesigil;
+    //    	char *havesigil2;
+
+    //    	const char *sdlversion;
+    //    	const char *platform;
+
+    //    	void (*post_rendering_hook) (void);
   End;
 
 Var
@@ -46,6 +131,8 @@ Var
 Procedure Nop(); // Just for debugging to have a breakpoint position ;)
 
 Function IfThen(aValue: Boolean; aTrueString: String; aFalseString: String): String;
+
+Generic Function Between < t > (l, u, x: t): t;
 
 Implementation
 
@@ -65,13 +152,45 @@ Begin
   End;
 End;
 
+Generic
+
+{ } Function Between < t > (l, u, x: t): t;
+
+Begin
+  If l > x Then Begin
+    result := l;
+  End
+  Else Begin
+    If u < x Then Begin
+      result := u;
+    End
+    Else Begin
+      result := x;
+    End;
+  End;
+End;
+
 Initialization
 
-  Crispy.hires := 1; // Das Spiel steht auf 1
-  Crispy.bobfactor := 0;
-  Crispy.uncapped := 0;
   Crispy.automapoverlay := 0;
+  Crispy.bobfactor := 0;
+  Crispy.brightmaps := 0;
+  Crispy.coloredblood := 0;
+  Crispy.flipcorpses := 0;
+  Crispy.hires := 0;
+  //  Crispy.extautomap := 1;
+  //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
+  Crispy.uncapped := 0;
   Crispy.flashinghom := false;
+
+  //  Crispy.smoothscaling := 1;
+  //  Crispy.soundfix := 1;
+    //    #ifdef CRISPY_TRUECOLOR
+    //    Crispy.smoothlight := 1;
+    //    Crispy.truecolor := 1;
+    //    #Endif
+  //  Crispy.vsync := 1;
+  //  Crispy.widescreen := 1; // match screen by default
 
 End.
 

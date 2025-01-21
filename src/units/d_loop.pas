@@ -12,7 +12,6 @@ Uses
   ;
 
 Type
-  TProcedure = Procedure();
   TRunTic = Procedure({cmds: Array Of ticcmd_t; Var ingame: boolean});
   TBuildTiccmd = Procedure(Var cmd: ticcmd_t; maketic: int);
 

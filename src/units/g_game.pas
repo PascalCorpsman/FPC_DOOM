@@ -94,7 +94,7 @@ Uses
   , hu_stuff
   , m_menu, m_argv, m_random, m_fixed
   , p_setup, p_mobj, p_inter, p_tick
-  , r_data, r_sky
+  , r_data, r_sky, r_main
   , s_sound, st_stuff
   ;
 
@@ -115,6 +115,7 @@ Var
   levelstarttic: int; // gametic at level start
 
   gamekeydown: Array[0..NUMKEYS - 1] Of boolean;
+  oldgamestate: gamestate_t; // WTF: die gibt es in D_Display auch als Static variable ...
 
 Procedure G_ClearSavename();
 Begin
@@ -531,10 +532,10 @@ Begin
   //    {
   //        WI_End();
   //    }
-  //
-  //    oldgamestate = gamestate;
-  //    oldleveltime = leveltime;
-  //
+
+  oldgamestate := gamestate;
+  oldleveltime := leveltime;
+
   //    // [crispy] no pause at intermission screen during demo playback
   //    // to avoid desyncs (from prboom-plus)
   //    if ((paused & 2 || (!demoplayback && menuactive && !netgame))
@@ -851,7 +852,7 @@ Begin
   paused := false;
   //    memset(mousearray, 0, sizeof(mousearray));
   //    memset(joyarray, 0, sizeof(joyarray));
-  //    R_SetGoobers(false);
+  R_SetGoobers(false);
 
   // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
   // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
