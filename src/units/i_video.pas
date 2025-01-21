@@ -181,11 +181,11 @@ Var
   b: Tbitmap;
 Begin
   b := TBitmap.Create;
-  b.Width := ORIGWIDTH;
-  b.Height := ORIGHEIGHT;
-  For i := 0 To ORIGWIDTH - 1 Do Begin
-    For j := 0 To ORIGHEIGHT - 1 Do Begin
-      b.canvas.pixels[i, j] := Doom8BitTo24RGBBit[source[j * ORIGWIDTH + i]];
+  b.Width := SCREENWIDTH;
+  b.Height := SCREENHEIGHT;
+  For i := 0 To SCREENWIDTH - 1 Do Begin
+    For j := 0 To SCREENHEIGHT - 1 Do Begin
+      b.canvas.pixels[i, j] := Doom8BitTo24RGBBit[source[j * SCREENWIDTH + i]];
     End;
   End;
   b.SaveToFile(format('DumpScreen%0.3d.bmp', [dumpIndex]));
@@ -775,7 +775,7 @@ Begin
     OpenGLData[i][2] := (rgb Shr 16) And $FF;
   End;
 
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ORIGWIDTH, ORIGHEIGHT, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SCREENWIDTH, SCREENHEIGHT, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
 
   // 2. Anpassen des Screens
   // TODO: Da kann man später das Aspectratio zeug mit einbaun ...
@@ -788,11 +788,11 @@ Begin
   glTexCoord2f(0, 0);
   glvertex3f(0, 0, 0);
   glTexCoord2f(1, 0);
-  glvertex3f(ORIGWIDTH, 0, 0);
+  glvertex3f(SCREENWIDTH, 0, 0);
   glTexCoord2f(1, 1);
-  glvertex3f(ORIGWIDTH, ORIGHEIGHT, 0);
+  glvertex3f(SCREENWIDTH, SCREENHEIGHT, 0);
   glTexCoord2f(0, 1);
-  glvertex3f(0, ORIGHEIGHT, 0);
+  glvertex3f(0, SCREENHEIGHT, 0);
   glend;
   glPopMatrix;
 

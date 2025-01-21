@@ -67,10 +67,7 @@ End;
 
 Initialization
 
-  (*
-   * Steht Crispy.hires auf 1, dann gibts AV's, weil der Code zu angangs das nicht berücksichtigt hatte, alle hires stellen müssen noch mal neu gesucht und bearbeitet werden !
-   *)
-  Crispy.hires := 0; // Das Spiel steht auf 1, aber die Aktuelle Portierung kriegt das noch nicht mit 1 hin ..
+  Crispy.hires := 1; // Das Spiel steht auf 1
   Crispy.bobfactor := 0;
   Crispy.uncapped := 0;
   Crispy.automapoverlay := 0;

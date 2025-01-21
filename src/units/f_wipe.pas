@@ -40,8 +40,8 @@ Var
 
 Function wipe_StartScreen(x, y, width, height: int): int;
 Begin
-  If length(wipe_scr_start) <> ORIGWIDTH * ORIGHEIGHT Then Begin
-    setlength(wipe_scr_start, ORIGWIDTH * ORIGHEIGHT);
+  If length(wipe_scr_start) <> SCREENWIDTH * SCREENHEIGHT Then Begin
+    setlength(wipe_scr_start, SCREENWIDTH * SCREENHEIGHT);
   End;
   I_ReadScreen(wipe_scr_start);
   result := 0;
@@ -49,8 +49,8 @@ End;
 
 Function wipe_EndScreen(x, y, width, height: int): int;
 Begin
-  If length(wipe_scr_end) <> ORIGWIDTH * ORIGHEIGHT Then Begin
-    setlength(wipe_scr_end, ORIGWIDTH * ORIGHEIGHT);
+  If length(wipe_scr_end) <> SCREENWIDTH * SCREENHEIGHT Then Begin
+    setlength(wipe_scr_end, SCREENWIDTH * SCREENHEIGHT);
   End;
   I_ReadScreen(wipe_scr_end);
   // FillChar(wipe_scr_end[0], length(wipe_scr_end), 0); // DEBUG: to be removed makes the Wipe target screen black
