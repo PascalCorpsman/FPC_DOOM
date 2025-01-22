@@ -399,7 +399,7 @@ Begin
   linedef := curline^.linedef;
 
   // mark the segment as visible for auto map
-  linedef^.flags := linedef^.flags + ML_MAPPED;
+  linedef^.flags := linedef^.flags Or ML_MAPPED;
 
   // [crispy] (flags & ML_MAPPED) is all we need to know for automap
   If (automapactive) And (crispy.automapoverlay = 0) Then exit;

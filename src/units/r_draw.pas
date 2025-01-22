@@ -30,7 +30,7 @@ Var
   dc_texheight: int; // [crispy] Tutti-Frutti fix
 
   // first pixel in a column (possibly virtual)
-  dc_source: Array Of Byte;
+  dc_source: PByte;
 
   // just for profiling
   ccount: int;

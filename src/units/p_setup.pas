@@ -954,7 +954,7 @@ End;
 Procedure P_LoadThings(lump: int);
 Var
   i: int;
-  mt: ^mapthing_t; // WTF: warum kann man hier nicht array of schreiben ?
+  mt: ^mapthing_t;
   spawnthing: mapthing_t;
   numthings: int;
   spawn: Boolean;

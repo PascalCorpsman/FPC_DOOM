@@ -74,7 +74,7 @@ Function R_FlatNumForName(Const name: String): int;
 
 Procedure R_PrecacheLevel();
 
-Function R_GetColumn(tex, col: int): TBytes;
+Function R_GetColumn(tex, col: int): PByte;
 
 Var
   textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
@@ -1273,7 +1273,7 @@ Begin
   setlength(spritepresent, 0);
 End;
 
-Function R_GetColumn(tex, col: int): TBytes;
+Function R_GetColumn(tex, col: int): PByte;
 Var
   ofs: int;
 Begin
