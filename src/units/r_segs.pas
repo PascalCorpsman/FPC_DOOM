@@ -333,8 +333,8 @@ Var
   den: int;
   scale, num: fixed_t;
 Begin
-  anglea := ANG90 + (visangle - viewangle);
-  angleb := ANG90 + (visangle - rw_normalangle);
+  anglea := angle_t(ANG90 + (visangle - viewangle));
+  angleb := angle_t(ANG90 + (visangle - rw_normalangle));
   den := FixedMul(rw_distance, finesine[anglea Shr ANGLETOFINESHIFT]);
   num := FixedMul(projection, finesine[angleb Shr ANGLETOFINESHIFT]) Shl detailshift;
 
@@ -635,7 +635,7 @@ Begin
     // [crispy] fix long wall wobble
     rw_offset := fixed_t((((dx * dx1 + dy * dy1) Div len) Shl 1));
     rw_offset := rw_offset + sidedef^.textureoffset + curline^.offset;
-    rw_centerangle := ANG90 + viewangle - rw_normalangle;
+    rw_centerangle := angle_t(ANG90 + viewangle - rw_normalangle);
 
     // calculate light table
     //  use different light tables
