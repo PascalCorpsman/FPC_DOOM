@@ -153,7 +153,7 @@ Begin
     If (segtextured) Then Begin
 
       // calculate texture offset
-      angle := SarLongint(rw_centerangle + xtoviewangle[rw_x], ANGLETOFINESHIFT);
+      angle := SarLongint(angle_t(rw_centerangle + xtoviewangle[rw_x]), ANGLETOFINESHIFT);
       texturecolumn := rw_offset - FixedMul(finetangent[angle], rw_distance);
       texturecolumn := SarLongint(texturecolumn, FRACBITS);
       // calculate lighting
@@ -430,11 +430,11 @@ Begin
   R_FixWiggle(frontsector);
 
   // calculate scale at both ends and step
-  drawsegs[ds_p].scale1 := R_ScaleFromGlobalAngle(viewangle + xtoviewangle[start]);
+  drawsegs[ds_p].scale1 := R_ScaleFromGlobalAngle(angle_t(viewangle + xtoviewangle[start]));
   rw_scale := drawsegs[ds_p].scale1;
 
   If (stop > start) Then Begin
-    drawsegs[ds_p].scale2 := R_ScaleFromGlobalAngle(viewangle + xtoviewangle[stop]);
+    drawsegs[ds_p].scale2 := R_ScaleFromGlobalAngle(angle_t(viewangle + xtoviewangle[stop]));
     drawsegs[ds_p].scalestep := (drawsegs[ds_p].scale2 - rw_scale) Div (stop - start);
     rw_scalestep := drawsegs[ds_p].scalestep;
   End

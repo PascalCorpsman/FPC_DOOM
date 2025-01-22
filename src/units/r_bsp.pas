@@ -300,15 +300,8 @@ Begin
 
   // The seg is in the view range,
   // but not necessarily visible.
-  angle1 := (angle1 + ANG90) Shr ANGLETOFINESHIFT;
-  angle2 := (angle2 + ANG90) Shr ANGLETOFINESHIFT;
-  // TODO: WTF: Eigentlich darf das hier gar nicht vorkommen
-  //       Aber so wie es aussieht wird die "Widescreen" "ScreenWidth", Verreichnerei nicht richtig gemacht -> deswegen schepperts hier ..
-  If (angle1 >= 4096) Or
-    (angle2 >= 4096) Then Begin
-    nop();
-    exit;
-  End;
+  angle1 := SarLongint(angle_t(angle1 + ANG90), ANGLETOFINESHIFT);
+  angle2 := SarLongint(angle_t(angle2 + ANG90), ANGLETOFINESHIFT);
   x1 := viewangletox[angle1];
   x2 := viewangletox[angle2];
 

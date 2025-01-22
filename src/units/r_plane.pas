@@ -121,7 +121,7 @@ Procedure R_RaiseVisplanes(vp: int);
 Var
   k, numvisplanes_old: int;
 Begin
-  If Not assigned(visplanes) Or (vp >= length(visplanes)) Then Begin
+  If Not assigned(visplanes) Or (vp >= length(visplanes) - 1) Then Begin
     numvisplanes_old := length(visplanes);
     If numvisplanes_old <> 0 Then Begin
       numvisplanes := 2 * numvisplanes;
