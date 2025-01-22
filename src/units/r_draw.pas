@@ -163,6 +163,7 @@ Begin
 
   // Zero length, column does not exceed a pixel.
   If (count < 0) Then exit;
+  count := count + 1; // Corpsman Fix off by 1 in While loop
 
   //#ifdef RANGECHECK
   //    if ((unsigned)dc_x >= SCREENWIDTH
@@ -445,7 +446,7 @@ End;
 
 Procedure R_DrawSpan();
 Var
-  position, step: unsigned_int;
+  //  position, step: unsigned_int;
   dest: ^pixel_t;
   count: int;
   spot: int;
@@ -482,6 +483,8 @@ Begin
   // We do not check for zero spans here?
   count := ds_x2 - ds_x1;
 
+  count := count + 1; // Corpsman Fix off by 1 in While loop
+
   Repeat
     // Calculate current texture index in u,v.
     // [crispy] fix flats getting more distorted the closer they are to the right
@@ -493,7 +496,6 @@ Begin
     //  re-index using light/colormap.
     source := ds_source[spot];
     // WTF: Hier ist das "Flipped" noch nicht berücksichtigt
-
     //	dest = ylookup[ds_y] + columnofs[flipviewwidth[ds_x1++]];
     dest := @I_VideoBuffer[ds_y * SCREENWIDTH + ds_x1];
     ds_x1 := ds_x1 + 1;
