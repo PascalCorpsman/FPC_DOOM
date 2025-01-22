@@ -44,4 +44,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.01.12) integrate keyboard event loop and main menu with quit button ![](documentation/Menu_first.gif)
 - (2025.01.13) finish part of menues necessary to actually start a game ![](documentation/Menu_til_start.gif)
 - (2025.01.20) finish wipe function ![](documentation/wipe.gif)
-- (2025.01.22) able to create very first screenrendering ![](documentation/very_first_screenrender.png) <br> now the hard journey of finding bugs begins..
+- (2025.01.22) able to create very first screenrendering ![](documentation/very_first_screenrender.png) <br> still missing flats..
