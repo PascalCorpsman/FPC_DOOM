@@ -170,7 +170,7 @@ Begin
   //  e.g. a DDA-lile scaling.
   // This is as fast as it gets.
 
-// heightmask is the Tutti-Frutti fix -- killough
+  // heightmask is the Tutti-Frutti fix -- killough
   If (dc_texheight And heightmask) <> 0 Then Begin // not a power of 2 -- killough
     inc(heightmask);
     heightmask := heightmask Shl FRACBITS;
@@ -192,7 +192,7 @@ Begin
       If (frac >= heightmask) Then
         frac := frac - heightmask;
       count := count - 1;
-    Until count = 0;
+    Until count <= 0;
   End
   Else Begin // texture height is a power of 2 -- killough
     Repeat
@@ -204,7 +204,7 @@ Begin
       inc(dest, SCREENWIDTH);
       frac := frac + fracstep;
       count := count - 1;
-    Until count = 0;
+    Until count <= 0;
   End;
 End;
 

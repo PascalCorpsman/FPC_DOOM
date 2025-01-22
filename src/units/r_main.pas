@@ -366,8 +366,7 @@ Begin
       t := viewwidth + 1
     Else Begin
       t := FixedMul(finetangent[i], focallength);
-      t := int((centerxfrac - t + FRACUNIT - 1) Shr FRACBITS);
-
+      t := int(SarLongint(centerxfrac - t + FRACUNIT - 1, FRACBITS));
       If (t < -1) Then
         t := -1
       Else If (t > viewwidth + 1) Then
@@ -511,7 +510,7 @@ Begin
   yslope := @yslopes[LOOKDIRMIN];
 
   For i := 0 To viewwidth - 1 Do Begin
-    cosadj := abs(finecosine[xtoviewangle[i] Shr ANGLETOFINESHIFT]);
+    cosadj := abs(finecosine[xtoviewangle[i] Shr ANGLETOFINESHIFT]); // Hier darf kein SarLongint sein !
     distscale[i] := FixedDiv(FRACUNIT, cosadj);
   End;
 
