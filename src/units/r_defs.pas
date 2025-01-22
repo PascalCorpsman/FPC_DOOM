@@ -181,7 +181,6 @@ Type
     spriteframes: Array Of spriteframe_t;
   End;
 
-
   //
   // Now what is a visplane, anyway?
   //
@@ -193,25 +192,18 @@ Type
     minx: int;
     maxx: int;
 
-    // leave pads for [minx-1]/[maxx+1]
-
-    pad1: unsigned_int; // [crispy] hires / 32-bit integer math
     // Here lies the rub for all
     //  dynamic resize/change of resolution.
-    top: Array[0..MAXWIDTH - 1] Of unsigned_int; // [crispy] hires / 32-bit integer math
-    pad2: unsigned_int; // [crispy] hires / 32-bit integer math
-    pad3: unsigned_int; // [crispy] hires / 32-bit integer math
+    top: Array[-1..MAXWIDTH] Of unsigned_int; // leave pads for [minx-1]/[maxx+1]
     // See above.
-    bottom: Array[0..MAXWIDTH - 1] Of unsigned_int; // [crispy] hires / 32-bit integer math
-    pad4: unsigned_int; // [crispy] hires / 32-bit integer math
+    bottom: Array[-1..MAXWIDTH] Of unsigned_int; // leave pads for [minx-1]/[maxx+1]
   End;
 
   Pvisplane_t = ^visplane_t;
-  //  PPvisplane_t = ^Pvisplane_t;
 
-    //
-    // ?
-    //
+  //
+  // ?
+  //
   drawseg_t = Record
 
     curline: Pseg_t;
@@ -236,9 +228,7 @@ Type
     sprtopclip: P_int; // [crispy] 32-bit integer math
     sprbottomclip: P_int; // [crispy] 32-bit integer math
     maskedtexturecol: P_int; // [crispy] 32-bit integer math
-
   End;
-
 
 Implementation
 

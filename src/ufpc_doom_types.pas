@@ -62,16 +62,16 @@ Type
     flipcorpses: int;
     //    	int fpslimit;
     //    	int freeaim;
-    //    	int freelook;
+    freelook: int; // 0,1 ?
     //    	int freelook_hh;
     //    	int gamma;
     hires: Int; // 0, 1
     //    	int jump;
     //    	int leveltime;
-    //    	int mouselook;
+    mouselook: int; // ?
     //    	int neghealth;
     //    	int overunder;
-    //    	int pitch;
+    pitch: int; // ?
     //    	int playercoords;
     //    	int secretmessage;
     //    	int smoothlight;
@@ -105,7 +105,7 @@ Type
     //    	boolean havemap33;
     //    	boolean havessg;
     //    	boolean singleplayer;
-    //    	boolean stretchsky;
+    stretchsky: Boolean; // wird in R_InitSkyMap initialisiert
 
     //    	// [crispy] custom difficulty parameters
     //    	boolean autohealth;
@@ -177,11 +177,16 @@ Initialization
   Crispy.brightmaps := 0;
   Crispy.coloredblood := 0;
   Crispy.flipcorpses := 0;
+  Crispy.freelook := 0;
+
   Crispy.hires := 0;
   //  Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
+  Crispy.mouselook := 0;
+  Crispy.pitch := 0;
   Crispy.uncapped := 0;
   Crispy.flashinghom := false;
+  Crispy.stretchsky := false;
 
   //  Crispy.smoothscaling := 1;
   //  Crispy.soundfix := 1;

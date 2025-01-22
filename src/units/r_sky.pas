@@ -8,6 +8,12 @@ Uses
   ufpc_doom_types, Classes, SysUtils;
 
 Const
+  // The sky map is 256*128*4 maps.
+  ANGLETOSKYSHIFT = 22;
+
+  // [crispy] stretch sky
+  SKYSTRETCH_HEIGHT = 228;
+
   // SKY, store the number for name.
   SKYFLATNAME = 'F_SKY1';
 
@@ -29,13 +35,6 @@ Uses
   , v_video
   ;
 
-Const
-  // The sky map is 256*128*4 maps.
-  ANGLETOSKYSHIFT = 22;
-
-  // [crispy] stretch sky
-  SKYSTRETCH_HEIGHT = 228;
-
 Procedure R_InitSkyMap();
 Var
   skyheight: int;
@@ -46,17 +45,17 @@ Begin
     exit;
   End;
 
-  //    crispy->stretchsky = crispy->freelook || crispy->mouselook || crispy->pitch;
+  crispy.stretchsky := (crispy.freelook <> 0) Or (crispy.mouselook <> 0) Or (crispy.pitch <> 0);
   skyheight := textureheight[skytexture] Shr FRACBITS;
 
-  If (false {crispy->stretchsky}) And (skyheight < 200) Then Begin
+  If (crispy.stretchsky) And (skyheight < 200) Then Begin
     skytexturemid := -28 * FRACUNIT;
   End
   Else If (skyheight >= 200) Then Begin
     skytexturemid := 200 * FRACUNIT;
   End
   Else Begin
-    skytexturemid := ORIGHEIGHT div 2 * FRACUNIT;
+    skytexturemid := ORIGHEIGHT Div 2 * FRACUNIT;
   End;
 End;
 

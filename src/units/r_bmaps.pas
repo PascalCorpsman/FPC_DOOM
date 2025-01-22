@@ -10,7 +10,7 @@ Uses
 Type
   R_BrightmapForTexNameT = Function(Const texname: String): TBytes;
   R_BrightmapForSpriteT = Function(Const _type: int): TBytes; // TODO: das int sollte spritenum_t sein !
-  R_BrightmapForFlatNumT = Function(Const num: int): String;
+  R_BrightmapForFlatNumT = Function(Const num: int): PByte;
   R_BrightmapForStateT = Function(Const state: int): String;
 
 Var
@@ -429,19 +429,17 @@ Begin
   //	return nobrightmap;
 End;
 
-Function R_BrightmapForFlatNum_Doom(Const num: int): String;
+Function R_BrightmapForFlatNum_Doom(Const num: int): PByte;
 Begin
-  //	if (crispy->brightmaps & BRIGHTMAPS_TEXTURES)
-  //	{
-  //		if (num == bmapflatnum[0] ||
-  //		    num == bmapflatnum[1] ||
-  //		    num == bmapflatnum[2])
-  //		{
-  //			return notgrayorbrown;
-  //		}
-  //	}
-  //
-  //	return nobrightmap;
+  If (crispy.brightmaps And BRIGHTMAPS_TEXTURES) <> 0 Then Begin
+    If (num = bmapflatnum[0]) Or
+      (num = bmapflatnum[1]) Or
+      (num = bmapflatnum[2]) Then Begin
+      result := @notgrayorbrown[0];
+      exit;
+    End;
+  End;
+  result := @nobrightmap[0];
 End;
 
 Function R_BrightmapForState_Doom(Const state: int): String;

@@ -21,8 +21,8 @@ Var
   LIGHTBRIGHT: int;
   MAXLIGHTSCALE: int;
   LIGHTSCALESHIFT: int;
-  //int MAXLIGHTZ;
-  //int LIGHTZSHIFT;
+  MAXLIGHTZ: int;
+  LIGHTZSHIFT: int;
 
   viewx: fixed_t;
   viewy: fixed_t;
@@ -63,7 +63,7 @@ Var
   // to the lowest viewangle that maps back to x ranges
   // from clipangle to -clipangle.
   xtoviewangle: Array[0..MAXWIDTH] Of angle_t;
-  fixedcolormap: Plighttable_t;
+  fixedcolormap: plighttable_t;
 
   colfunc: TProcedure = Nil;
   basecolfunc: TProcedure = Nil;
@@ -71,6 +71,10 @@ Var
   transcolfunc: TProcedure = Nil;
   tlcolfunc: TProcedure = Nil;
   spanfunc: TProcedure = Nil;
+
+  zlight: Array Of Array Of Plighttable_t = Nil;
+  centery: int;
+  centerx: int;
 
 Procedure R_Init();
 Procedure R_ExecuteSetViewSize();
@@ -119,18 +123,12 @@ Var
 
   viewplayer: pplayer_t;
 
-  centerx: int;
-  centery: int;
-
   scaledviewwidth_nonwide, viewwidth_nonwide: int;
   centerxfrac_nonwide: fixed_t;
 
   // [crispy] lookup table for horizontal screen coordinates
   //int		flipscreenwidth[MAXWIDTH];
   //int		*flipviewwidth;
-
-
-  //lighttable_t***		zlight = NULL;
 
 Procedure R_InitLightTables();
 Var
@@ -144,11 +142,8 @@ Begin
     scalelight := Nil;
   End;
 
-  //      if (scalelightfixed)
-  //      {
-  //  	free(scalelightfixed);
-  //      }
-  //
+  setlength(scalelightfixed, 0);
+
   //      if (zlight)
   //      {
   //  	for (i = 0; i < LIGHTLEVELS; i++)
@@ -157,8 +152,8 @@ Begin
   //  	}
   //  	free(zlight);
   //      }
-  //
-  //     // [crispy] smooth diminishing lighting
+
+  // [crispy] smooth diminishing lighting
   //      if (crispy->smoothlight)
   //      {
   //  #ifdef CRISPY_TRUECOLOR
@@ -193,36 +188,34 @@ Begin
   LIGHTBRIGHT := 1;
   MAXLIGHTSCALE := 48;
   LIGHTSCALESHIFT := 12;
-  //  	MAXLIGHTZ =       128;
-  //  	LIGHTZSHIFT =      20;
+  MAXLIGHTZ := 128;
+  LIGHTZSHIFT := 20;
   //      }
 
 
   setlength(scalelight, LIGHTLEVELS);
-  //      scalelightfixed = malloc(MAXLIGHTSCALE * sizeof(*scalelightfixed));
-  //      zlight = malloc(LIGHTLEVELS * sizeof(*zlight));
+  setlength(scalelightfixed, MAXLIGHTSCALE);
+  setlength(zlight, LIGHTLEVELS);
 
   // Calculate the light levels to use
   //  for each level / distance combination.
   For i := 0 To LIGHTLEVELS - 1 Do Begin
     setlength(scalelight[i], MAXLIGHTSCALE);
-    //  	zlight[i] = malloc(MAXLIGHTZ * sizeof(**zlight));
+    setlength(zlight[i], MAXLIGHTZ);
 
-    //  	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
-    //  	for (j=0 ; j<MAXLIGHTZ ; j++)
-    //  	{
-    //  	    scale = FixedDiv ((ORIGWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
-    //  	    scale >>= LIGHTSCALESHIFT;
-    //  	    level = startmap - scale/DISTMAP;
-    //
-    //  	    if (level < 0)
-    //  		level = 0;
-    //
-    //  	    if (level >= NUMCOLORMAPS)
-    //  		level = NUMCOLORMAPS-1;
-    //
-    //  	    zlight[i][j] = colormaps + level*256;
-    //  	}
+    startmap := ((LIGHTLEVELS - LIGHTBRIGHT - i) * 2) * NUMCOLORMAPS Div LIGHTLEVELS;
+    For j := 0 To MAXLIGHTZ - 1 Do Begin
+
+      scale := FixedDiv((ORIGWIDTH Div 2 * FRACUNIT), (j + 1) Shl LIGHTZSHIFT);
+      scale := SarLongint(scale, LIGHTSCALESHIFT);
+      level := startmap - scale Div DISTMAP;
+
+      If (level < 0) Then level := 0;
+
+      If (level >= NUMCOLORMAPS) Then level := NUMCOLORMAPS - 1;
+
+      zlight[i][j] := @colormaps[level * 256];
+    End;
   End;
 End;
 
@@ -719,7 +712,7 @@ Begin
     viewx := player^.mo^.x;
     viewy := player^.mo^.y;
     viewz := player^.viewz;
-    viewangle := player^.mo^.angle + viewangleoffset;
+    viewangle := angle_t(player^.mo^.angle + viewangleoffset);
 
     // [crispy] pitch is actual lookdir and weapon pitch
     pitch := player^.lookdir Div MLOOKUNIT + player^.recoilpitch;
@@ -748,7 +741,6 @@ Begin
     tempCentery := viewheight Div 2 + (pitch * (1 Shr crispy.hires)) * (11) Div 10;
   End;
   If (centery <> tempCentery) Then Begin
-
     centery := tempCentery;
     centeryfrac := centery Shl FRACBITS;
     yslope := @yslopes[LOOKDIRMIN + pitch];
@@ -813,14 +805,14 @@ Begin
   // Check for new console commands.
   NetUpdate();
 
-  //    R_DrawPlanes ();
+  R_DrawPlanes();
 
   // Check for new console commands.
   NetUpdate();
 
-  //    // [crispy] draw fuzz effect independent of rendering frame rate
-  //    R_SetFuzzPosDraw();
-  //    R_DrawMasked ();
+  // [crispy] draw fuzz effect independent of rendering frame rate
+//    R_SetFuzzPosDraw();
+  R_DrawMasked();
 
   // Check for new console commands.
   NetUpdate();

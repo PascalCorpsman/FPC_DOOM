@@ -61,6 +61,7 @@ Var
   spritetopoffset: Array Of fixed_t;
 
   // for global animation
+  firstflat: int;
   flattranslation: Array Of int;
   texturetranslation: Array Of int;
   texturebrightmap: Array Of TBytes; // [crispy] brightmaps
@@ -75,6 +76,7 @@ Function R_FlatNumForName(Const name: String): int;
 Procedure R_PrecacheLevel();
 
 Function R_GetColumn(tex, col: int): PByte;
+Function R_GetColumnMod2(tex, col: int): PByte;
 
 Var
   textureheight: Array Of fixed_t; // [crispy] texture height for Tutti-Frutti fix
@@ -136,8 +138,6 @@ Type
   End;
 
 Var
-
-  firstflat: int;
   lastflat: int;
   numflats: int;
 
@@ -1278,6 +1278,18 @@ Var
   ofs: int;
 Begin
   col := col And texturewidthmask[tex];
+  ofs := texturecolumnofs2[tex][col];
+  If Not assigned(texturecomposite2[tex]) Then R_GenerateComposite(tex);
+  result := @texturecomposite2[tex][ofs];
+End;
+
+Function R_GetColumnMod2(tex, col: int): PByte;
+Var
+  ofs: int;
+Begin
+  While (col < 0) Do
+    col := col + texturewidth[tex];
+  col := col Mod texturewidth[tex];
   ofs := texturecolumnofs2[tex][col];
   If Not assigned(texturecomposite2[tex]) Then R_GenerateComposite(tex);
   result := @texturecomposite2[tex][ofs];

@@ -49,6 +49,9 @@ Var
   bmaporgx: fixed_t;
   bmaporgy: fixed_t;
 
+  numlines: int;
+  lines: Array Of line_t;
+
 Function P_GetNumForMap(episode, map: int; critical: boolean): int;
 
 Procedure P_SetupLevel(episode, map, playermask: int; skill: skill_t);
@@ -102,9 +105,6 @@ Var
   //
   numvertexes: int;
   vertexes: Array Of vertex_t;
-
-  numlines: int;
-  lines: Array Of line_t;
 
   totallines: int;
 

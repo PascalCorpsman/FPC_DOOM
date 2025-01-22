@@ -45,6 +45,7 @@ Procedure R_InitSprites(Const namelist: Array Of String);
 Procedure R_ClearSprites();
 
 Procedure R_AddSprites(sec: Psector_t);
+Procedure R_DrawMasked();
 
 Implementation
 
@@ -639,6 +640,46 @@ Begin
   End;
 End;
 
+Procedure R_DrawMasked();
+Begin
+  //   vissprite_t*	spr;
+  //    drawseg_t*		ds;
+  //
+  //    R_SortVisSprites ();
+  //
+  //    if (vissprite_p > vissprites)
+  //    {
+  //	// draw all vissprites back to front
+  //#ifdef HAVE_QSORT
+  //	for (spr = vissprites;
+  //	     spr < vissprite_p;
+  //	     spr++)
+  //#else
+  //	for (spr = vsprsortedhead.next ;
+  //	     spr != &vsprsortedhead ;
+  //	     spr=spr->next)
+  //#endif
+  //	{
+  //
+  //	    R_DrawSprite (spr);
+  //	}
+  //    }
+  //
+  //    // render any remaining masked mid textures
+  //    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
+  //	if (ds->maskedtexturecol)
+  //	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
+  //
+  //    if (crispy->cleanscreenshot == 2)
+  //        return;
+  //
+  //    // draw the psprites on top of everything
+  //    //  but does not draw on side views
+  //    if (!viewangleoffset)
+  //	R_DrawPlayerSprites ();
+
+
+End;
 
 End.
 

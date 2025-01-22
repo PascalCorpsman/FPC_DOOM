@@ -18,8 +18,7 @@ Var
 
 
   //
-  // R_DrawColumn
-  // Source is the top of the column to scale.
+  // R_DrawColumn - Variablen
   //
   dc_colormap: Array[0..1] Of Plighttable_t; // [crispy] brightmaps
   dc_x: int;
@@ -35,6 +34,24 @@ Var
   // just for profiling
   ccount: int;
 
+  // R_DrawSpan - Variablen
+  ds_y: int;
+  ds_x1: int;
+  ds_x2: int;
+
+  ds_colormap: Array[0..1] Of plighttable_t;
+  ds_brightmap: PByte;
+
+  ds_xfrac: fixed_t;
+  ds_yfrac: fixed_t;
+  ds_xstep: fixed_t;
+  ds_ystep: fixed_t;
+
+  // start of a 64*64 tile image
+  ds_source: PByte;
+
+  // just for profiling
+  dscount: int;
 
 Procedure R_InitTranslationTables();
 
@@ -157,6 +174,7 @@ Begin
   // Framebuffer destination address.
   // Use ylookup LUT to avoid multiply with ScreenWidth.
   // Use columnofs LUT for subwindows?
+  // WTF: Hier ist das "Flipped" noch nicht berücksichtigt
   //dest := ylookup[dc_yl] + columnofs[flipviewwidth[dc_x]];
   dest := @I_VideoBuffer[dc_yl * SCREENWIDTH + dc_x];
 
@@ -422,35 +440,19 @@ End;
 // In consequence, flats are not stored by column (like walls),
 //  and the inner loop has to step in texture space u and v.
 //
-Var
-  ds_y: int;
-  ds_x1: int;
-  ds_x2: int;
-
-  //lighttable_t*		ds_colormap[2];
-  //const byte*			ds_brightmap;
-
-  ds_xfrac: fixed_t;
-  ds_yfrac: fixed_t;
-  ds_xstep: fixed_t;
-  ds_ystep: fixed_t;
-
-  // start of a 64*64 tile image
-  //byte*			ds_source;
-
-  // just for profiling
-  dscount: int;
-  //
-  // Draws the actual span.
+//
+// Draws the actual span.
 
 Procedure R_DrawSpan();
+Var
+  position, step: unsigned_int;
+  dest: ^pixel_t;
+  count: int;
+  spot: int;
+  xtemp, ytemp: unsigned_int;
+  source: byte;
 Begin
-  //  unsigned int position, step;
-  //    pixel_t *dest;
-  //    int count;
-  //    int spot;
-  //    unsigned int xtemp, ytemp;
-  //
+
   //#ifdef RANGECHECK
   //    if (ds_x2 < ds_x1
   //	|| ds_x1<0
@@ -462,44 +464,48 @@ Begin
   //    }
   ////	dscount++;
   //#endif
-  //
-  //    // Pack position and step variables into a single 32-bit integer,
-  //    // with x in the top 16 bits and y in the bottom 16 bits.  For
-  //    // each 16-bit part, the top 6 bits are the integer part and the
-  //    // bottom 10 bits are the fractional part of the pixel position.
-  //
-  ///*
-  //    position = ((ds_xfrac << 10) & 0xffff0000)
-  //             | ((ds_yfrac >> 6)  & 0x0000ffff);
-  //    step = ((ds_xstep << 10) & 0xffff0000)
-  //         | ((ds_ystep >> 6)  & 0x0000ffff);
-  //*/
-  //
-  ////  dest = ylookup[ds_y] + columnofs[ds_x1];
-  //
-  //    // We do not check for zero spans here?
-  //    count = ds_x2 - ds_x1;
-  //
-  //    do
-  //    {
-  //	byte source;
-  //	// Calculate current texture index in u,v.
-  //        // [crispy] fix flats getting more distorted the closer they are to the right
-  //        ytemp = (ds_yfrac >> 10) & 0x0fc0;
-  //        xtemp = (ds_xfrac >> 16) & 0x3f;
-  //        spot = xtemp | ytemp;
-  //
-  //	// Lookup pixel from flat texture tile,
-  //	//  re-index using light/colormap.
-  //	source = ds_source[spot];
-  //	dest = ylookup[ds_y] + columnofs[flipviewwidth[ds_x1++]];
-  //	*dest = ds_colormap[ds_brightmap[source]][source];
-  //
-  ////      position += step;
-  //        ds_xfrac += ds_xstep;
-  //        ds_yfrac += ds_ystep;
-  //
-  //    } while (count--);
+
+      // Pack position and step variables into a single 32-bit integer,
+      // with x in the top 16 bits and y in the bottom 16 bits.  For
+      // each 16-bit part, the top 6 bits are the integer part and the
+      // bottom 10 bits are the fractional part of the pixel position.
+
+  (*
+      position = ((ds_xfrac << 10) & 0xffff0000)
+               | ((ds_yfrac >> 6)  & 0x0000ffff);
+      step = ((ds_xstep << 10) & 0xffff0000)
+           | ((ds_ystep >> 6)  & 0x0000ffff);
+  *)
+
+  //  dest = ylookup[ds_y] + columnofs[ds_x1];
+
+  // We do not check for zero spans here?
+  count := ds_x2 - ds_x1;
+
+  Repeat
+    // Calculate current texture index in u,v.
+    // [crispy] fix flats getting more distorted the closer they are to the right
+    ytemp := (ds_yfrac Shr 10) And $0FC0;
+    xtemp := (ds_xfrac Shr 16) And $3F;
+    spot := xtemp Or ytemp;
+
+    // Lookup pixel from flat texture tile,
+    //  re-index using light/colormap.
+    source := ds_source[spot];
+    // WTF: Hier ist das "Flipped" noch nicht berücksichtigt
+
+    //	dest = ylookup[ds_y] + columnofs[flipviewwidth[ds_x1++]];
+    dest := @I_VideoBuffer[ds_y * SCREENWIDTH + ds_x1];
+    ds_x1 := ds_x1 + 1;
+
+    dest^ := ds_colormap[ds_brightmap[source]][source];
+
+    // position += step;
+    ds_xfrac := ds_xfrac + ds_xstep;
+    ds_yfrac := ds_yfrac + ds_ystep;
+
+    count := count - 1;
+  Until (count <= 0);
 End;
 
 End.

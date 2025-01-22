@@ -350,9 +350,7 @@ End;
 
 Procedure G_Ticker();
 Var
-
-  i: int;
-  //    int		buf;
+  i, buf: int;
   cmd: ticcmd_t;
 Begin
 

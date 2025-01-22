@@ -707,29 +707,29 @@ Begin
   End;
 
   // render it
-  If (markceiling) Then
+  If (markceiling) Then Begin
     ceilingplane := R_CheckPlane(ceilingplane, rw_x, rw_stopx - 1);
+  End;
 
-  If (markfloor) Then
+  If (markfloor) Then Begin
     floorplane := R_CheckPlane(floorplane, rw_x, rw_stopx - 1);
+  End;
 
   R_RenderSegLoop();
 
   // save sprite clipping info
   If (((drawsegs[ds_p].silhouette And SIL_TOP) <> 0) Or (maskedtexture))
     And (Not assigned(drawsegs[ds_p].sprtopclip)) Then Begin
-    Raise exception.create('todo.');
-    //  	memcpy (lastopening, ceilingclip+start, sizeof(*lastopening)*(rw_stopx-start));
-    //  	drawsegs[ds_p].sprtopclip = lastopening - start;
-    //  	lastopening += rw_stopx - start;
+    move(ceilingclip[start], lastopening^, sizeof(int) * (rw_stopx - start));
+    drawsegs[ds_p].sprtopclip := lastopening - start;
+    inc(lastopening, (rw_stopx - start));
   End;
 
-  If (((drawsegs[ds_p].silhouette And SIL_BOTTOM) <> 0) Or (maskedtexture)
-    ) And (Not assigned(drawsegs[ds_p].sprbottomclip)) Then Begin
-    Raise exception.create('todo.');
-    //  memcpy(lastopening, floorclip + start, sizeof (*lastopening)*(rw_stopx-start));
-    //  drawsegs[ds_p].sprbottomclip = lastopening - start;
-    //  lastopening += rw_stopx - start;
+  If (((drawsegs[ds_p].silhouette And SIL_BOTTOM) <> 0) Or (maskedtexture))
+    And (Not assigned(drawsegs[ds_p].sprbottomclip)) Then Begin
+    move(floorclip[start], lastopening^, sizeof(int) * (rw_stopx - start));
+    drawsegs[ds_p].sprbottomclip := lastopening - start;
+    inc(lastopening, (rw_stopx - start));
   End;
 
   If (maskedtexture) And ((drawsegs[ds_p].silhouette And SIL_TOP) = 0) Then Begin
