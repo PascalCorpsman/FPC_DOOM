@@ -34,11 +34,13 @@ Var
 Procedure R_InitPlanes();
 Procedure R_ClearPlanes();
 
+//Procedure R_MapPlane(y, x1, x2: int);
+Procedure R_MakeSpans(x: int; t1, b1, t2, b2: unsigned_int);
+Procedure R_DrawPlanes();
+
 Function R_FindPlane(height: fixed_t; picnum: int; lightlevel: int): int;
 
 Function R_CheckPlane(pl: int; start, stop: int): int;
-
-Procedure R_DrawPlanes();
 
 Implementation
 
@@ -436,7 +438,7 @@ Begin
         dc_yh := int(visplanes[pl].bottom[x]);
 
         If (dc_yl <= dc_yh) Then Begin // [crispy] 32-bit integer math
-          angle := angle_t(SarLongint(angle_t((angle_t(an + xtoviewangle[x])) Xor flip), ANGLETOSKYSHIFT));
+          angle := angle_t(angle_t((angle_t(an + xtoviewangle[x])) Xor flip) Shr ANGLETOSKYSHIFT);
           dc_x := x;
           dc_source := R_GetColumnMod2(texture, angle);
           colfunc();

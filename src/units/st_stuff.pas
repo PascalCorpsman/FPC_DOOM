@@ -13,9 +13,9 @@ Uses
 Const
   // Size of statusbar.
 // Now sensitive for scaling.
-  ST_HEIGHT = 32;
+//  ST_HEIGHT = 32;
   ST_WIDTH = ORIGWIDTH;
-  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
+//  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt

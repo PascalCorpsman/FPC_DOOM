@@ -405,36 +405,36 @@ Begin
 
   setsizeneeded := false;
 
-  If (setblocks >= 11) Then Begin // [crispy] Crispy HUD
-    scaledviewwidth_nonwide := NONWIDEWIDTH;
-    scaledviewwidth := SCREENWIDTH;
-    r_draw.viewheight := SCREENHEIGHT;
-  End
-    // [crispy] hard-code to SCREENWIDTH and SCREENHEIGHT minus status bar height
-  Else If (setblocks = 10) Then Begin
-    scaledviewwidth_nonwide := NONWIDEWIDTH;
-    scaledviewwidth := SCREENWIDTH;
-    r_draw.viewheight := SCREENHEIGHT - (ST_HEIGHT Shl 1);
-  End
-  Else Begin
-    //	scaledviewwidth_nonwide = (setblocks*32)<<crispy->hires;
-    //	viewheight = ((setblocks*168/10)&~7)<<crispy->hires;
-    //
-    //	// [crispy] regular viewwidth in non-widescreen mode
-    //	if (crispy->widescreen)
-    //	{
-    //		const int widescreen_edge_aligner = (8 << crispy->hires) - 1;
-    //
-    //		scaledviewwidth = viewheight*SCREENWIDTH/(SCREENHEIGHT-(ST_HEIGHT<<crispy->hires));
-    //		// [crispy] make sure scaledviewwidth is an integer multiple of the bezel patch width
-    //		scaledviewwidth = (scaledviewwidth + widescreen_edge_aligner) & (int)~widescreen_edge_aligner;
-    //		scaledviewwidth = MIN(scaledviewwidth, SCREENWIDTH);
-    //	}
-    //	else
-    //	{
-    //		scaledviewwidth = scaledviewwidth_nonwide;
-    //	}
-  End;
+  //  If (setblocks >= 11) Then Begin // [crispy] Crispy HUD
+  //    scaledviewwidth_nonwide := NONWIDEWIDTH;
+  //    scaledviewwidth := SCREENWIDTH;
+  //    viewheight := SCREENHEIGHT;
+  //  End
+  //    // [crispy] hard-code to SCREENWIDTH and SCREENHEIGHT minus status bar height
+  //  Else If (setblocks = 10) Then Begin
+  scaledviewwidth_nonwide := NONWIDEWIDTH;
+  scaledviewwidth := SCREENWIDTH;
+  viewheight := SCREENHEIGHT {- (ST_HEIGHT Shl 1)};
+  //  End
+  //  Else Begin
+      //	scaledviewwidth_nonwide = (setblocks*32)<<crispy->hires;
+      //	viewheight = ((setblocks*168/10)&~7)<<crispy->hires;
+      //
+      //	// [crispy] regular viewwidth in non-widescreen mode
+      //	if (crispy->widescreen)
+      //	{
+      //		const int widescreen_edge_aligner = (8 << crispy->hires) - 1;
+      //
+      //		scaledviewwidth = viewheight*SCREENWIDTH/(SCREENHEIGHT-(ST_HEIGHT<<crispy->hires));
+      //		// [crispy] make sure scaledviewwidth is an integer multiple of the bezel patch width
+      //		scaledviewwidth = (scaledviewwidth + widescreen_edge_aligner) & (int)~widescreen_edge_aligner;
+      //		scaledviewwidth = MIN(scaledviewwidth, SCREENWIDTH);
+      //	}
+      //	else
+      //	{
+      //		scaledviewwidth = scaledviewwidth_nonwide;
+      //	}
+  //  End;
 
   detailshift := setdetail;
   viewwidth := scaledviewwidth Shr detailshift;
