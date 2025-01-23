@@ -39,6 +39,11 @@ Type
   Ploop_interface_t = ^loop_interface_t;
 
 Var
+
+  // Reduce the bandwidth needed by sampling game input less and transmitting
+  // less.  If ticdup is 2, sample half normal, 3 = one third normal, etc.
+  ticdup: int;
+
   // The number of tics that have been run (using RunTic) so far.
   gametic: int;
   oldleveltime: int; // [crispy] check if leveltime keeps tickin'
@@ -68,6 +73,8 @@ Type
     cmds: Array[0..NET_MAXPLAYERS - 1] Of ticcmd_t;
     ingame: Array[0..NET_MAXPLAYERS - 1] Of boolean;
   End;
+
+  Pticcmd_set_t = ^ticcmd_set_t;
 
 Var
 
@@ -100,10 +107,6 @@ Var
   // Used for original sync code.
   skiptics: int = 0;
 
-  // Reduce the bandwidth needed by sampling game input less and transmitting
-  // less.  If ticdup is 2, sample half normal, 3 = one third normal, etc.
-  ticdup: int;
-
   // Callback functions for loop code.
   loop_interface: Ploop_interface_t = Nil;
 
@@ -120,7 +123,23 @@ Var
 
   lasttime: int;
 
-  // 35 fps clock adjusted by offsetms milliseconds
+
+Function GetLowTic(): int;
+Var
+  lowtic: int;
+Begin
+  lowtic := maketic;
+  //      if (net_client_connected)
+  //      {
+  //          if (drone || recvtic < lowtic)
+  //          {
+  //              lowtic = recvtic;
+  //          }
+  //      }
+  result := lowtic;
+End;
+
+// 35 fps clock adjusted by offsetms milliseconds
 
 Function GetAdjustedTime(): int;
 Var
@@ -382,16 +401,29 @@ Begin
   End;
 End;
 
-Procedure TryRunTics;
+// When running in single player mode, clear all the ingame[] array
+// except the local player.
+
+Procedure SinglePlayerClear(_set: Pticcmd_set_t);
+Var
+  i: unsigned_int;
 Begin
-  //    int	i;
-  //    int	lowtic;
+  For i := 0 To NET_MAXPLAYERS - 1 Do Begin
+    If (i <> localplayer) Then Begin
+      _set^.ingame[i] := false;
+    End;
+  End;
+End;
+
+Procedure TryRunTics;
+Var
+  counts, availabletics, lowtic, i: int;
+  _set: ^ticcmd_set_t;
+Begin
   //    int	entertic;
   //    static int oldentertics;
   //    int realtics;
-  //    int	availabletics;
-  //    int	counts;
-  //
+ //
   //    // [AM] If we've uncapped the framerate and there are no tics
   //    //      to run, return early instead of waiting around.
   //    extern int leveltime;
@@ -412,63 +444,62 @@ Begin
     NetUpdate();
   End;
 
-  //    lowtic = GetLowTic();
+  lowtic := GetLowTic();
 
-  //    availabletics = lowtic - gametic/ticdup;
-  //
-  //    // decide how many tics to run
-  //
-  //    if (new_sync)
-  //    {
-  //        if (crispy->uncapped)
-  //        {
-  //            // decide how many tics to run
-  //            if (realtics < availabletics-1)
-  //                counts = realtics+1;
-  //            else if (realtics < availabletics)
-  //                counts = realtics;
-  //            else
-  //                counts = availabletics;
-  //        }
-  //        else
-  //        {
-  //	counts = availabletics;
-  //        }
-  //
-  //        // [AM] If we've uncapped the framerate and there are no tics
-  //        //      to run, return early instead of waiting around.
-  //        if (return_early)
-  //            return;
-  //    }
-  //    else
-  //    {
-  //        // decide how many tics to run
-  //        if (realtics < availabletics-1)
-  //            counts = realtics+1;
-  //        else if (realtics < availabletics)
-  //            counts = realtics;
-  //        else
-  //            counts = availabletics;
-  //
-  //        // [AM] If we've uncapped the framerate and there are no tics
-  //        //      to run, return early instead of waiting around.
-  //        if (return_early)
-  //            return;
-  //
-  //        if (counts < 1)
-  //            counts = 1;
-  //
-  //        if (net_client_connected)
-  //        {
-  //            OldNetSync();
-  //        }
-  //    }
-  //
-  //    if (counts < 1)
-  //	counts = 1;
-  //
+  availabletics := lowtic - gametic Div ticdup;
+
+  // decide how many tics to run
+
+  If (new_sync) Then Begin
+
+    If (crispy.uncapped <> 0) Then Begin
+      // decide how many tics to run
+//            if (realtics < availabletics-1)
+//                counts = realtics+1;
+//            else if (realtics < availabletics)
+//                counts = realtics;
+//            else
+//                counts = availabletics;
+    End
+    Else Begin
+      counts := availabletics;
+    End;
+
+    // [AM] If we've uncapped the framerate and there are no tics
+    //      to run, return early instead of waiting around.
+//        if (return_early)
+//            return;
+  End
+  Else Begin
+    //        // decide how many tics to run
+    //        if (realtics < availabletics-1)
+    //            counts = realtics+1;
+    //        else if (realtics < availabletics)
+    //            counts = realtics;
+    //        else
+    //            counts = availabletics;
+    //
+    //        // [AM] If we've uncapped the framerate and there are no tics
+    //        //      to run, return early instead of waiting around.
+    //        if (return_early)
+    //            return;
+    //
+    //        if (counts < 1)
+    //            counts = 1;
+    //
+    //        if (net_client_connected)
+    //        {
+    //            OldNetSync();
+    //        }
+  End;
+
+  If (counts < 1) Then
+    counts := 1;
+
   //    // wait for new tics if needed
   //    while (!PlayersInGame() || lowtic < gametic/ticdup + counts)
+  If lowtic < gametic Div ticdup + counts Then exit;
+
   //    {
   //	NetUpdate ();
   //
@@ -494,39 +525,42 @@ Begin
 
   //    // run the count * ticdup dics
   //    while (counts--)
-  //    {
-  //        ticcmd_set_t *set;
-  //
-  //        if (!PlayersInGame())
-  //        {
-  //            return;
-  //        }
-  //
-  //        set = &ticdata[(gametic / ticdup) % BACKUPTICS];
-  //
-  //        if (!net_client_connected)
-  //        {
-  //            SinglePlayerClear(set);
-  //        }
-  //
-  //	for (i=0 ; i<ticdup ; i++)
-  //	{
-  //            if (gametic/ticdup > lowtic)
-  //                I_Error ("gametic>lowtic");
-  //
-  //            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
-  //
-  loop_interface^.RunTic({set^.cmds, set^.ingame});
-  gametic := gametic + 1;
+  Repeat
+    //        ticcmd_set_t *set;
 
-  // modify command for duplicated tics
+    If (Not PlayersInGame()) Then Begin
+      exit;
+    End;
 
-//            TicdupSquash(set);
-//	}
+    _set := @ticdata[(gametic Div ticdup) Mod BACKUPTICS];
 
-  NetUpdate(); // check for new console commands
+    //        if (not net_client_connected) then
+    Begin
+      SinglePlayerClear(_set);
+    End;
+    //
+    //	for (i=0 ; i<ticdup ; i++)
+    //	{
+    //            if (gametic/ticdup > lowtic)
+    //                I_Error ("gametic>lowtic");
+    //
+    //            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
 
+
+    loop_interface^.RunTic({set^.cmds, set^.ingame});
+    gametic := gametic + 1;
+
+    // modify command for duplicated tics
+
+  //            TicdupSquash(set);
+  //	}
+
+    NetUpdate(); // check for new console commands
+
+    counts := counts - 1;
+  Until counts <= 0;
 End;
 
 End.
+
 

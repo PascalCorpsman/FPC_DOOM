@@ -32,7 +32,7 @@ Implementation
 Uses
   r_data
   , m_fixed
-  , v_video
+  , i_video
   ;
 
 Procedure R_InitSkyMap();

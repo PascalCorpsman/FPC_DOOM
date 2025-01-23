@@ -8,8 +8,8 @@ Uses
   ufpc_doom_types, Classes, SysUtils;
 
 Var
-  //extern int key_right;
-  //extern int key_left;
+  key_right: int;
+  key_left: int;
   //extern int key_reverse;
   //
   //extern int key_up;
@@ -22,8 +22,8 @@ Var
   //extern int key_alt_straferight;
   //extern int key_fire;
   //extern int key_use;
-  //extern int key_strafe;
-  //extern int key_speed;
+  key_strafe: int;
+  key_speed: int;
   //extern int key_demospeed;  // [crispy]
   //
   //extern int key_jump;
@@ -228,14 +228,22 @@ End;
 Procedure M_BindMenuControls();
 Begin
   // ACHTUNG, Alle werte hier sind "Geraten"
+
+
+  key_speed := KEY_RSHIFT;
+  key_right := KEY_RIGHTARROW;
+  key_left := KEY_LEFTARROW;
+
+  key_strafe := KEY_RALT;
+
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden
-  key_menu_activate := VK_ESCAPE;
-  key_menu_up := VK_UP;
-  key_menu_down := vk_down;
-  key_menu_left := VK_LEFT;
-  key_menu_right := VK_RIGHT;
+  key_menu_activate := KEY_BACKSPACE;
+  key_menu_up := KEY_UPARROW;
+  key_menu_down := KEY_DOWNARROW;
+  key_menu_left := KEY_LEFTARROW;
+  key_menu_right := KEY_RIGHTARROW;
   key_menu_back := VK_BACK;
-  key_menu_forward := VK_RETURN;
+  key_menu_forward := KEY_ENTER;
   key_menu_confirm := VK_Y; // Y oder Z je nach Land..
   key_menu_abort := VK_N;
 
@@ -264,7 +272,4 @@ Begin
 End;
 
 End.
-
-
-
 

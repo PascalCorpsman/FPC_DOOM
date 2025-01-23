@@ -65,7 +65,7 @@ Type
     freelook: int; // 0,1 ?
     //    	int freelook_hh;
     //    	int gamma;
-    hires: Int; // 0, 1
+    hires: Int; // 0, 1, 2 Alles über 2 macht eigentlich keinen Sinn mehr, Bei werten > 2 muss MAXWIDTH und MAXHEIGHT aus i_video.pas angepasst werden, sonst knallts beim start !
     //    	int jump;
     //    	int leveltime;
     mouselook: int; // ?
@@ -159,7 +159,7 @@ Initialization
   Crispy.flipcorpses := 0;
   Crispy.freelook := 0;
 
-  Crispy.hires := 0;
+  Crispy.hires := 1;
   //  Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;

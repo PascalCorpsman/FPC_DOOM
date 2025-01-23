@@ -390,7 +390,6 @@ Begin
   //#endif
 
   For pl := 0 To numvisplanes - 1 Do Begin
-
     If (visplanes[pl].minx > visplanes[pl].maxx) Then
       continue;
 

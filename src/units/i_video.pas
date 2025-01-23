@@ -14,8 +14,16 @@ Const
   ORIGWIDTH = 320;
   ORIGHEIGHT = 200;
 
-  MAXWIDTH = (ORIGWIDTH Shl 2); // [crispy]
-  MAXHEIGHT = (ORIGHEIGHT Shl 1); // [crispy]
+  MAXWIDTH = (ORIGWIDTH Shl 2); // für Crispy.hires 0..2
+  MAXHEIGHT = (ORIGHEIGHT Shl 2); // für Crispy.hires 0..2
+
+Var
+  (*
+   * Wird in I_GetScreenDimensions initialisiert und ist die mittels crispy.Hires scallierte "Fenstergröße"
+   *)
+  SCREENWIDTH: int = ORIGWIDTH;
+  SCREENHEIGHT: int = ORIGHEIGHT;
+  ScaleOffX, ScaleOffY: Integer;
 
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
@@ -36,9 +44,6 @@ Procedure I_UpdateNoBlit();
 Procedure I_StartDisplay(); // [crispy]
 
 Var
-  SCREENWIDTH: int; // Eigentlich unnötig Redundant
-  SCREENHEIGHT: int; // Eigentlich unnötig Redundant
-
   // Flag indicating whether the screen is currently visible:
   // when the screen isnt visible, don't render the screen
   screenvisible: boolean = true;
@@ -46,7 +51,7 @@ Var
   OpenGLTexture: Integer = 0;
   OpenGLControlWidth: Integer = 0;
   OpenGLControlHeight: Integer = 0;
-  NONWIDEWIDTH: int; // [crispy] non-widescreen SCREENWIDTH
+  NONWIDEWIDTH: int; // [crispy] non-widescreen SCREENWIDTH --> TODO: Remove ?
 
   // [AM] Fractional part of the current tic, in the half-open
   //      range of [0.0, 1.0).  Used for interpolation.
@@ -108,6 +113,9 @@ Begin
   //
   SCREENWIDTH := ORIGWIDTH Shl crispy.hires;
   SCREENHEIGHT := ORIGHEIGHT Shl crispy.hires;
+
+  ScaleOffX := (SCREENWIDTH - ORIGWIDTH) Div 2;
+  ScaleOffY := (SCREENHEIGHT - ORIGHEIGHT) Div 2;
 
   NONWIDEWIDTH := SCREENWIDTH;
 
@@ -788,11 +796,11 @@ Begin
   glTexCoord2f(0, 0);
   glvertex3f(0, 0, 0);
   glTexCoord2f(1, 0);
-  glvertex3f(SCREENWIDTH, 0, 0);
+  glvertex3f(SCREENWIDTH / (1 Shl Crispy.hires), 0, 0);
   glTexCoord2f(1, 1);
-  glvertex3f(SCREENWIDTH, SCREENHEIGHT, 0);
+  glvertex3f(SCREENWIDTH / (1 Shl Crispy.hires), SCREENHEIGHT / (1 Shl Crispy.hires), 0);
   glTexCoord2f(0, 1);
-  glvertex3f(0, SCREENHEIGHT, 0);
+  glvertex3f(0, SCREENHEIGHT / (1 Shl Crispy.hires), 0);
   glend;
   glPopMatrix;
 

@@ -87,12 +87,12 @@ Procedure G_DeathMatchSpawnPlayer(playernum: int);
 Implementation
 
 Uses
-  doomdata, doomstat, info, sounds, deh_misc
+  doomdata, doomstat, info, sounds, deh_misc, doomkey
   , am_map
   , d_main, d_loop
   , i_video, i_timer
   , hu_stuff
-  , m_menu, m_argv, m_random, m_fixed
+  , m_menu, m_argv, m_random, m_fixed, m_controls
   , p_setup, p_mobj, p_inter, p_tick
   , r_data, r_sky, r_main
   , s_sound, st_stuff
@@ -100,6 +100,20 @@ Uses
 
 Const
   NUMKEYS = 256;
+  SLOWTURNTICS = 6;
+
+  forwardmove: Array[0..1] Of fixed_t = ($19, $32);
+  sidemove: Array[0..1] Of fixed_t = ($18, $28);
+  angleturn: Array[0..2] Of fixed_t = (640, 1280, 320); // + slow turn
+
+  // [crispy] for rounding error
+Type
+  carry_t = Record
+    angle: double;
+    pitch: double;
+    side: double;
+    vert: double;
+  End;
 
 Var
   d_skill: skill_t;
@@ -115,6 +129,12 @@ Var
   levelstarttic: int; // gametic at level start
 
   gamekeydown: Array[0..NUMKEYS - 1] Of boolean;
+  turnheld: int; // for accelerative turning
+  prevcarry, carry: carry_t;
+
+  // Set to -1 or +1 to switch to the previous or next weapon.
+  next_weapon: int = 0;
+
   oldgamestate: gamestate_t; // WTF: die gibt es in D_Display auch als Static variable ...
 
 Procedure G_ClearSavename();
@@ -574,19 +594,21 @@ End;
 Function G_Responder(Const ev: Pevent_t): boolean;
 Begin
   result := false;
-  //   // [crispy] demo pause (from prboom-plus)
-  //    if (gameaction == ga_nothing &&
-  //        (demoplayback || gamestate == GS_DEMOSCREEN))
-  //    {
-  //        if (ev->type == ev_keydown && ev->data1 == key_pause)
-  //        {
-  //            if (paused ^= 2)
-  //                S_PauseSound();
-  //            else
-  //                S_ResumeSound();
-  //            return true;
-  //        }
-  //    }
+  // [crispy] demo pause (from prboom-plus)
+  If (gameaction = ga_nothing) And (
+    ((demoplayback) Or (gamestate = GS_DEMOSCREEN))) Then Begin
+    If (ev^._type = ev_keydown) And (ev^.data1 = key_pause) Then Begin
+      paused := Not paused;
+      If (paused) Then Begin
+        S_PauseSound();
+      End
+      Else Begin
+        S_ResumeSound();
+      End;
+      result := true;
+      exit;
+    End;
+  End;
 
   //    // [crispy] demo fast-forward
   //    if (ev->type == ev_keydown && ev->data1 == key_demospeed &&
@@ -636,28 +658,27 @@ Begin
     exit;
   End;
 
-  //    if (gamestate == GS_LEVEL)
-  //    {
-  //#if 0
-  //	if (devparm && ev->type == ev_keydown && ev->data1 == ';')
-  //	{
-  //	    G_DeathMatchSpawnPlayer (0);
-  //	    return true;
-  //	}
-  //#endif
-  //	if (HU_Responder (ev))
-  //	    return true;	// chat ate the event
-  //	if (ST_Responder (ev))
-  //	    return true;	// status window ate it
-  //	if (AM_Responder (ev))
-  //	    return true;	// automap ate it
-  //    }
-  //
-  //    if (gamestate == GS_FINALE)
-  //    {
-  //	if (F_Responder (ev))
-  //	    return true;	// finale ate the event
-  //    }
+  If (gamestate = GS_LEVEL) Then Begin
+    //#if 0
+    //	if (devparm && ev->type == ev_keydown && ev->data1 == ';')
+    //	{
+    //	    G_DeathMatchSpawnPlayer (0);
+    //	    return true;
+    //	}
+    //#endif
+    //	if (HU_Responder (ev))
+    //	    return true;	// chat ate the event
+    //	if (ST_Responder (ev))
+    //	    return true;	// status window ate it
+    //	if (AM_Responder (ev))
+    //	    return true;	// automap ate it
+    //    }
+    //
+    //    if (gamestate == GS_FINALE)
+    //    {
+    //	if (F_Responder (ev))
+    //	    return true;	// finale ate the event
+  End;
   //
   //    if (testcontrols && ev->type == ev_mouse)
   //    {
@@ -682,42 +703,39 @@ Begin
   //    }
   //
   //    switch (ev->type)
-  //    {
-  //      case ev_keydown:
-  //	if (ev->data1 == key_pause)
-  //	{
-  //	    sendpause = true;
-  //	}
-  //        else if (ev->data1 <NUMKEYS)
-  //        {
-  //	    gamekeydown[ev->data1] = true;
-  //        }
-  //
-  //	return true;    // eat key down events
-  //
-  //      case ev_keyup:
-  //	if (ev->data1 <NUMKEYS)
-  //	    gamekeydown[ev->data1] = false;
-  //	return false;   // always let key up events filter down
-  //
-  //      case ev_mouse:
-  //        SetMouseButtons(ev->data1);
-  //        mousex += ev->data2;
-  //        mousey += ev->data3;
-  //	return true;    // eat events
-  //
-  //      case ev_joystick:
-  //        SetJoyButtons(ev->data1);
-  //	joyxmove = ev->data2;
-  //	joyymove = ev->data3;
-  //        joystrafemove = ev->data4;
-  //        joylook = ev->data5;
-  //	return true;    // eat events
-  //
-  //      default:
-  //	break;
-  //    }
-
+  Case ev^._type Of
+    ev_keydown: Begin
+        If (ev^.data1 = key_pause) Then Begin
+          sendpause := true;
+        End
+        Else If (ev^.data1 < NUMKEYS) Then Begin
+          gamekeydown[ev^.data1] := true;
+        End;
+        result := true; // eat key down events
+      End;
+    ev_keyup: Begin
+        If (ev^.data1 < NUMKEYS) Then Begin
+          gamekeydown[ev^.data1] := false;
+        End;
+        result := false; // always let key up events filter down
+      End;
+    //      case ev_mouse:
+    //        SetMouseButtons(ev->data1);
+    //        mousex += ev->data2;
+    //        mousey += ev->data3;
+    //	return true;    // eat events
+    //
+    //      case ev_joystick:
+    //        SetJoyButtons(ev->data1);
+    //	joyxmove = ev->data2;
+    //	joyymove = ev->data3;
+    //        joystrafemove = ev->data4;
+    //        joylook = ev->data5;
+    //	return true;    // eat events
+    //
+    //      default:
+    //	break;
+  End;
 
 End;
 
@@ -1048,6 +1066,30 @@ Begin
   G_DoLoadLevel();
 End;
 
+// [crispy] for carrying rounding error
+
+Function CarryError(value: double; Var prevcarry: double; Var carry: double): int;
+Var
+  desired: double;
+  actual: int;
+Begin
+  desired := value + prevcarry;
+  actual := round(desired);
+  carry := desired - actual;
+  result := actual;
+End;
+
+Function CarryAngle(angle: double): short;
+Begin
+  If (lowres_turn) And (abs(angle + prevcarry.angle) < 128) Then Begin
+    carry.angle := angle + prevcarry.angle;
+    result := 0;
+  End
+  Else Begin
+    result := CarryError(angle, prevcarry.angle, carry.angle);
+  End;
+End;
+
 //
 // G_BuildTiccmd
 // Builds a ticcmd from all of the available inputs
@@ -1056,60 +1098,73 @@ End;
 //
 
 Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
-Begin
-  //    int		i;
-  //    boolean	strafe;
-  //    boolean	bstrafe;
-  //    int		speed;
-  //    int		tspeed;
-  //    int		lspeed;
-  //    int		angle = 0; // [crispy]
+Var
+  i: int;
+  strafe,
+    bstrafe: boolean;
+  speed: int;
+  tspeed: int;
+  lspeed: int;
+  angle: int; // [crispy]
   //    short	mousex_angleturn; // [crispy]
-  //    int		forward;
-  //    int		side;
-  //    int		look;
-  //    player_t *const player = &players[consoleplayer];
-  //    static char playermessage[48];
-  //
+  forward: int;
+  side: int;
+  look: int;
+
+  player: ^player_t;
+
+  playermessage: String; //    static char playermessage[48];
+Begin
+  angle := 0;
+  player := @players[consoleplayer];
+
   //    // [crispy] For fast polling.
   //    G_PrepTiccmd();
   //    memcpy(cmd, &basecmd, sizeof(*cmd));
   //    memset(&basecmd, 0, sizeof(ticcmd_t));
-  //
+
   //    cmd->consistancy =
   //	consistancy[consoleplayer][maketic%BACKUPTICS];
-  //
-  //    strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe]
-  //	|| joybuttons[joybstrafe];
+
+  strafe := gamekeydown[key_strafe]
+    // Or mousebuttons[mousebstrafe]
+//  	|| joybuttons[joybstrafe]
+  ;
   //
   //    // fraggle: support the old "joyb_speed = 31" hack which
   //    // allowed an autorun effect
   //
   //    // [crispy] when "always run" is active,
   //    // pressing the "run" key will result in walking
-  //    speed = (key_speed >= NUMKEYS
-  //         || joybspeed >= MAX_JOY_BUTTONS);
-  //    speed ^= speedkeydown();
-  //
-  //    forward = side = look = 0;
-  //
-  //    // use two stage accelerative turning
-  //    // on the keyboard and joystick
-  //    if (joyxmove < 0
+  speed := ord(key_speed >= NUMKEYS
+    //         || joybspeed >= MAX_JOY_BUTTONS
+    );
+  speed := ord(odd(speed) Xor speedkeydown());
+
+  forward := 0;
+  side := 0;
+  look := 0;
+
+  // use two stage accelerative turning
+  // on the keyboard and joystick
+  If //(joyxmove < 0
   //	|| joyxmove > 0
-  //	|| gamekeydown[key_right]
-  //	|| gamekeydown[key_left]
-  //	|| mousebuttons[mousebturnright]
-  //	|| mousebuttons[mousebturnleft])
-  //	turnheld += ticdup;
-  //    else
-  //	turnheld = 0;
-  //
-  //    if (turnheld < SLOWTURNTICS)
-  //	tspeed = 2;             // slow turn
-  //    else
-  //	tspeed = speed;
-  //
+  //	||
+  gamekeydown[key_right]
+    Or gamekeydown[key_left]
+    //	|| mousebuttons[mousebturnright]
+//	|| mousebuttons[mousebturnleft])
+  Then Begin
+    turnheld := turnheld + ticdup;
+  End
+  Else
+    turnheld := 0;
+
+  If (turnheld < SLOWTURNTICS) Then
+    tspeed := 2 // slow turn
+  Else
+    tspeed := speed;
+
   //    // [crispy] use two stage accelerative looking
   //    if (gamekeydown[key_lookdown] || gamekeydown[key_lookup])
   //    {
@@ -1193,60 +1248,58 @@ Begin
   //            player->message = "";
   //        }
   //    }
-  //
-  //    // let movement keys cancel each other out
-  //    if (strafe)
-  //    {
-  //        if (!cmd->angleturn)
-  //        {
-  //            if (gamekeydown[key_right] || mousebuttons[mousebturnright])
-  //            {
-  //                // fprintf(stderr, "strafe right\n");
-  //                side += sidemove[speed];
-  //            }
-  //            if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
-  //            {
-  //                //	fprintf(stderr, "strafe left\n");
-  //                side -= sidemove[speed];
-  //            }
-  //            if (use_analog && joyxmove)
-  //            {
-  //                joyxmove = joyxmove * joystick_move_sensitivity / 10;
-  //                joyxmove = BETWEEN(-FRACUNIT, FRACUNIT, joyxmove);
-  //                side += FixedMul(sidemove[speed], joyxmove);
-  //            }
-  //            else if (joystick_move_sensitivity)
-  //            {
-  //                if (joyxmove > 0)
-  //                    side += sidemove[speed];
-  //                if (joyxmove < 0)
-  //                    side -= sidemove[speed];
-  //            }
-  //        }
-  //    }
-  //    else
-  //    {
-  //	if (gamekeydown[key_right] || mousebuttons[mousebturnright])
-  //	    angle -= angleturn[tspeed];
-  //	if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
-  //	    angle += angleturn[tspeed];
-  //        if (use_analog && joyxmove)
-  //        {
-  //            // Cubic response curve allows for finer control when stick
-  //            // deflection is small.
-  //            joyxmove = FixedMul(FixedMul(joyxmove, joyxmove), joyxmove);
-  //            joyxmove = joyxmove * joystick_turn_sensitivity / 10;
-  //            angle -= FixedMul(angleturn[1], joyxmove);
-  //        }
-  //        else if (joystick_turn_sensitivity)
-  //        {
-  //            if (joyxmove > 0)
-  //                angle -= angleturn[tspeed];
-  //            if (joyxmove < 0)
-  //                angle += angleturn[tspeed];
-  //        }
-  //    }
-  //
+
+  // let movement keys cancel each other out
+  If (strafe) Then Begin
+    //        if (!cmd->angleturn)
+    //        {
+    //            if (gamekeydown[key_right] || mousebuttons[mousebturnright])
+    //            {
+    //                // fprintf(stderr, "strafe right\n");
+    //                side += sidemove[speed];
+    //            }
+    //            if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
+    //            {
+    //                //	fprintf(stderr, "strafe left\n");
+    //                side -= sidemove[speed];
+    //            }
+    //            if (use_analog && joyxmove)
+    //            {
+    //                joyxmove = joyxmove * joystick_move_sensitivity / 10;
+    //                joyxmove = BETWEEN(-FRACUNIT, FRACUNIT, joyxmove);
+    //                side += FixedMul(sidemove[speed], joyxmove);
+    //            }
+    //            else if (joystick_move_sensitivity)
+    //            {
+    //                if (joyxmove > 0)
+    //                    side += sidemove[speed];
+    //                if (joyxmove < 0)
+    //                    side -= sidemove[speed];
+    //            }
+    //        }
+  End
+  Else Begin
+    If (gamekeydown[key_right] {|| mousebuttons[mousebturnright]}) Then
+      angle := angle - angleturn[tspeed];
+    If (gamekeydown[key_left] {|| mousebuttons[mousebturnleft]}) Then
+      angle := angle + angleturn[tspeed];
+    //        if (use_analog && joyxmove)
+    //        {
+    //            // Cubic response curve allows for finer control when stick
+    //            // deflection is small.
+    //            joyxmove = FixedMul(FixedMul(joyxmove, joyxmove), joyxmove);
+    //            joyxmove = joyxmove * joystick_turn_sensitivity / 10;
+    //            angle -= FixedMul(angleturn[1], joyxmove);
+    //        }
+    //        else if (joystick_turn_sensitivity)
+    //        {
+    //            if (joyxmove > 0)
+    //                angle -= angleturn[tspeed];
+    //            if (joyxmove < 0)
+    //                angle += angleturn[tspeed];
+    //        }
+  End;
+
   //    if (gamekeydown[key_up] || gamekeydown[key_alt_up]) // [crispy] add key_alt_*
   //    {
   //	// fprintf(stderr, "up\n");
@@ -1271,21 +1324,21 @@ Begin
   //        if (joyymove > 0)
   //            forward -= forwardmove[speed];
   //    }
-  //
+
   //    if (gamekeydown[key_strafeleft] || gamekeydown[key_alt_strafeleft] // [crispy] add key_alt_*
   //     || joybuttons[joybstrafeleft]
   //     || mousebuttons[mousebstrafeleft])
   //    {
   //        side -= sidemove[speed];
   //    }
-  //
+
   //    if (gamekeydown[key_straferight] || gamekeydown[key_alt_straferight] // [crispy] add key_alt_*
   //     || joybuttons[joybstraferight]
   //     || mousebuttons[mousebstraferight])
   //    {
   //        side += sidemove[speed];
   //    }
-  //
+
   //    if (use_analog && joystrafemove)
   //    {
   //        joystrafemove = joystrafemove * joystick_move_sensitivity / 10;
@@ -1299,7 +1352,7 @@ Begin
   //        if (joystrafemove > 0)
   //            side += sidemove[speed];
   //    }
-  //
+
   //    // [crispy] look up/down/center keys
   //    if (crispy->freelook)
   //    {
@@ -1347,7 +1400,7 @@ Begin
   //            kbdlookctrl = 0;
   //        }
   //    }
-  //
+
   //    // [crispy] jump keys
   //    if (critical->jump)
   //    {
@@ -1357,14 +1410,14 @@ Begin
   //            cmd->arti |= AFLAG_JUMP;
   //        }
   //    }
-  //
+
   //    // buttons
   //    cmd->chatchar = HU_dequeueChatChar();
-  //
+
   //    if (gamekeydown[key_fire] || mousebuttons[mousebfire]
   //	|| joybuttons[joybfire])
   //	cmd->buttons |= BT_ATTACK;
-  //
+
   //    if (gamekeydown[key_use]
   //     || joybuttons[joybuse]
   //     || mousebuttons[mousebuse])
@@ -1373,7 +1426,7 @@ Begin
   //	// clear double clicks if hit use button
   //	dclicks = 0;
   //    }
-  //
+
   //    // If the previous or next weapon button is pressed, the
   //    // next_weapon variable is set to change weapons when
   //    // we generate a ticcmd.  Choose a new weapon.
@@ -1400,9 +1453,9 @@ Begin
   //            }
   //        }
   //    }
-  //
-  //    next_weapon = 0;
-  //
+
+  next_weapon := 0;
+
   //    // mouse
   //    if (mousebuttons[mousebforward])
   //    {
@@ -1514,16 +1567,16 @@ Begin
   //        testcontrols_mousespeed = 0;
   //    }
   //
-  //    if (angle)
-  //    {
-  //        cmd->angleturn = CarryAngle(cmd->angleturn + angle);
-  //        localview.ticangleturn = crispy->fliplevels ?
-  //            (mousex_angleturn - cmd->angleturn) :
-  //            (cmd->angleturn - mousex_angleturn);
-  //    }
-  //
+  If (angle <> 0) Then Begin
+
+    cmd.angleturn := CarryAngle(cmd.angleturn + angle);
+    //        localview.ticangleturn = crispy->fliplevels ?
+    //            (mousex_angleturn - cmd->angleturn) :
+    //            (cmd->angleturn - mousex_angleturn);
+  End;
+
   //    mousex = mousey = 0;
-  //
+
   //    if (forward > MAXPLMOVE)
   //	forward = MAXPLMOVE;
   //    else if (forward < -MAXPLMOVE)
@@ -1532,25 +1585,23 @@ Begin
   //	side = MAXPLMOVE;
   //    else if (side < -MAXPLMOVE)
   //	side = -MAXPLMOVE;
-  //
+
   //    cmd->forwardmove += forward;
   //    cmd->sidemove += side;
-  //
-  //    // [crispy]
-  //    localview.angle = 0;
-  //    localview.rawangle = 0.0;
+
+      // [crispy]
+  localview.angle := 0;
+  localview.rawangle := 0.0;
   //    prevcarry = carry;
-  //
-  //    // [crispy] lookdir delta is stored in the lower 4 bits of the lookfly variable
-  //    if (player->playerstate == PST_LIVE)
-  //    {
-  //        if (look < 0)
-  //        {
-  //            look += 16;
-  //        }
-  //        cmd->lookfly = look;
-  //    }
-  //
+
+      // [crispy] lookdir delta is stored in the lower 4 bits of the lookfly variable
+  If (player^.playerstate = PST_LIVE) Then Begin
+    If (look < 0) Then Begin
+      look := look + 16;
+    End;
+    cmd.lookfly := look;
+  End;
+
   //    // special buttons
   //    // [crispy] suppress pause when a new game is started
   //    if (sendpause && gameaction != ga_newgame)

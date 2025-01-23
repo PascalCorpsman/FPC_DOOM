@@ -46,7 +46,7 @@ Uses
   , p_setup
   , r_main, r_draw
   , s_sound, st_stuff
-  , v_video
+  , v_video, v_patch
   , w_wad, w_main
   , z_zone
   ;
@@ -324,8 +324,12 @@ Begin
 End;
 
 Procedure D_PageDrawer();
+Var
+  p: ppatch_t;
 Begin
-  V_DrawPatchFullScreen(W_CacheLumpName(pagename, PU_CACHE), false);
+  // TODO: Cool wäre wenn man das als Stretchdraw hin bekäme ..
+  p := W_CacheLumpName(pagename, PU_CACHE);
+  V_DrawPatchDirect((SCREENWIDTH - ORIGWIDTH) Div 2, (SCREENHEIGHT - ORIGHEIGHT) Div 2, p);
 End;
 
 Procedure D_SetGameDescription();

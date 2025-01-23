@@ -59,18 +59,18 @@ Var
 Implementation
 
 Uses
-  doomkey, dstrings, doomstat,
-  math,
-  sounds,
-  d_mode, d_loop, d_englsh,
-  g_game,
-  hu_stuff,
-  i_timer, i_system,
-  m_controls,
-  s_sound,
-  v_video, v_trans,
-  w_wad,
-  z_zone
+  math
+  , doomkey, dstrings, doomstat, sounds
+  , d_mode, d_loop, d_englsh
+  , i_video
+  , g_game
+  , hu_stuff
+  , i_timer, i_system
+  , m_controls
+  , s_sound
+  , v_trans, v_video
+  , w_wad
+  , z_zone
   ;
 
 Const
@@ -253,7 +253,7 @@ Begin
       continue;
     End;
     w := hu_font[c]^.width;
-    If (cx + w > ORIGWIDTH) Then exit; // Wir würden über den Rechten Rand heraus malen
+    If (cx + w > SCREENWIDTH) Then exit; // Wir würden über den Rechten Rand heraus malen
     V_DrawPatchDirect(cx, cy, hu_font[c]);
     cx := cx + w;
     inc(i);
@@ -292,10 +292,10 @@ Begin
   inhelpscreens := true;
 
   If (W_CheckNumForName('M_EPISOD') <> -1) Then Begin
-    V_DrawPatchDirect(54, 38, W_CacheLumpName('M_EPISOD', PU_CACHE));
+    V_DrawPatchDirect(54 + ScaleOffX, 38 + ScaleOffY, W_CacheLumpName('M_EPISOD', PU_CACHE));
   End
   Else Begin
-    M_WriteText(54, 38, 'Which Episode?');
+    M_WriteText(54 + ScaleOffX, 38 + ScaleOffY, 'Which Episode?');
     // EpiDef.lumps_missing := 1;
   End;
 End;
@@ -304,15 +304,15 @@ Procedure M_DrawNewGame();
 Begin
   // [crispy] force status bar refresh
   //  inhelpscreens := true;
-  V_DrawPatchDirect(96, 14, W_CacheLumpName('M_NEWG', PU_CACHE));
-  V_DrawPatchDirect(54, 38, W_CacheLumpName('M_SKILL', PU_CACHE));
+  V_DrawPatchDirect(96 + ScaleOffX, 14 + ScaleOffY, W_CacheLumpName('M_NEWG', PU_CACHE));
+  V_DrawPatchDirect(54 + ScaleOffX, 38 + ScaleOffY, W_CacheLumpName('M_SKILL', PU_CACHE));
 End;
 
 Procedure M_DrawMainMenu();
 Begin
   // [crispy] force status bar refresh
   //    inhelpscreens = true;
-  V_DrawPatchDirect(94, 2, W_CacheLumpName('M_DOOM', PU_CACHE));
+  V_DrawPatchDirect(94 + ScaleOffX, 2 + ScaleOffY, W_CacheLumpName('M_DOOM', PU_CACHE));
 End;
 
 Procedure M_NewGame(choice: int);
@@ -1259,7 +1259,7 @@ End;
 // but before it has been blitted.
 //
 
-Procedure M_Drawer;
+Procedure M_Drawer();
 Const
   x: short = 0;
   y: short = 0;
@@ -1267,11 +1267,8 @@ Var
   i: unsigned_int;
   max: unsigned_int;
   str, s, name: String;
-  //  start: int;
   nlIndex: integer;
 Begin
-  //    char		string[80];
-
   inhelpscreens := false;
 
   // Horiz. & Vertically center string and print it.
@@ -1295,7 +1292,7 @@ Begin
         s := '';
       End;
       x := ORIGWIDTH Div 2 - M_StringWidth(str) Div 2;
-      M_WriteText(math.max(0, x), y, str); // [crispy] prevent negative x-coords
+      M_WriteText(math.max(0, x) + ScaleOffX, y + ScaleOffY, str); // [crispy] prevent negative x-coords
       // TODO: hier fehlt ein:
       // dp_translation := nil;
       y := y + hu_font[0]^.height;
@@ -1314,8 +1311,8 @@ Begin
     currentMenu^.routine(); // call Draw routine
 
   // DRAW MENU
-  x := currentMenu^.x;
-  y := currentMenu^.y;
+  x := currentMenu^.x + ScaleOffX;
+  y := currentMenu^.y + ScaleOffY;
   max := currentMenu^.numitems;
 
   //    // [crispy] check current menu for missing menu graphics lumps - only once
@@ -1331,7 +1328,6 @@ Begin
   //            currentMenu->lumps_missing = -1;
   //    }
 
-  //    for (i=0;i<max;i++)
   For i := 0 To max - 1 Do Begin
     // TODO: hier ist natürlich gewaltiges Potential drin den Lumindex zu Cachen
     name := currentMenu^.menuitems[i].Name;
@@ -1349,7 +1345,7 @@ Begin
     //	dp_translation = NULL;
 //  End
 //  Else Begin
-  V_DrawPatchDirect(x + SKULLXOFF, currentMenu^.y - 5 + itemOn * LINEHEIGHT,
+  V_DrawPatchDirect(x + SKULLXOFF, currentMenu^.y - 5 + itemOn * LINEHEIGHT + ScaleOffY,
     W_CacheLumpName(skullName[whichSkull], PU_CACHE));
   //  End;
 End;

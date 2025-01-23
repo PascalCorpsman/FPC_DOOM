@@ -14,12 +14,12 @@ Const
   // This is the stuff configured by Setup.Exe.
   // Most key data are simple ascii (uppercased).
   //
-//  #define KEY_RIGHTARROW	0xae
-//  #define KEY_LEFTARROW	0xac
-//  #define KEY_UPARROW	0xad
-//  #define KEY_DOWNARROW	0xaf
+  KEY_RIGHTARROW = VK_RIGHT;
+  KEY_LEFTARROW = VK_LEFT;
+  KEY_UPARROW = VK_UP;
+  KEY_DOWNARROW = VK_DOWN;
   KEY_ESCAPE = VK_ESCAPE;
-  //  #define KEY_ENTER	13
+  KEY_ENTER = VK_RETURN;
   //  #define KEY_TAB		9
   //  #define KEY_F1		(0x80+0x3b)
   //  #define KEY_F2		(0x80+0x3c)
@@ -34,15 +34,15 @@ Const
   //  #define KEY_F11		(0x80+0x57)
   //  #define KEY_F12		(0x80+0x58)
   //
-  //  #define KEY_BACKSPACE	0x7f
+  KEY_BACKSPACE = VK_ESCAPE;
   KEY_PAUSE = VK_PAUSE;
   //
   //  #define KEY_EQUALS	0x3d
   //  #define KEY_MINUS	0x2d
   //
-  //  #define KEY_RSHIFT	(0x80+0x36)
+  KEY_RSHIFT = VK_SHIFT;
   //  #define KEY_RCTRL	(0x80+0x1d)
-  //  #define KEY_RALT	(0x80+0x38)
+  KEY_RALT = 0; // Gibts in Lazarus überhaubt den ALT KEy ?
   //
   //  #define KEY_LALT	KEY_RALT
   //

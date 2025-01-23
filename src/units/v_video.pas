@@ -16,10 +16,6 @@ Uses
  *)
 {.$DEFINE DebugBMPOut_in_V_DrawPatch}
 
-Const
-  ORIGWIDTH = 320;
-  ORIGHEIGHT = 200;
-
 Procedure V_Init();
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
 Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);

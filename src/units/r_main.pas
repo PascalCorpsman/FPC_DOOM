@@ -12,6 +12,15 @@ Uses
   , r_defs
   ;
 
+Type
+  localview_t = Record
+    oldticangle: angle_t;
+    ticangle: angle_t;
+    ticangleturn: short;
+    rawangle: double;
+    angle: angle_t;
+  End;
+
 Var
   // [crispy] parameterized for smooth diminishing lighting
   NUMCOLORMAPS: int;
@@ -75,6 +84,8 @@ Var
   zlight: Array Of Array Of Plighttable_t = Nil;
   centery: int;
   centerx: int;
+
+  localview: localview_t; // [crispy]
 
 Procedure R_Init();
 Procedure R_ExecuteSetViewSize();

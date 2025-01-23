@@ -86,7 +86,7 @@ Var
 
   //  lighttable_t**	walllights;
 
-  maskedtexturecol: Array Of int; // [crispy] 32-bit integer math
+  maskedtexturecol: ^int; // [crispy] 32-bit integer math
 
 
   //

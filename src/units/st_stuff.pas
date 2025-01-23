@@ -7,19 +7,11 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomdef
-  , v_video
+  , i_video
   ;
-
-Const
-  // Size of statusbar.
-// Now sensitive for scaling.
-//  ST_HEIGHT = 32;
-  ST_WIDTH = ORIGWIDTH;
-//  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
-
 
 Procedure ST_Start();
 
@@ -32,10 +24,9 @@ Uses
   , am_map
   , d_items
   , g_game
-  , i_video
   , m_menu
   , st_lib
-  , v_patch
+  , v_patch, v_video
   ;
 
 Const
