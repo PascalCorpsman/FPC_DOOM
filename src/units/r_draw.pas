@@ -159,6 +159,10 @@ Var
 Begin
   heightmask := dc_texheight - 1;
 
+  If dc_yl < 0 Then Begin
+    exit; // WTF: Das sollte nicht nötig sein, rendern darf man den Slice aber definitiv nicht..
+  End;
+
   count := dc_yh - dc_yl;
 
   // Zero length, column does not exceed a pixel.

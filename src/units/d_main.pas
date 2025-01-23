@@ -776,7 +776,7 @@ Begin
   I_UpdateNoBlit();
 
   // draw the view directly
-  If (gamestate = GS_LEVEL) And (Not automapactive {|| crispy->automapoverlay}) And (gametic <> 0) Then Begin
+  If (gamestate = GS_LEVEL) And ((Not automapactive) Or (crispy.automapoverlay <> 0)) And (gametic <> 0) Then Begin
     R_RenderPlayerView(@players[displayplayer]);
 
     // [crispy] Crispy HUD

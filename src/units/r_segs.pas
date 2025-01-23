@@ -153,7 +153,7 @@ Begin
     If (segtextured) Then Begin
 
       // calculate texture offset
-      angle := SarLongint(angle_t(rw_centerangle + xtoviewangle[rw_x]), ANGLETOFINESHIFT);
+      angle := (angle_t(rw_centerangle + xtoviewangle[rw_x])) Shr ANGLETOFINESHIFT;
       texturecolumn := rw_offset - FixedMul(finetangent[angle], rw_distance);
       texturecolumn := SarLongint(texturecolumn, FRACBITS);
       // calculate lighting
@@ -417,8 +417,17 @@ Begin
   dx1 := SarInt64(int64(viewx - curline^.v1^.r_x), 1);
   dy1 := SarInt64(int64(viewy - curline^.v1^.r_y), 1);
   dist := ((dy * dx1 - dx * dy1) Div len) Shl 1;
-  rw_distance := fixed_t(specialize BETWEEN < int64 > (INT_MIN, INT_MAX, dist));
-
+  If dist < INT_MIN Then Begin
+    rw_distance := INT_MIN;
+  End
+  Else Begin
+    If dist > INT_MAX Then Begin
+      rw_distance := INT_MAX;
+    End
+    Else Begin
+      rw_distance := dist;
+    End;
+  End;
   drawsegs[ds_p].x1 := start;
   rw_x := start;
   drawsegs[ds_p].x2 := stop;

@@ -277,7 +277,6 @@ Begin
   // Back side? I.e. backface culling?
   If (span >= ANG180) Then exit;
 
-
   // Global angle needed by segcalc.
   rw_angle1 := angle1;
   angle1 := angle_t(angle1 - viewangle);

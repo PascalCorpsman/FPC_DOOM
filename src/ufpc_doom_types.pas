@@ -132,8 +132,6 @@ Procedure Nop(); // Just for debugging to have a breakpoint position ;)
 
 Function IfThen(aValue: Boolean; aTrueString: String; aFalseString: String): String;
 
-Generic Function Between < t > (l, u, x: t): t;
-
 Implementation
 
 Procedure Nop();
@@ -149,24 +147,6 @@ Begin
   End
   Else Begin
     Result := aFalseString;
-  End;
-End;
-
-Generic
-
-{ } Function Between < t > (l, u, x: t): t;
-
-Begin
-  If l > x Then Begin
-    result := l;
-  End
-  Else Begin
-    If u < x Then Begin
-      result := u;
-    End
-    Else Begin
-      result := x;
-    End;
   End;
 End;
 

@@ -276,7 +276,7 @@ Begin
   y := y - viewy;
 
   If ((x = 0) And (y = 0)) Then Begin
-    result := 0;
+    exit;
   End;
 
   If (x >= 0) Then Begin
@@ -301,7 +301,7 @@ Begin
       End
       Else Begin
         // octant 7
-        result := ANG270 + tantoangle[slope_div(x, y)];
+        result := angle_t(ANG270 + tantoangle[slope_div(x, y)]);
       End;
     End;
   End
@@ -316,7 +316,7 @@ Begin
       End
       Else Begin
         // octant 2
-        result := ANG90 + tantoangle[slope_div(x, y)];
+        result := angle_t(ANG90 + tantoangle[slope_div(x, y)]);
       End;
     End
     Else Begin
@@ -324,7 +324,7 @@ Begin
       y := -y;
       If (x > y) Then Begin
         // octant 4
-        result := ANG180 + tantoangle[slope_div(y, x)];
+        result := angle_t(ANG180 + tantoangle[slope_div(y, x)]);
       End
       Else Begin
         // octant 5
@@ -546,8 +546,8 @@ Var
   y_viewy, x_viewx: Int64;
 Begin
   // [crispy] fix overflows for very long distances
-  y_viewy := y - viewy;
-  x_viewx := x - viewx;
+  y_viewy := int64(y) - viewy;
+  x_viewx := int64(x) - viewx;
 
   // [crispy] the worst that could happen is e.g. INT_MIN-INT_MAX = 2*INT_MIN
   If (x_viewx < INT_MIN) Or (x_viewx > INT_MAX) Or

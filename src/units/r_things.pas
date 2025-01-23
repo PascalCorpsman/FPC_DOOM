@@ -405,7 +405,7 @@ Begin
     interpx := thing^.x;
     interpy := thing^.y;
     interpz := thing^.z;
-    interpangle := thing^.angle;
+    interpangle := fixed_t(thing^.angle);
   End;
 
   // transform the origin point
