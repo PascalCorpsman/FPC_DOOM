@@ -1,3 +1,4 @@
+// Ported 100%
 Unit r_bsp;
 
 {$MODE ObjFPC}{$H+}
@@ -31,7 +32,7 @@ Uses
   doomdata, tables
   , d_loop
   , i_video
-  , m_fixed
+  , m_fixed, m_bbox
   , p_setup
   , r_draw, r_main, r_plane, r_sky, r_things, r_segs
   ;
@@ -63,94 +64,10 @@ Var
   newend: ^cliprange_t;
   solidsegs: Array[0..MAXSEGS - 1] Of cliprange_t;
 
-Procedure R_ClearClipSegs();
-Begin
-  solidsegs[0].first := -$7FFFFFFF;
-  solidsegs[0].last := -1;
-  solidsegs[1].first := viewwidth;
-  solidsegs[1].last := $7FFFFFFF;
-  newend := @solidsegs[2];
-End;
 
 Procedure R_ClearDrawSegs();
 Begin
   ds_p := 0;
-End;
-
-// [AM] Interpolate the passed sector, if prudent.
-
-Procedure R_MaybeInterpolateSector(sector: psector_t);
-Begin
-  If (crispy.uncapped <> 0) And
-    // Only if we moved the sector last tic ...
-  (sector^.oldgametic = gametic - 1) And
-    // ... and it has a thinker associated with it.
-  assigned(sector^.specialdata) Then Begin
-
-    // Interpolate between current and last floor/ceiling position.
-    If (sector^.floorheight <> sector^.oldfloorheight) Then
-      sector^.interpfloorheight :=
-        LerpFixed(sector^.oldfloorheight, sector^.floorheight)
-    Else
-      sector^.interpfloorheight := sector^.floorheight;
-    If (sector^.ceilingheight <> sector^.oldceilingheight) Then
-      sector^.interpceilingheight :=
-        LerpFixed(sector^.oldceilingheight, sector^.ceilingheight)
-    Else
-      sector^.interpceilingheight := sector^.ceilingheight;
-  End
-  Else Begin
-    sector^.interpfloorheight := sector^.floorheight;
-    sector^.interpceilingheight := sector^.ceilingheight;
-  End;
-End;
-
-
-//
-// R_ClipPassWallSegment
-// Clips the given range of columns,
-//  but does not includes it in the clip list.
-// Does handle windows,
-//  e.g. LineDefs with upper and lower texture.
-//
-
-Procedure R_ClipPassWallSegment(first, last: int);
-Var
-  start: ^cliprange_t;
-Begin
-
-  // Find the first range that touches the range
-  //  (adjacent pixels are touching).
-  start := solidsegs;
-  While (start^.last < first - 1) Do
-    inc(start);
-
-  If (first < start^.first) Then Begin
-
-    If (last < start^.first - 1) Then Begin
-      // Post is entirely visible (above start).
-      R_StoreWallRange(first, last);
-      exit;
-    End;
-
-    // There is a fragment above *start.
-    R_StoreWallRange(first, start^.first - 1);
-  End;
-
-  // Bottom contained in start?
-  If (last <= start^.last) Then exit;
-
-
-  While (last >= (start + 1)^.first - 1) Do Begin
-
-    // There is a fragment between two posts.
-    R_StoreWallRange(start^.last + 1, (start + 1)^.first - 1);
-    inc(start);
-    If (last <= start^.last) Then exit;
-  End;
-
-  // There is a fragment after *next.
-  R_StoreWallRange(start^.last + 1, last);
 End;
 
 //
@@ -242,6 +159,90 @@ Begin
   End;
 
   newend := start + 1;
+End;
+
+//
+// R_ClipPassWallSegment
+// Clips the given range of columns,
+//  but does not includes it in the clip list.
+// Does handle windows,
+//  e.g. LineDefs with upper and lower texture.
+//
+
+Procedure R_ClipPassWallSegment(first, last: int);
+Var
+  start: ^cliprange_t;
+Begin
+
+  // Find the first range that touches the range
+  //  (adjacent pixels are touching).
+  start := solidsegs;
+  While (start^.last < first - 1) Do
+    inc(start);
+
+  If (first < start^.first) Then Begin
+
+    If (last < start^.first - 1) Then Begin
+      // Post is entirely visible (above start).
+      R_StoreWallRange(first, last);
+      exit;
+    End;
+
+    // There is a fragment above *start.
+    R_StoreWallRange(first, start^.first - 1);
+  End;
+
+  // Bottom contained in start?
+  If (last <= start^.last) Then exit;
+
+
+  While (last >= (start + 1)^.first - 1) Do Begin
+
+    // There is a fragment between two posts.
+    R_StoreWallRange(start^.last + 1, (start + 1)^.first - 1);
+    inc(start);
+    If (last <= start^.last) Then exit;
+  End;
+
+  // There is a fragment after *next.
+  R_StoreWallRange(start^.last + 1, last);
+End;
+
+Procedure R_ClearClipSegs();
+Begin
+  solidsegs[0].first := -$7FFFFFFF;
+  solidsegs[0].last := -1;
+  solidsegs[1].first := viewwidth;
+  solidsegs[1].last := $7FFFFFFF;
+  newend := @solidsegs[2];
+End;
+
+// [AM] Interpolate the passed sector, if prudent.
+
+Procedure R_MaybeInterpolateSector(sector: psector_t);
+Begin
+  If (crispy.uncapped <> 0) And
+    // Only if we moved the sector last tic ...
+  (sector^.oldgametic = gametic - 1) And
+    // ... and it has a thinker associated with it.
+  assigned(sector^.specialdata) Then Begin
+
+    // Interpolate between current and last floor/ceiling position.
+    If (sector^.floorheight <> sector^.oldfloorheight) Then
+      sector^.interpfloorheight :=
+        LerpFixed(sector^.oldfloorheight, sector^.floorheight)
+    Else
+      sector^.interpfloorheight := sector^.floorheight;
+    If (sector^.ceilingheight <> sector^.oldceilingheight) Then
+      sector^.interpceilingheight :=
+        LerpFixed(sector^.oldceilingheight, sector^.ceilingheight)
+    Else
+      sector^.interpceilingheight := sector^.ceilingheight;
+  End
+  Else Begin
+    sector^.interpfloorheight := sector^.floorheight;
+    sector^.interpceilingheight := sector^.ceilingheight;
+  End;
 End;
 
 //
@@ -350,6 +351,132 @@ Begin
 End;
 
 //
+// R_CheckBBox
+// Checks BSP node/subtree bounding box.
+// Returns true
+//  if some part of the bbox might be visible.
+//
+Const
+  checkcoord: Array[0..11, 0..3] Of int =
+  (
+    (3, 0, 2, 1),
+    (3, 0, 2, 0),
+    (3, 1, 2, 0),
+    (0, 0, 0, 0),
+
+    (2, 0, 2, 1),
+    (0, 0, 0, 0),
+    (3, 1, 3, 0),
+    (0, 0, 0, 0),
+
+    (2, 0, 3, 1),
+    (2, 1, 3, 1),
+    (2, 1, 3, 0),
+    (0, 0, 0, 0)
+    );
+
+Function R_CheckBBox(bspcoord: pfixed_t): boolean;
+Var
+  boxx, boxy, boxpos: int;
+  x1, y1, x2, y2: fixed_t;
+  angle1, angle2, span, tspan: angle_t;
+  i, j, sx1, sx2: int;
+Begin
+
+  // Find the corners of the box
+  // that define the edges from current viewpoint.
+  If (viewx <= bspcoord[BOXLEFT]) Then
+    boxx := 0
+  Else If (viewx < bspcoord[BOXRIGHT]) Then
+    boxx := 1
+  Else
+    boxx := 2;
+
+  If (viewy >= bspcoord[BOXTOP]) Then
+    boxy := 0
+  Else If (viewy > bspcoord[BOXBOTTOM]) Then
+    boxy := 1
+  Else
+    boxy := 2;
+
+  boxpos := (boxy Shl 2) + boxx;
+  If (boxpos = 5) Then Begin
+    result := true;
+    exit;
+  End;
+
+  x1 := bspcoord[checkcoord[boxpos][0]];
+  y1 := bspcoord[checkcoord[boxpos][1]];
+  x2 := bspcoord[checkcoord[boxpos][2]];
+  y2 := bspcoord[checkcoord[boxpos][3]];
+
+  // check clip list for an open space
+  angle1 := angle_t(R_PointToAngleCrispy(x1, y1) - viewangle);
+  angle2 := angle_t(R_PointToAngleCrispy(x2, y2) - viewangle);
+
+  span := angle_t(angle1 - angle2);
+
+  // Sitting on a line?
+  If (span >= ANG180) Then Begin
+    result := true;
+    exit;
+  End;
+
+  tspan := angle_t(angle1 + clipangle);
+
+  If (tspan > 2 * clipangle) Then Begin
+    tspan := tspan - 2 * clipangle;
+    // Totally off the left edge?
+    If (tspan >= span) Then Begin
+      result := false;
+      exit;
+    End;
+    angle1 := clipangle;
+  End;
+
+  tspan := angle_t(clipangle - angle2);
+  If (tspan > 2 * clipangle) Then Begin
+    tspan := tspan - 2 * clipangle;
+    // Totally off the left edge?
+    If (tspan >= span) Then Begin
+      result := false;
+      exit;
+    End;
+    angle2 := angle_t(-clipangle);
+  End;
+
+  // Find the first clippost
+  //  that touches the source post
+  //  (adjacent pixels are touching).
+  angle1 := angle_t(angle1 + ANG90) Shr ANGLETOFINESHIFT;
+  angle2 := angle_t(angle2 + ANG90) Shr ANGLETOFINESHIFT;
+  sx1 := viewangletox[angle1];
+  sx2 := viewangletox[angle2];
+
+  // Does not cross a pixel.
+  If (sx1 = sx2) Then Begin
+    result := false;
+    exit;
+  End;
+  sx2 := sx2 - 1;
+
+  j := -1;
+  For i := 0 To high(solidsegs) Do Begin
+    If solidsegs[i].last >= sx2 Then Begin
+      j := i - 1;
+      break;
+    End;
+  End;
+
+  If (j <> -1) And (sx1 >= solidsegs[j].first) And (sx2 <= solidsegs[j].last) Then Begin
+    result := false;
+    exit;
+  End;
+
+  result := true;
+End;
+
+//
 // R_Subsector
 // Determine floor/ceiling planes.
 // Add sprites of things in sector.
@@ -426,142 +553,6 @@ Begin
   //        I_Error("R_Subsector: solidsegs overflow (vanilla may crash here)\n");
 End;
 
-
-//
-// R_CheckBBox
-// Checks BSP node/subtree bounding box.
-// Returns true
-//  if some part of the bbox might be visible.
-//
-Const
-  checkcoord: Array[0..11, 0..3] Of int =
-  (
-    (3, 0, 2, 1),
-    (3, 0, 2, 0),
-    (3, 1, 2, 0),
-    (0, 0, 0, 0),
-
-    (2, 0, 2, 1),
-    (0, 0, 0, 0),
-    (3, 1, 3, 0),
-    (0, 0, 0, 0),
-
-    (2, 0, 3, 1),
-    (2, 1, 3, 1),
-    (2, 1, 3, 0),
-    (0, 0, 0, 0)
-    );
-
-
-Function R_CheckBBox(bspcoord: pfixed_t): boolean;
-Begin
-  //    int			boxx;
-  //    int			boxy;
-  //    int			boxpos;
-  //
-  //    fixed_t		x1;
-  //    fixed_t		y1;
-  //    fixed_t		x2;
-  //    fixed_t		y2;
-  //
-  //    angle_t		angle1;
-  //    angle_t		angle2;
-  //    angle_t		span;
-  //    angle_t		tspan;
-  //
-  //    cliprange_t*	start;
-  //
-  //    int			sx1;
-  //    int			sx2;
-  //
-  //    // Find the corners of the box
-  //    // that define the edges from current viewpoint.
-  //    if (viewx <= bspcoord[BOXLEFT])
-  //	boxx = 0;
-  //    else if (viewx < bspcoord[BOXRIGHT])
-  //	boxx = 1;
-  //    else
-  //	boxx = 2;
-  //
-  //    if (viewy >= bspcoord[BOXTOP])
-  //	boxy = 0;
-  //    else if (viewy > bspcoord[BOXBOTTOM])
-  //	boxy = 1;
-  //    else
-  //	boxy = 2;
-  //
-  //    boxpos = (boxy<<2)+boxx;
-  //    if (boxpos == 5)
-  //	return true;
-  //
-  //    x1 = bspcoord[checkcoord[boxpos][0]];
-  //    y1 = bspcoord[checkcoord[boxpos][1]];
-  //    x2 = bspcoord[checkcoord[boxpos][2]];
-  //    y2 = bspcoord[checkcoord[boxpos][3]];
-  //
-  //    // check clip list for an open space
-  //    angle1 = R_PointToAngleCrispy (x1, y1) - viewangle;
-  //    angle2 = R_PointToAngleCrispy (x2, y2) - viewangle;
-  //
-  //    span = angle1 - angle2;
-  //
-  //    // Sitting on a line?
-  //    if (span >= ANG180)
-  //	return true;
-  //
-  //    tspan = angle1 + clipangle;
-  //
-  //    if (tspan > 2*clipangle)
-  //    {
-  //	tspan -= 2*clipangle;
-  //
-  //	// Totally off the left edge?
-  //	if (tspan >= span)
-  //	    return false;
-  //
-  //	angle1 = clipangle;
-  //    }
-  //    tspan = clipangle - angle2;
-  //    if (tspan > 2*clipangle)
-  //    {
-  //	tspan -= 2*clipangle;
-  //
-  //	// Totally off the left edge?
-  //	if (tspan >= span)
-  //	    return false;
-  //
-  //	angle2 = -clipangle;
-  //    }
-  //
-  //
-  //    // Find the first clippost
-  //    //  that touches the source post
-  //    //  (adjacent pixels are touching).
-  //    angle1 = (angle1+ANG90)>>ANGLETOFINESHIFT;
-  //    angle2 = (angle2+ANG90)>>ANGLETOFINESHIFT;
-  //    sx1 = viewangletox[angle1];
-  //    sx2 = viewangletox[angle2];
-  //
-  //    // Does not cross a pixel.
-  //    if (sx1 == sx2)
-  //	return false;
-  //    sx2--;
-  //
-  //    start = solidsegs;
-  //    while (start->last < sx2)
-  //	start++;
-  //
-  //    if (sx1 >= start->first
-  //	&& sx2 <= start->last)
-  //    {
-  //	// The clippost contains the new span.
-  //	return false;
-  //    }
-
-  result := true;
-End;
-
-
 //
 // RenderBSPNode
 // Renders all subsectors below a given node,
@@ -572,7 +563,6 @@ Procedure R_RenderBSPNode(bspnum: int);
 Var
   bsp: ^node_t;
   side: int;
-
 Begin
   // Found a subsector?
   If (bspnum And NF_SUBSECTOR) <> 0 Then Begin
@@ -586,13 +576,10 @@ Begin
   End;
 
   bsp := @nodes[bspnum];
-
   // Decide which side the view point is on.
   side := R_PointOnSide(viewx, viewy, bsp);
-
   // Recursively divide front space.
   R_RenderBSPNode(bsp^.children[side]);
-
   // Possibly divide back space.
   If (R_CheckBBox(bsp^.bbox[side Xor 1])) Then
     R_RenderBSPNode(bsp^.children[side Xor 1]);
