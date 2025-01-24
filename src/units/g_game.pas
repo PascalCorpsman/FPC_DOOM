@@ -31,7 +31,7 @@ Var
   // [crispy] moved here
   defdemoname: String;
 
-  paused: boolean;
+  paused: int; //
   sendsave: boolean; // send a save event next tic
   sendpause: Boolean; // send a pause event next tic
   usergame: boolean; // ok to save / end game
@@ -80,7 +80,7 @@ Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 Procedure G_ExitLevel();
 
 Procedure G_DemoGotoNextLevel(start: Boolean);
-
+Function G_CheckDemoStatus(): boolean;
 Procedure G_PlayerReborn(player: int);
 Procedure G_DeathMatchSpawnPlayer(playernum: int);
 
@@ -89,10 +89,11 @@ Implementation
 Uses
   doomdata, doomstat, info, sounds, deh_misc, doomkey
   , am_map
-  , d_main, d_loop
+  , d_main, d_loop, d_net
   , i_video, i_timer
   , hu_stuff
   , m_menu, m_argv, m_random, m_fixed, m_controls
+  , net_defs
   , p_setup, p_mobj, p_inter, p_tick
   , r_data, r_sky, r_main
   , s_sound, st_stuff
@@ -363,6 +364,114 @@ Begin
   gameaction := ga_nothing;
 End;
 
+
+Procedure G_ReadDemoTiccmd(cmd: Pticcmd_t);
+Begin
+  //    if (*demo_p == DEMOMARKER)
+  //    {
+  //	last_cmd = cmd; // [crispy] remember last cmd to track joins
+  //
+  //	// end of demo data stream
+  //	G_CheckDemoStatus ();
+  //	return;
+  //    }
+  //
+  //    // [crispy] if demo playback is quit by pressing 'q',
+  //    // stay in the game, hand over controls to the player and
+  //    // continue recording the demo under a different name
+  //    if (gamekeydown[key_demo_quit] && singledemo && !netgame)
+  //    {
+  //	byte *actualbuffer = demobuffer;
+  //	char *actualname = M_StringDuplicate(defdemoname);
+  //
+  //	gamekeydown[key_demo_quit] = false;
+  //
+  //	// [crispy] find a new name for the continued demo
+  //	G_RecordDemo(actualname);
+  //	free(actualname);
+  //
+  //	// [crispy] discard the newly allocated demo buffer
+  //	Z_Free(demobuffer);
+  //	demobuffer = actualbuffer;
+  //
+  //	last_cmd = cmd; // [crispy] remember last cmd to track joins
+  //
+  //	// [crispy] continue recording
+  //	G_CheckDemoStatus();
+  //	return;
+  //    }
+  //
+  //    cmd->forwardmove = ((signed char)*demo_p++);
+  //    cmd->sidemove = ((signed char)*demo_p++);
+  //
+  //    // If this is a longtics demo, read back in higher resolution
+  //
+  //    if (longtics)
+  //    {
+  //        cmd->angleturn = *demo_p++;
+  //        cmd->angleturn |= (*demo_p++) << 8;
+  //    }
+  //    else
+  //    {
+  //        cmd->angleturn = ((unsigned char) *demo_p++)<<8;
+  //    }
+  //
+  //    cmd->buttons = (unsigned char)*demo_p++;
+End;
+
+
+Procedure G_WriteDemoTiccmd(Const cmd: ticcmd_t);
+Begin
+  //    byte *demo_start;
+  //
+  //    if (gamekeydown[key_demo_quit])           // press q to end demo recording
+  //	G_CheckDemoStatus ();
+  //
+  //    demo_start = demo_p;
+  //
+  //    *demo_p++ = cmd->forwardmove;
+  //    *demo_p++ = cmd->sidemove;
+  //
+  //    // If this is a longtics demo, record in higher resolution
+  //
+  //    if (longtics)
+  //    {
+  //        *demo_p++ = (cmd->angleturn & 0xff);
+  //        *demo_p++ = (cmd->angleturn >> 8) & 0xff;
+  //    }
+  //    else
+  //    {
+  //        *demo_p++ = cmd->angleturn >> 8;
+  //    }
+  //
+  //    *demo_p++ = cmd->buttons;
+  //
+  //    // reset demo pointer back
+  //    demo_p = demo_start;
+  //
+  //    if (demo_p > demoend - 16)
+  //    {
+  //        // [crispy] unconditionally disable savegame and demo limits
+  //        /*
+  //        if (vanilla_demo_limit)
+  //        {
+  //            // no more space
+  //            G_CheckDemoStatus ();
+  //            return;
+  //        }
+  //        else
+  //        */
+  //        {
+  //            // Vanilla demo limit disabled: unlimited
+  //            // demo lengths!
+  //
+  //            IncreaseDemoBuffer();
+  //        }
+  //    }
+  //
+  //    G_ReadDemoTiccmd (cmd);         // make SURE it is exactly the same
+End;
+
 //
 // G_Ticker
 // Make ticcmd_ts for the players.
@@ -371,7 +480,7 @@ End;
 Procedure G_Ticker();
 Var
   i, buf: int;
-  cmd: ticcmd_t;
+  cmd: ^ticcmd_t;
 Begin
 
   // do player reborns if needed
@@ -430,126 +539,120 @@ Begin
     End;
   End;
 
-  //    // [crispy] demo sync of revenant tracers and RNG (from prboom-plus)
-  //    if (paused & 2 || (!demoplayback && menuactive && !netgame))
-  //    {
-  //        demostarttic++;
-  //    }
-  //    else
-  //    {
-  //    // get commands, check consistancy,
-  //    // and build new consistancy check
-  //    buf = (gametic/ticdup)%BACKUPTICS;
-  //
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //    {
-  //	if (playeringame[i])
-  //	{
-  //	    cmd = &players[i].cmd;
-  //
-  //	    memcpy(cmd, &netcmds[i], sizeof(ticcmd_t));
-  //
-  //	    if (demoplayback)
-  //		G_ReadDemoTiccmd (cmd);
-  //	    // [crispy] do not record tics while still playing back in demo continue mode
-  //	    if (demorecording && !demoplayback)
-  //		G_WriteDemoTiccmd (cmd);
-  //
-  //	    // check for turbo cheats
-  //
-  //            // check ~ 4 seconds whether to display the turbo message.
-  //            // store if the turbo threshold was exceeded in any tics
-  //            // over the past 4 seconds.  offset the checking period
-  //            // for each player so messages are not displayed at the
-  //            // same time.
-  //
-  //            if (cmd->forwardmove > TURBOTHRESHOLD)
-  //            {
-  //                turbodetected[i] = true;
-  //            }
-  //
-  //            if ((gametic & 31) == 0
-  //             && ((gametic >> 5) % MAXPLAYERS) == i
-  //             && turbodetected[i])
-  //            {
-  //                static char turbomessage[80];
-  //                M_snprintf(turbomessage, sizeof(turbomessage),
-  //                           "%s is turbo!", player_names[i]);
-  //                players[consoleplayer].message = turbomessage;
-  //                turbodetected[i] = false;
-  //            }
-  //
-  //	    if (netgame && !netdemo && !(gametic%ticdup) )
-  //	    {
-  //		if (gametic > BACKUPTICS
-  //		    && consistancy[i][buf] != cmd->consistancy)
-  //		{
-  //		    I_Error ("consistency failure (%i should be %i)",
-  //			     cmd->consistancy, consistancy[i][buf]);
-  //		}
-  //		if (players[i].mo)
-  //		    consistancy[i][buf] = players[i].mo->x;
-  //		else
-  //		    consistancy[i][buf] = rndindex;
-  //	    }
-  //	}
-  //    }
-  //
-  //    // [crispy] increase demo tics counter
+  // [crispy] demo sync of revenant tracers and RNG (from prboom-plus)
+  If ((paused And 2) <> 0) Or ((Not demoplayback) And menuactive And (Not netgame)) Then Begin
+
+    demostarttic := demostarttic + 1;
+  End
+  Else Begin
+    // get commands, check consistancy,
+    // and build new consistancy check
+    buf := (gametic Div ticdup) Mod BACKUPTICS;
+
+    For i := 0 To MAXPLAYERS - 1 Do Begin
+      If (playeringame[i]) Then Begin
+        cmd := @players[i].cmd;
+        move(netcmds[i], cmd^, sizeof(ticcmd_t));
+        If (demoplayback) Then Begin
+          G_ReadDemoTiccmd(cmd);
+        End;
+        // [crispy] do not record tics while still playing back in demo continue mode
+        If (demorecording) And (Not demoplayback) Then
+          G_WriteDemoTiccmd(cmd^);
+
+        // check for turbo cheats
+
+               // check ~ 4 seconds whether to display the turbo message.
+               // store if the turbo threshold was exceeded in any tics
+               // over the past 4 seconds.  offset the checking period
+               // for each player so messages are not displayed at the
+               // same time.
+
+   //            if (cmd->forwardmove > TURBOTHRESHOLD)
+   //            {
+   //                turbodetected[i] = true;
+   //            }
+
+   //            if ((gametic & 31) == 0
+   //             && ((gametic >> 5) % MAXPLAYERS) == i
+   //             && turbodetected[i])
+   //            {
+   //                static char turbomessage[80];
+   //                M_snprintf(turbomessage, sizeof(turbomessage),
+   //                           "%s is turbo!", player_names[i]);
+   //                players[consoleplayer].message = turbomessage;
+   //                turbodetected[i] = false;
+   //            }
+
+   //	    if (netgame && !netdemo && !(gametic%ticdup) )
+   //	    {
+   //		if (gametic > BACKUPTICS
+   //		    && consistancy[i][buf] != cmd->consistancy)
+   //		{
+   //		    I_Error ("consistency failure (%i should be %i)",
+   //			     cmd->consistancy, consistancy[i][buf]);
+   //		}
+   //		if (players[i].mo)
+   //		    consistancy[i][buf] = players[i].mo->x;
+   //		else
+   //		    consistancy[i][buf] = rndindex;
+   //	    }
+      End;
+    End;
+
+    // [crispy] increase demo tics counter
   //    if (demoplayback || demorecording)
   //    {
   //	    defdemotics++;
   //    }
-  //
-  //    // check for special buttons
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //    {
-  //	if (playeringame[i])
-  //	{
-  //	    if (players[i].cmd.buttons & BT_SPECIAL)
-  //	    {
-  //		switch (players[i].cmd.buttons & BT_SPECIALMASK)
-  //		{
-  //		  case BTS_PAUSE:
-  //		    paused ^= 1;
-  //		    if (paused)
-  //			S_PauseSound ();
-  //		    else
-  //		    // [crispy] Fixed bug when music was hearable with zero volume
-  //		    if (musicVolume)
-  //			S_ResumeSound ();
-  //		    break;
-  //
-  //		  case BTS_SAVEGAME:
-  //		    // [crispy] never override savegames by demo playback
-  //		    if (demoplayback)
-  //			break;
-  //		    if (!savedescription[0])
-  //                    {
-  //                        M_StringCopy(savedescription, "NET GAME",
-  //                                     sizeof(savedescription));
-  //                    }
-  //
-  //		    savegameslot =
-  //			(players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
-  //		    gameaction = ga_savegame;
-  //		    // [crispy] un-pause immediately after saving
-  //		    // (impossible to send save and pause specials within the same tic)
-  //		    if (demorecording && paused)
-  //			sendpause = true;
-  //		    break;
-  //		}
-  //	    }
-  //	}
-  //    }
-  //    }
-  //
-  //    // Have we just finished displaying an intermission screen?
-  //
-  //    if (oldgamestate == GS_INTERMISSION && gamestate != GS_INTERMISSION)
-  //    {
-  //        WI_End();
-  //    }
+
+    // check for special buttons
+    For i := 0 To MAXPLAYERS - 1 Do Begin
+      If (playeringame[i]) Then Begin
+        //	    if (players[i].cmd.buttons & BT_SPECIAL)
+        //	    {
+        //		switch (players[i].cmd.buttons & BT_SPECIALMASK)
+        //		{
+        //		  case BTS_PAUSE:
+        //		    paused ^= 1;
+        //		    if (paused)
+        //			S_PauseSound ();
+        //		    else
+        //		    // [crispy] Fixed bug when music was hearable with zero volume
+        //		    if (musicVolume)
+        //			S_ResumeSound ();
+        //		    break;
+        //
+        //		  case BTS_SAVEGAME:
+        //		    // [crispy] never override savegames by demo playback
+        //		    if (demoplayback)
+        //			break;
+        //		    if (!savedescription[0])
+        //                    {
+        //                        M_StringCopy(savedescription, "NET GAME",
+        //                                     sizeof(savedescription));
+        //                    }
+        //
+        //		    savegameslot =
+        //			(players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
+        //		    gameaction = ga_savegame;
+        //		    // [crispy] un-pause immediately after saving
+        //		    // (impossible to send save and pause specials within the same tic)
+        //		    if (demorecording && paused)
+        //			sendpause = true;
+        //		    break;
+        //		}
+        //	    }
+      End;
+    End;
+  End;
+
+  // Have we just finished displaying an intermission screen?
+
+//    if (oldgamestate == GS_INTERMISSION && gamestate != GS_INTERMISSION)
+//    {
+//        WI_End();
+//    }
 
   oldgamestate := gamestate;
   oldleveltime := leveltime;
@@ -598,8 +701,8 @@ Begin
   If (gameaction = ga_nothing) And (
     ((demoplayback) Or (gamestate = GS_DEMOSCREEN))) Then Begin
     If (ev^._type = ev_keydown) And (ev^.data1 = key_pause) Then Begin
-      paused := Not paused;
-      If (paused) Then Begin
+      paused := paused Xor 2;
+      If (paused <> 0) Then Begin
         S_PauseSound();
       End
       Else Begin
@@ -865,7 +968,7 @@ Begin
   //    memset(&basecmd, 0, sizeof(basecmd)); // [crispy]
   sendpause := false;
   sendsave := false;
-  paused := false;
+  paused := 0;
   //    memset(mousearray, 0, sizeof(mousearray));
   //    memset(joyarray, 0, sizeof(joyarray));
   R_SetGoobers(false);
@@ -892,8 +995,8 @@ Var
   i: int;
 Begin
 
-  If (paused) Then Begin
-    paused := false;
+  If (paused <> 0) Then Begin
+    paused := 0;
     S_ResumeSound();
   End;
 
@@ -1001,7 +1104,7 @@ Begin
   End;
 
   usergame := true; // will be set false if a demo
-  paused := false;
+  paused := 0;
   demoplayback := false;
   automapactive := false;
   viewactive := true;

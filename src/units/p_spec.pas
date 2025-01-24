@@ -5,11 +5,14 @@ Unit p_spec;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils,
+  info_types
+  ;
 
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();
+Procedure P_PlayerInSpecialSector(player: Pplayer_t);
 
 Implementation
 
@@ -211,6 +214,104 @@ Begin
     //			}
     //		}
   End;
+End;
+
+//
+// P_PlayerInSpecialSector
+// Called every tic frame
+//  that the player origin is in a special sector
+//
+
+Procedure P_PlayerInSpecialSector(player: Pplayer_t);
+Begin
+  //    sector_t*	sector;
+  //    extern int showMessages;
+  //    static sector_t*	error;
+  //
+  //    sector = player->mo->subsector->sector;
+  //
+  //    // Falling, not all the way down yet?
+  //    if (player->mo->z != sector->floorheight)
+  //	return;
+  //
+  //    // Has hitten ground.
+  //    switch (sector->special)
+  //    {
+  //      case 5:
+  //	// HELLSLIME DAMAGE
+  //	// [crispy] no nukage damage with NOCLIP cheat
+  //	if (!player->powers[pw_ironfeet] && !(player->mo->flags & MF_NOCLIP))
+  //	    if (!(leveltime&0x1f))
+  //		P_DamageMobj (player->mo, NULL, NULL, 10);
+  //	break;
+  //
+  //      case 7:
+  //	// NUKAGE DAMAGE
+  //	// [crispy] no nukage damage with NOCLIP cheat
+  //	if (!player->powers[pw_ironfeet] && !(player->mo->flags & MF_NOCLIP))
+  //	    if (!(leveltime&0x1f))
+  //		P_DamageMobj (player->mo, NULL, NULL, 5);
+  //	break;
+  //
+  //      case 16:
+  //	// SUPER HELLSLIME DAMAGE
+  //      case 4:
+  //	// STROBE HURT
+  //	// [crispy] no nukage damage with NOCLIP cheat
+  //	if ((!player->powers[pw_ironfeet]
+  //	    || (P_Random()<5) ) && !(player->mo->flags & MF_NOCLIP))
+  //	{
+  //	    if (!(leveltime&0x1f))
+  //		P_DamageMobj (player->mo, NULL, NULL, 20);
+  //	}
+  //	break;
+  //
+  //      case 9:
+  //	// SECRET SECTOR
+  //	player->secretcount++;
+  //	// [crispy] show centered "Secret Revealed!" message
+  //	if (showMessages && crispy->secretmessage && player == &players[consoleplayer])
+  //	{
+  //	    int sfx_id;
+  //	    static char str_count[32];
+  //
+  //	    M_snprintf(str_count, sizeof(str_count), "Secret %d of %d revealed!", player->secretcount, totalsecret);
+  //
+  //	    // [crispy] play DSSECRET if available
+  //	    sfx_id = I_GetSfxLumpNum(&S_sfx[sfx_secret]) != -1 ? sfx_secret :
+  //	             I_GetSfxLumpNum(&S_sfx[sfx_itmbk]) != -1 ? sfx_itmbk : -1;
+  //
+  //	    player->centermessage = (crispy->secretmessage == SECRETMESSAGE_COUNT) ? str_count : HUSTR_SECRETFOUND;
+  //	    if (sfx_id != -1)
+  //		S_StartSound(NULL, sfx_id);
+  //	}
+  //	// [crispy] remember revealed secrets
+  //	sector->oldspecial = sector->special;
+  //	sector->special = 0;
+  //	break;
+  //
+  //      case 11:
+  //	// EXIT SUPER DAMAGE! (for E1M8 finale)
+  //	player->cheats &= ~CF_GODMODE;
+  //
+  //	if (!(leveltime&0x1f))
+  //	    P_DamageMobj (player->mo, NULL, NULL, 20);
+  //
+  //	if (player->health <= 10)
+  //	    G_ExitLevel();
+  //	break;
+  //
+  //      default:
+  //	// [crispy] ignore unknown special sectors
+  //	if (error != sector)
+  //	{
+  //	error = sector;
+  //	fprintf (stderr, "P_PlayerInSpecialSector: "
+  //		 "unknown special %i\n",
+  //		 sector->special);
+  //	}
+  //	break;
+  //    };
 End;
 
 End.

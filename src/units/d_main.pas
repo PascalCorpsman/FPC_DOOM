@@ -865,7 +865,7 @@ Begin
   //    }
 
       // draw pause pic
-  If (paused) Then Begin
+  If (paused <> 0) Then Begin
 
     //	if (automapactive && !crispy->automapoverlay)
     //	    y = 4;
@@ -985,7 +985,7 @@ Begin
   //     players[consoleplayer].playerstate = PST_LIVE;  // not reborn
   advancedemo := false;
   //    usergame = false;               // no save / end game here
-  paused := false;
+  paused := 0;
   gameaction := ga_nothing;
   // [crispy] update the "singleplayer" variable
   //    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);

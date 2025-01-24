@@ -5,20 +5,24 @@ Unit d_net;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , d_ticcmd
+  ;
+
+Var
+  netcmds: Array Of ticcmd_t;
 
 Procedure D_CheckNetGame();
 
 Implementation
 
 Uses
-  doomstat, doomdef
+  doomstat, doomdef, info_types
   , d_loop, d_main
   , g_game
   , m_Menu, m_argv
   , net_defs
   ;
-
 
 // Load game settings from the specified structure and
 // set global variables.
@@ -71,23 +75,47 @@ Begin
     Or M_ParmExists('-shorttics');
 End;
 
+// Called when a player leaves the game
 
-Procedure RunTic({ticcmd_t *cmds, boolean *ingame});
+Procedure PlayerQuitGame(Var player: player_t);
+Var
+  player_num: unsigned_int;
+Begin
+  //    static char exitmsg[80];
+  //    unsigned int player_num;
+  //
+  player_num := @player - @players[0];
+
+  // Do this the same way as Vanilla Doom does, to allow dehacked
+  // replacements of this message
+
+  playeringame[player_num] := false;
+  players[consoleplayer].message := format('Player %d left the game', [player_num + 1]);
+  // [crispy] don't interpolate players who left the game
+  player.mo^.interp := false;
+
+  // TODO: check if it is sensible to do this:
+
+  If (demorecording) Then Begin
+    G_CheckDemoStatus();
+  End;
+End;
+
+
+Procedure RunTic(Const cmds: Tcmds; Var ingame: TInGame);
+Var
+  i: unsigned_int;
 Begin
 
-  //    unsigned int i;
-  //
-  //    // Check for player quits.
-  //
-  //    for (i = 0; i < MAXPLAYERS; ++i)
-  //    {
-  //        if (!demoplayback && playeringame[i] && !ingame[i])
-  //        {
-  //            PlayerQuitGame(&players[i]);
-  //        }
-  //    }
-  //
-  //    netcmds = cmds;
+  // Check for player quits.
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+
+    If (Not demoplayback) And (playeringame[i]) And (Not ingame[i]) Then Begin
+      PlayerQuitGame(players[i]);
+    End;
+  End;
+
+  netcmds := cmds;
 
   // check that there are players in the game.  if not, we cannot
   // run a tic.
@@ -105,7 +133,6 @@ Const
     RunMenu: @M_Ticker
     )
   ;
-
 
   //
   // D_CheckNetGame

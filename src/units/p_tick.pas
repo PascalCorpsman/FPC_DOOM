@@ -52,7 +52,7 @@ Var
 Begin
 
   // run the tic
-  If (paused) Then exit;
+  If (paused <> 0) Then exit;
 
   //    // pause if in menu and at least one tic has been run
   //    if ( !netgame
@@ -77,5 +77,4 @@ Begin
 End;
 
 End.
-
 

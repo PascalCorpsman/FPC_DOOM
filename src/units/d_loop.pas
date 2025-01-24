@@ -12,7 +12,18 @@ Uses
   ;
 
 Type
-  TRunTic = Procedure({cmds: Array Of ticcmd_t; Var ingame: boolean});
+
+  Tcmds = Array[0..NET_MAXPLAYERS - 1] Of ticcmd_t;
+  TInGame = Array[0..NET_MAXPLAYERS - 1] Of boolean;
+
+  ticcmd_set_t = Record
+    cmds: Tcmds;
+    ingame: TInGame;
+  End;
+
+  Pticcmd_set_t = ^ticcmd_set_t;
+
+  TRunTic = Procedure(Const cmds: Tcmds; Var ingame: TInGame);
   TBuildTiccmd = Procedure(Var cmd: ticcmd_t; maketic: int);
 
   // Callback function invoked while waiting for the netgame to start.
@@ -63,18 +74,10 @@ Implementation
 
 Uses
   net_client
+  , d_event
   , i_timer, i_system, i_video
   , m_argv
   ;
-
-Type
-
-  ticcmd_set_t = Record
-    cmds: Array[0..NET_MAXPLAYERS - 1] Of ticcmd_t;
-    ingame: Array[0..NET_MAXPLAYERS - 1] Of boolean;
-  End;
-
-  Pticcmd_set_t = ^ticcmd_set_t;
 
 Var
 
@@ -415,6 +418,20 @@ Begin
   End;
 End;
 
+// When using ticdup, certain values must be cleared out when running
+// the duplicate ticcmds.
+
+Procedure TicdupSquash(Var _set: ticcmd_set_t);
+Var
+  i: unsigned_int;
+Begin
+  For i := 0 To NET_MAXPLAYERS - 1 Do Begin
+    _set.cmds[i].chatchar := 0;
+    If (_set.cmds[i].buttons And BT_SPECIAL) <> 0 Then
+      _set.cmds[i].buttons := 0;
+  End;
+End;
+
 Procedure TryRunTics;
 Var
   counts, availabletics, lowtic, i: int;
@@ -538,22 +555,21 @@ Begin
     Begin
       SinglePlayerClear(_set);
     End;
-    //
-    //	for (i=0 ; i<ticdup ; i++)
-    //	{
-    //            if (gametic/ticdup > lowtic)
-    //                I_Error ("gametic>lowtic");
-    //
-    //            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
 
 
-    loop_interface^.RunTic({set^.cmds, set^.ingame});
-    gametic := gametic + 1;
+    For i := 0 To ticdup - 1 Do Begin
 
-    // modify command for duplicated tics
+      If (gametic Div ticdup > lowtic) Then
+        I_Error('gametic>lowtic');
 
-  //            TicdupSquash(set);
-  //	}
+      move(_set^.ingame[0], local_playeringame[0], sizeof(local_playeringame));
+
+      loop_interface^.RunTic(_set^.cmds, _set^.ingame);
+      gametic := gametic + 1;
+
+      // modify command for duplicated tics
+      TicdupSquash(_Set^);
+    End;
 
     NetUpdate(); // check for new console commands
 
@@ -562,5 +578,4 @@ Begin
 End;
 
 End.
-
 

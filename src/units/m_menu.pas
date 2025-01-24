@@ -269,7 +269,7 @@ Begin
   messageNeedsInput := input;
   menuactive := true;
   // [crispy] entering menus while recording demos pauses the game
-  If (demorecording) And (Not paused) Then Begin
+  If (demorecording) And (paused = 0) Then Begin
     sendpause := true;
   End;
 End;
@@ -435,9 +435,9 @@ Begin
   menuactive := false;
 
   // [crispy] entering menus while recording demos pauses the game
-  If (demorecording) And (paused) Then sendpause := true;
+  If (demorecording) And (paused <> 0) Then sendpause := true;
 
-  If (Not netgame) And (usergame) And (paused) Then sendpause := true;
+  // If (Not netgame) And (usergame) And (paused) Then sendpause := true;
 End;
 
 Procedure M_VerifyNightmare(key: int);
@@ -1578,7 +1578,7 @@ Begin
 
 
   // [crispy] entering menus while recording demos pauses the game
-  If (demorecording) And (Not paused) Then
+  If (demorecording) And (paused = 0) Then
     sendpause := true;
 
   menuactive := true;

@@ -36,6 +36,7 @@ Type
 
     lookdir: int;
   End;
+  Pticcmd_t = ^ticcmd_t;
 
 Implementation
 
