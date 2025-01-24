@@ -76,6 +76,7 @@ Function R_FlatNumForName(Const name: String): int;
 Procedure R_PrecacheLevel();
 
 Function R_GetColumn(tex, col: int): PByte;
+Function R_GetColumnMod(tex, col: int): pByte;
 Function R_GetColumnMod2(tex, col: int): PByte;
 
 Var
@@ -1281,6 +1282,18 @@ Begin
   ofs := texturecolumnofs2[tex][col];
   If Not assigned(texturecomposite2[tex]) Then R_GenerateComposite(tex);
   result := @texturecomposite2[tex][ofs];
+End;
+
+Function R_GetColumnMod(tex, col: int): pByte;
+Var
+  ofs: int;
+Begin
+  While (col < 0) Do
+    col := col + texturewidth[tex];
+  col := col Mod texturewidth[tex];
+  ofs := texturecolumnofs[tex][col];
+  If (texturecomposite[tex] = Nil) Then R_GenerateComposite(tex);
+  result := @texturecomposite[tex][ofs];
 End;
 
 Function R_GetColumnMod2(tex, col: int): PByte;

@@ -24,7 +24,7 @@ Implementation
 Uses
   doomdef
   , g_game
-  , p_user
+  , p_user, p_spec
   ;
 
 Procedure P_InitThinkers();
@@ -69,7 +69,7 @@ Begin
   End;
 
   //    P_RunThinkers ();
-  //    P_UpdateSpecials ();
+  P_UpdateSpecials();
   //    P_RespawnSpecials ();
 
   // for par times

@@ -40,6 +40,9 @@ Var
   screenheightarray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
   negonearray: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
 
+  mfloorclip: P_int; // [crispy] 32-bit integer math
+  mceilingclip: P_int; // [crispy] 32-bit integer math
+
 Procedure R_InitSprites(Const namelist: Array Of String);
 
 Procedure R_ClearSprites();
@@ -54,9 +57,10 @@ Uses
   , d_loop, d_mode
   , i_system
   , p_tick, p_pspr, p_mobj
-  , r_data, r_main, r_draw, r_bmaps
-  , v_trans
+  , r_data, r_main, r_draw, r_bmaps, r_bsp, r_segs
+  , v_trans, v_patch
   , w_wad
+  , z_zone
   ;
 
 Const
@@ -456,11 +460,11 @@ Begin
       exit;
     End
     Else If (sprframe^.rotate = 2) Then Begin
-      rot2 := (ang - interpangle + (ANG45 Div 4) * 17);
+      rot2 := unsigned((ang - interpangle + (ANG45 Div 4) * 17));
       rot := (rot2 Shr 29) + ((rot2 Shr 25) And 8);
     End
     Else Begin
-      rot := (ang - interpangle + (ANG45 Div 2) * 9) Shr 29;
+      rot := (unsigned(ang - interpangle + (ANG45 Div 2) * 9)) Shr 29;
     End;
     lump := sprframe^.lump[rot];
     flip := odd(sprframe^.flip[rot]);
@@ -488,14 +492,13 @@ Begin
   Else Begin
     tx := tx - spriteoffset[lump];
   End;
-  x1 := (centerxfrac + FixedMul(tx, xscale)) Shr FRACBITS;
+  x1 := SarLongint(int(centerxfrac + FixedMul(tx, xscale)), FRACBITS);
 
   // off the right side?
   If (x1 > viewwidth) Then exit;
 
-
   tx := tx + spritewidth[lump];
-  x2 := ((centerxfrac + FixedMul(tx, xscale)) Shr FRACBITS) - 1;
+  x2 := (SarLongint(int(centerxfrac + FixedMul(tx, xscale)), FRACBITS)) - 1;
 
   // off the left side
   If (x2 < 0) Then exit;
@@ -640,30 +643,269 @@ Begin
   End;
 End;
 
-Procedure R_DrawMasked();
+//
+// R_DrawVisSprite
+//  mfloorclip and mceilingclip should also be set.
+//
+
+Procedure R_DrawVisSprite(vis: Pvissprite_t; x1, x2: int);
+Const
+  error: boolean = false;
+Var
+  column: ^column_t;
+  texturecolumn: int;
+  frac: fixed_t;
+  patch: Ppatch_t;
+  Pint: ^integer;
 Begin
-  //   vissprite_t*	spr;
-  //    drawseg_t*		ds;
-  //
-  //    R_SortVisSprites ();
-  //
-  //    if (vissprite_p > vissprites)
-  //    {
-  //	// draw all vissprites back to front
-  //#ifdef HAVE_QSORT
-  //	for (spr = vissprites;
-  //	     spr < vissprite_p;
-  //	     spr++)
-  //#else
-  //	for (spr = vsprsortedhead.next ;
-  //	     spr != &vsprsortedhead ;
-  //	     spr=spr->next)
+  patch := W_CacheLumpNum(vis^.patch + firstspritelump, PU_CACHE);
+
+  // [crispy] brightmaps for select sprites
+  dc_colormap[0] := vis^.colormap[0];
+  dc_colormap[1] := vis^.colormap[1];
+  dc_brightmap := vis^.brightmap;
+
+  If (dc_colormap[0] = Nil) Then Begin
+
+    // NULL colormap = shadow draw
+    colfunc := fuzzcolfunc;
+  End
+  Else If (vis^.mobjflags And MF_TRANSLATION) = 0 Then Begin
+
+    colfunc := transcolfunc;
+    dc_translation := pointer(@translationtables[0]) - 256 +
+      ((vis^.mobjflags And MF_TRANSLATION) Shr (MF_TRANSSHIFT - 8));
+  End
+    // [crispy] color-translated sprites (i.e. blood)
+  Else If assigned(vis^.translation) Then Begin
+    colfunc := transcolfunc;
+    dc_translation := @vis^.translation[0];
+  End
+    // [crispy] translucent sprites
+  Else If (crispy.translucency <> 0) And ((vis^.mobjflags And MF_TRANSLUCENT) <> 0) Then Begin
+
+    If ((vis^.mobjflags And (MF_NOGRAVITY Or MF_COUNTITEM)) = 0) Or
+      (((vis^.mobjflags And MF_NOGRAVITY) <> 0) And ((crispy.translucency And TRANSLUCENCY_MISSILE) <> 0)) Or
+      (((vis^.mobjflags And MF_COUNTITEM) <> 0) And ((crispy.translucency And TRANSLUCENCY_ITEM) <> 0))
+      Then Begin
+      colfunc := tlcolfunc;
+    End;
+    //# ifdef CRISPY_TRUECOLOR
+    //	blendfunc = vis^.blendfunc;
+    //#endif
+  End;
+
+  dc_iscale := abs(vis^.xiscale) Shr detailshift;
+  dc_texturemid := vis^.texturemid;
+  frac := vis^.startfrac;
+  spryscale := vis^.scale;
+  sprtopscreen := centeryfrac - FixedMul(dc_texturemid, spryscale);
+
+  For dc_x := vis^.x1 To vis^.x2 Do Begin
+
+    texturecolumn := SarInt64(frac, FRACBITS);
+    //#ifdef RANGECHECK
+    //	if (texturecolumn < 0 || texturecolumn >= SHORT(patch^.width))
+    //	{
+    //	    // [crispy] make non-fatal
+    //	    if (!error)
+    //	    {
+    //	    fprintf (stderr, "R_DrawSpriteRange: bad texturecolumn\n");
+    //	    error = true;
+    //	    }
+    //	    continue;
+    //	}
+    //#endif
+
+
+    Pint := @patch^.columnofs[0];
+    column := pointer(patch) + Pint[texturecolumn];
+    R_DrawMaskedColumn(column);
+    frac := frac + vis^.xiscale;
+  End;
+
+  colfunc := basecolfunc;
+  //#ifdef CRISPY_TRUECOLOR
+  //    blendfunc = I_BlendOverTranmap;
   //#endif
-  //	{
-  //
-  //	    R_DrawSprite (spr);
-  //	}
-  //    }
+End;
+
+Var
+  clipbot: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
+  cliptop: Array[0..MAXWIDTH - 1] Of int; // [crispy] 32-bit integer math
+
+Procedure R_DrawSprite(spr: Pvissprite_t);
+Var
+  ds: int;
+  x: int;
+  r1: int;
+  r2: int;
+  scale: fixed_t;
+  lowscale: fixed_t;
+  silhouette: int;
+Begin
+  For x := spr^.x1 To spr^.x2 Do Begin
+    clipbot[x] := -2;
+    cliptop[x] := -2;
+  End;
+
+  // Scan drawsegs from end to start for obscuring segs.
+  // The first drawseg that has a greater scale
+  //  is the clip seg.
+  For ds := ds_p - 1 Downto 0 Do Begin
+
+    // determine if the drawseg obscures the sprite
+    If (drawsegs[ds].x1 > spr^.x2
+      ) Or (drawsegs[ds].x2 < spr^.x1
+      ) Or ((drawsegs[ds].silhouette = 0
+      ) And (drawsegs[ds].maskedtexturecol <> Nil))
+      Then Begin
+      // does not cover sprite
+      continue;
+    End;
+    If drawsegs[ds].x1 < spr^.x1 Then Begin
+      r1 := spr^.x1;
+    End
+    Else Begin
+      r1 := drawsegs[ds].x1;
+    End;
+    If drawsegs[ds].x2 > spr^.x2 Then Begin
+      r2 := spr^.x2;
+    End
+    Else Begin
+      r2 := drawsegs[ds].x2;
+    End;
+
+    If (drawsegs[ds].scale1 > drawsegs[ds].scale2) Then Begin
+      lowscale := drawsegs[ds].scale2;
+      scale := drawsegs[ds].scale1;
+    End
+    Else Begin
+      lowscale := drawsegs[ds].scale1;
+      scale := drawsegs[ds].scale2;
+    End;
+
+    If (scale < spr^.scale)
+      Or ((lowscale < spr^.scale) And (R_PointOnSegSide(spr^.gx, spr^.gy, drawsegs[ds].curline) = 0))
+      Then Begin
+      // masked mid texture?
+      If assigned(drawsegs[ds].maskedtexturecol) Then
+        R_RenderMaskedSegRange(ds, r1, r2);
+      // seg is behind sprite
+      continue;
+    End;
+
+
+    // clip this piece of the sprite
+    silhouette := drawsegs[ds].silhouette;
+
+    If (spr^.gz >= drawsegs[ds].bsilheight) Then
+      silhouette := silhouette And Not SIL_BOTTOM;
+
+    If (spr^.gzt <= drawsegs[ds].tsilheight) Then
+      silhouette := silhouette And Not SIL_TOP;
+
+    If (silhouette = 1) Then Begin
+      // bottom sil
+      For x := r1 To r2 Do Begin
+        If (clipbot[x] = -2) Then
+          clipbot[x] := drawsegs[ds].sprbottomclip[x];
+      End;
+    End
+    Else If (silhouette = 2) Then Begin
+      // top sil
+      For x := r1 To r2 Do Begin
+        If (cliptop[x] = -2) Then
+          cliptop[x] := drawsegs[ds].sprtopclip[x];
+      End;
+    End
+    Else If (silhouette = 3) Then Begin
+      // both
+      For x := r1 To r2 Do Begin
+        If (clipbot[x] = -2) Then
+          clipbot[x] := drawsegs[ds].sprbottomclip[x];
+        If (cliptop[x] = -2) Then
+          cliptop[x] := drawsegs[ds].sprtopclip[x];
+      End;
+    End;
+  End;
+
+  // all clipping has been performed, so draw the sprite
+
+  // check for unclipped columns
+  For x := spr^.x1 To spr^.x2 Do Begin
+    If (clipbot[x] = -2) Then
+      clipbot[x] := viewheight;
+
+    If (cliptop[x] = -2) Then
+      cliptop[x] := -1;
+  End;
+  mfloorclip := @clipbot[0];
+  mceilingclip := @cliptop[0];
+  R_DrawVisSprite(spr, spr^.x1, spr^.x2);
+End;
+
+(* Sortiert the VisSprites nach .scale *)
+
+Procedure R_SortVisSprites;
+  Procedure Quick(li, re: integer);
+  Var
+    l, r: Integer;
+    p: fixed_t;
+    h: vissprite_t;
+  Begin
+    If Li < Re Then Begin
+      // Achtung, das Pivotelement darf nur einam vor den While schleifen ausgelesen werden, danach nicht mehr !!
+      p := vissprites[Trunc((li + re) / 2)].scale; // Auslesen des Pivo Elementes
+      l := Li;
+      r := re;
+      While l < r Do Begin
+        While vissprites[l].scale < p Do
+          inc(l);
+        While vissprites[r].scale > p Do
+          dec(r);
+        If L <= R Then Begin
+          h := vissprites[l];
+          vissprites[l] := vissprites[r];
+          vissprites[r] := h;
+          inc(l);
+          dec(r);
+        End;
+      End;
+      quick(li, r);
+      quick(l, re);
+    End;
+  End;
+Begin
+  quick(0, vissprite_p - 1);
+End;
+
+Procedure R_DrawMasked();
+Var
+  spr: int;
+  ds: ^drawseg_t;
+Begin
+
+  R_SortVisSprites();
+
+  If (vissprite_p <> 0) Then Begin
+
+    //	// draw all vissprites back to front
+    //#ifdef HAVE_QSORT
+    //	for (spr = vissprites;
+    //	     spr < vissprite_p;
+    //	     spr++)
+    //#else
+    For spr := 0 To vissprite_p - 1 Do Begin
+      //	for (spr = vsprsortedhead.next ;
+    //	     spr != &vsprsortedhead ;
+    //	     spr=spr->next)
+    //#endif
+
+
+      R_DrawSprite(@vissprites[spr]);
+    End;
+  End;
   //
   //    // render any remaining masked mid textures
   //    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)

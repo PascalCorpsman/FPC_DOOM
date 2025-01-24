@@ -13,12 +13,14 @@ Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();
 Procedure P_PlayerInSpecialSector(player: Pplayer_t);
+Procedure P_UpdateSpecials();
 
 Implementation
 
 Uses
   d_loop
   , p_tick
+  , r_draw
   ;
 
 Procedure P_InitPicAnims();
@@ -312,6 +314,118 @@ Begin
   //	}
   //	break;
   //    };
+End;
+
+Procedure P_UpdateSpecials();
+Begin
+  //  anim_t*	anim;
+  //    int		pic;
+  //    int		i;
+  //    line_t*	line;
+  //
+  //
+  //    //	LEVEL TIMER
+  //    if (levelTimer == true)
+  //    {
+  //	levelTimeCount--;
+  //	if (!levelTimeCount)
+  //	    G_ExitLevel();
+  //    }
+  //
+  //    //	ANIMATE FLATS AND TEXTURES GLOBALLY
+  //    for (anim = anims ; anim < lastanim ; anim++)
+  //    {
+  //	for (i=anim->basepic ; i<anim->basepic+anim->numpics ; i++)
+  //	{
+  //	    pic = anim->basepic + ( (leveltime/anim->speed + i)%anim->numpics );
+  //	    if (anim->istexture)
+  //		texturetranslation[i] = pic;
+  //	    else
+  //	    {
+  //		// [crispy] add support for SMMU swirling flats
+  //		if (anim->speed > 65535 || anim->numpics == 1)
+  //		{
+  //		    flattranslation[i] = -1;
+  //		}
+  //		else
+  //		flattranslation[i] = pic;
+  //	    }
+  //	}
+  //    }
+  //
+  //
+  //    //	ANIMATE LINE SPECIALS
+  //    for (i = 0; i < numlinespecials; i++)
+  //    {
+  //	line = linespeciallist[i];
+  //	switch(line->special)
+  //	{
+  //	  case 48:
+  //	    // EFFECT FIRSTCOL SCROLL +
+  //	    // [crispy] smooth texture scrolling
+  //	    sides[line->sidenum[0]].basetextureoffset += FRACUNIT;
+  //	    sides[line->sidenum[0]].textureoffset =
+  //	    sides[line->sidenum[0]].basetextureoffset;
+  //	    break;
+  //	  case 85:
+  //	    // [JN] (Boom) Scroll Texture Right
+  //	    // [crispy] smooth texture scrolling
+  //	    sides[line->sidenum[0]].basetextureoffset -= FRACUNIT;
+  //	    sides[line->sidenum[0]].textureoffset =
+  //	    sides[line->sidenum[0]].basetextureoffset;
+  //	    break;
+  //	}
+  //    }
+  //
+  //
+  //    //	DO BUTTONS
+  //    for (i = 0; i < maxbuttons; i++)
+  //	if (buttonlist[i].btimer)
+  //	{
+  //	    buttonlist[i].btimer--;
+  //	    if (!buttonlist[i].btimer)
+  //	    {
+  //		switch(buttonlist[i].where)
+  //		{
+  //		  case top:
+  //		    sides[buttonlist[i].line->sidenum[0]].toptexture =
+  //			buttonlist[i].btexture;
+  //		    break;
+  //
+  //		  case middle:
+  //		    sides[buttonlist[i].line->sidenum[0]].midtexture =
+  //			buttonlist[i].btexture;
+  //		    break;
+  //
+  //		  case bottom:
+  //		    sides[buttonlist[i].line->sidenum[0]].bottomtexture =
+  //			buttonlist[i].btexture;
+  //		    break;
+  //		}
+  //		// [crispy] & [JN] Logically proper sound behavior.
+  //		// Do not play second "sfx_swtchn" on two-sided linedefs that attached to special sectors,
+  //		// and always play second sound on single-sided linedefs.
+  //		if (crispy->soundfix)
+  //		{
+  //			if (!buttonlist[i].line->backsector || !buttonlist[i].line->backsector->specialdata)
+  //			{
+  //				S_StartSoundOnce(buttonlist[i].soundorg,sfx_swtchn);
+  //			}
+  //		}
+  //		else
+  //		{
+  //		S_StartSoundOnce(&buttonlist[i].soundorg,sfx_swtchn);
+  //		}
+  //		memset(&buttonlist[i],0,sizeof(button_t));
+  //	    }
+  //	}
+  //
+  //    // [crispy] Snow
+  //    if (crispy->snowflakes)
+  //	V_SnowUpdate();
+
+  // [crispy] draw fuzz effect independent of rendering frame rate
+  R_SetFuzzPosTic();
 End;
 
 End.

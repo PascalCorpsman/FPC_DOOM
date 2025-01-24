@@ -17,6 +17,12 @@ Const
   BRIGHTMAPS_BOTH = 3;
   NUM_BRIGHTMAPS = 4;
 
+  TRANSLUCENCY_OFF = 0;
+  TRANSLUCENCY_MISSILE = 1;
+  TRANSLUCENCY_ITEM = 2;
+  TRANSLUCENCY_BOTH = 3;
+  NUM_TRANSLUCENCY = 4;
+
 Type
   TProcedure = Procedure();
 
@@ -81,7 +87,7 @@ Type
     //    	int soundfull;
     //    	int soundmono;
     //    	int statsformat;
-    //    	int translucency;
+    translucency: int;
     //    #ifdef CRISPY_TRUECOLOR
     //    	int truecolor;
     //    #endif
@@ -164,6 +170,7 @@ Initialization
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.pitch := 0;
+  Crispy.translucency := 0;
   Crispy.uncapped := 0;
   Crispy.flashinghom := false;
   Crispy.stretchsky := false;

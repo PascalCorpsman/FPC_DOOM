@@ -7,7 +7,9 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , tables
+  , m_fixed
   , r_defs
+  , v_patch
   ;
 
 Var
@@ -16,15 +18,20 @@ Var
 
   walllights: Array Of Plighttable_t;
   markceiling: boolean;
+  spryscale: fixed_t;
+  sprtopscreen: int64_t; // [crispy] WiggleFix
 
 Procedure R_StoreWallRange(start, stop: int);
+
+Procedure R_RenderMaskedSegRange(ds: int; x1, x2: int);
+Procedure R_DrawMaskedColumn(column: Pcolumn_t);
 
 Implementation
 
 Uses
   doomdata, info_types
   , am_map
-  , m_fixed
+  , i_video
   , r_bsp, r_main, r_data, r_things, r_sky, r_plane, r_draw, r_bmaps
   ;
 
@@ -87,7 +94,6 @@ Var
   //  lighttable_t**	walllights;
 
   maskedtexturecol: ^int; // [crispy] 32-bit integer math
-
 
   //
   // R_RenderSegLoop
@@ -752,6 +758,184 @@ Begin
   End;
 
   inc(ds_p);
+End;
+
+//
+// R_DrawMaskedColumn
+// Used for sprites and masked mid textures.
+// Masked means: partly transparent, i.e. stored
+//  in posts/runs of opaque pixels.
+//
+
+Procedure R_DrawMaskedColumn(column: Pcolumn_t);
+Var
+  topscreen: int64_t; // [crispy] WiggleFix
+  bottomscreen: int64_t; // [crispy] WiggleFix
+  basetexturemid: fixed_t;
+  top: int;
+Begin
+  top := -1;
+  basetexturemid := dc_texturemid;
+  dc_texheight := 0; // [crispy] Tutti-Frutti fix
+
+  While column^.topdelta <> $FF Do Begin
+    // [crispy] support for DeePsea tall patches
+    If (column^.topdelta <= top) Then Begin
+      top := top + column^.topdelta;
+    End
+    Else Begin
+      top := column^.topdelta;
+    End;
+    // calculate unclipped screen coordinates
+    //  for post
+    topscreen := sprtopscreen + spryscale * top;
+    bottomscreen := topscreen + spryscale * column^.length;
+
+    dc_yl := int(SarInt64(topscreen + FRACUNIT - 1, FRACBITS)); // [crispy] WiggleFix
+    dc_yh := int(SarInt64(bottomscreen - 1, FRACBITS)); // [crispy] WiggleFix
+
+    If (dc_yh >= mfloorclip[dc_x]) Then
+      dc_yh := mfloorclip[dc_x] - 1;
+    If (dc_yl <= mceilingclip[dc_x]) Then
+      dc_yl := mceilingclip[dc_x] + 1;
+
+    If (dc_yl <= dc_yh) Then Begin
+
+      dc_source := pointer(column) + 3;
+      dc_texturemid := basetexturemid - (top Shl FRACBITS);
+      // dc_source = (byte *)column + 3 - top;
+
+      // Drawn by either R_DrawColumn
+      //  or (SHADOW) R_DrawFuzzColumn.
+      colfunc();
+    End;
+    column := pointer(column) + column^.length + 4;
+  End;
+  dc_texturemid := basetexturemid;
+End;
+
+Procedure R_RenderMaskedSegRange(ds: int; x1, x2: int);
+Var
+  index: unsigned;
+  col: ^column_t;
+  lightnum: int;
+  texnum: int;
+  t: int64_t;
+Begin
+  // Calculate light table.
+  // Use different light tables
+  //   for horizontal / vertical / diagonal. Diagonal?
+  // OPTIMIZE: get rid of LIGHTSEGSHIFT globally
+  curline := drawsegs[ds].curline;
+  frontsector := curline^.frontsector;
+  backsector := curline^.backsector;
+  texnum := texturetranslation[curline^.sidedef^.midtexture];
+
+  lightnum := (frontsector^.rlightlevel Shr LIGHTSEGSHIFT) + (extralight * LIGHTBRIGHT); // [crispy] A11Y
+
+  // [crispy] smoother fake contrast
+  lightnum := lightnum + curline^.fakecontrast;
+  (*
+      if (curline.v1.y == curline.v2.y)
+   lightnum--;
+      else if (curline.v1.x == curline.v2.x)
+   lightnum++;
+  *)
+
+  If (lightnum < 0) Then
+    walllights := scalelight[0]
+  Else If (lightnum >= LIGHTLEVELS) Then
+    walllights := scalelight[LIGHTLEVELS - 1]
+  Else
+    walllights := scalelight[lightnum];
+
+  maskedtexturecol := drawsegs[ds].maskedtexturecol;
+
+  rw_scalestep := drawsegs[ds].scalestep;
+  spryscale := drawsegs[ds].scale1 + (x1 - drawsegs[ds].x1) * rw_scalestep;
+  mfloorclip := @drawsegs[ds].sprbottomclip[0];
+  mceilingclip := @drawsegs[ds].sprtopclip[0];
+
+  // find positioning
+  If (curline^.linedef^.flags And ML_DONTPEGBOTTOM) <> 0 Then Begin
+    If frontsector^.interpfloorheight > backsector^.interpfloorheight Then Begin
+      dc_texturemid := frontsector^.interpfloorheight;
+    End
+    Else Begin
+      dc_texturemid := backsector^.interpfloorheight;
+    End;
+    dc_texturemid := dc_texturemid + textureheight[texnum] - viewz;
+  End
+  Else Begin
+    If frontsector^.interpceilingheight < backsector^.interpceilingheight Then Begin
+      dc_texturemid := frontsector^.interpceilingheight;
+    End
+    Else Begin
+      dc_texturemid := backsector^.interpceilingheight;
+    End;
+    dc_texturemid := dc_texturemid - viewz;
+  End;
+  dc_texturemid := dc_texturemid + curline^.sidedef^.rowoffset;
+
+  If assigned(fixedcolormap) Then Begin
+    dc_colormap[0] := fixedcolormap;
+    dc_colormap[1] := fixedcolormap;
+  End;
+
+  // draw the columns
+  For dc_x := x1 To x2 Do Begin
+    // calculate lighting
+    If (maskedtexturecol[dc_x] <> INT_MAX) Then Begin // [crispy] 32-bit integer math
+
+      If (fixedcolormap = Nil) Then Begin
+        index := spryscale Shr (LIGHTSCALESHIFT + crispy.hires);
+
+        If (index >= MAXLIGHTSCALE) Then index := MAXLIGHTSCALE - 1;
+
+        // [crispy] brightmaps for mid-textures
+        dc_brightmap := texturebrightmap[texnum];
+        dc_colormap[0] := walllights[index];
+        If (crispy.brightmaps And BRIGHTMAPS_TEXTURES) <> 0 Then Begin
+          dc_colormap[1] := colormaps;
+        End
+        Else Begin
+          dc_colormap[1] := dc_colormap[0];
+        End;
+      End;
+
+      // [crispy] apply Killough's int64 sprtopscreen overflow fix
+      // from winmbf/Source/r_segs.c:174-191
+      // killough 3/2/98:
+      //
+      // This calculation used to overflow and cause crashes in Doom:
+      //
+      // sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
+      //
+      // This code fixes it, by using double-precision intermediate
+      // arithmetic and by skipping the drawing of 2s normals whose
+      // mapping to screen coordinates is totally out of range:
+
+      Begin
+        t := (int64_t(centeryfrac) Shl FRACBITS) - int64_t(dc_texturemid) * spryscale;
+        If (t + int64_t(textureheight[texnum]) * spryscale < 0) Or (
+          t > int64_t(SCREENHEIGHT) Shl FRACBITS * 2) Then Begin
+          spryscale := spryscale + rw_scalestep; // [crispy] MBF had this in the for-loop iterator
+          continue; // skip if the texture is out of screen's range
+        End;
+
+        sprtopscreen := SarInt64(t, FRACBITS); // [crispy] WiggleFix
+      End;
+
+      dc_iscale := unsigned($FFFFFFFF) Div unsigned(spryscale);
+
+      // draw the texture
+      col := pointer(pointer(R_GetColumnMod(texnum, maskedtexturecol[dc_x]) - 3));
+
+      R_DrawMaskedColumn(col);
+      maskedtexturecol[dc_x] := INT_MAX; // [crispy] 32-bit integer math
+    End;
+    spryscale := spryscale + rw_scalestep;
+  End;
 End;
 
 End.

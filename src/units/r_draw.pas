@@ -11,7 +11,6 @@ Uses
   ;
 
 Var
-  translationtables: Array Of byte;
   viewheight: int;
   viewwidth: int;
   scaledviewwidth: int;
@@ -53,16 +52,36 @@ Var
   // just for profiling
   dscount: int;
 
-Procedure R_InitTranslationTables();
+  // R_DrawTranslatedColumn - Variablen
+  dc_translation: PByte;
+  translationtables: Array Of Byte;
+
+Procedure R_DrawColumn();
+
+Procedure R_DrawFuzzColumn();
+
+Procedure R_SetFuzzPosTic();
+Procedure R_SetFuzzPosDraw();
+
+Procedure R_DrawTranslatedColumn();
+
+Procedure R_DrawTLColumn();
+
+//Procedure R_VideoErase(ofs: unsigned; count: int);
+
+Procedure R_DrawSpan();
+
+Procedure R_DrawSpanSolid();
+
+//Procedure R_SetGoobers(mode: boolean);
 
 Procedure R_InitBuffer(width, height: int);
 
-Procedure R_DrawColumn();
-Procedure R_DrawFuzzColumn();
-Procedure R_DrawTranslatedColumn();
-Procedure R_DrawTLColumn();
-Procedure R_DrawSpanSolid();
-Procedure R_DrawSpan();
+Procedure R_InitTranslationTables();
+
+//Procedure R_FillBackScreen();
+
+//Procedure R_DrawViewBorder();
 
 Implementation
 
@@ -73,13 +92,31 @@ Uses
   , v_video
   ;
 
-//
-// R_InitTranslationTables
-// Creates the translation tables to map
-//  the green color ramp to gray, brown, red.
-// Assumes a given structure of the PLAYPAL.
-// Could be read from a lump instead.
-//
+Const
+  FUZZTABLE = 50;
+  FUZZOFF = (1);
+
+  fuzzoffset: Array[0..FUZZTABLE - 1] Of int =
+  (
+    FUZZOFF, -FUZZOFF, FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF,
+    FUZZOFF, FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF,
+    FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF, -FUZZOFF, -FUZZOFF, -FUZZOFF,
+    FUZZOFF, -FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF,
+    FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF, -FUZZOFF, FUZZOFF,
+    FUZZOFF, -FUZZOFF, -FUZZOFF, -FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF,
+    FUZZOFF, FUZZOFF, -FUZZOFF, FUZZOFF, FUZZOFF, -FUZZOFF, FUZZOFF
+    );
+
+Var
+  fuzzpos: int = 0;
+
+  //
+  // R_InitTranslationTables
+  // Creates the translation tables to map
+  //  the green color ramp to gray, brown, red.
+  // Assumes a given structure of the PLAYPAL.
+  // Could be read from a lump instead.
+  //
 
 Procedure R_InitTranslationTables();
 Var
@@ -159,6 +196,10 @@ Var
 Begin
   heightmask := dc_texheight - 1;
 
+  (*
+   * Dieser "Bug" kommt durch die Visplanes rein (r_plane.pas) im Original ist er nicht
+   * zum Glück richtet es aber keinen Schaden an, da es reicht all die colums zu ignorieren.
+   *)
   If dc_yl < 0 Then Begin
     exit; // WTF: Das sollte nicht nötig sein, rendern darf man den Slice aber definitiv nicht..
   End;
@@ -308,6 +349,23 @@ Begin
   //    }
 End;
 
+Var
+  fuzzpos_tic: int;
+
+Procedure R_SetFuzzPosTic();
+Begin
+  // [crispy] prevent the animation from remaining static
+  If (fuzzpos = fuzzpos_tic) Then Begin
+    fuzzpos := (fuzzpos + 1) Mod FUZZTABLE;
+  End;
+  fuzzpos_tic := fuzzpos;
+End;
+
+Procedure R_SetFuzzPosDraw();
+Begin
+  fuzzpos := fuzzpos_tic;
+End;
+
 //
 // R_DrawTranslatedColumn
 // Used to draw player sprites
@@ -320,6 +378,9 @@ End;
 
 Procedure R_DrawTranslatedColumn();
 Begin
+
+  hier weiter
+
   //   int			count;
   //    pixel_t*		dest;
   //    fixed_t		frac;

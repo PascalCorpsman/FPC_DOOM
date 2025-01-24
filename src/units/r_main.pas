@@ -103,6 +103,8 @@ Function LerpFixed(oldvalue, newvalue: fixed_t): fixed_t;
 Function LerpAngle(oangle, nangle: angle_t): angle_t;
 Procedure R_SetGoobers(mode: boolean);
 
+Function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): int;
+
 Implementation
 
 Uses
@@ -664,6 +666,61 @@ Begin
   End;
 End;
 
+Function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): int;
+Var
+  lx, ly, ldx, ldy, dx, dy, left, right: fixed_t;
+Begin
+
+  lx := line^.v1^.x;
+  ly := line^.v1^.y;
+
+  ldx := line^.v2^.x - lx;
+  ldy := line^.v2^.y - ly;
+
+  If (ldx = 0) Then Begin
+    If (x <= lx) Then Begin
+      result := ord(ldy > 0);
+      exit;
+    End;
+    result := ord(ldy < 0);
+    exit;
+  End;
+
+  If (ldy = 0) Then Begin
+    If (y <= ly) Then Begin
+      result := ord(ldx < 0);
+      exit;
+    End;
+    result := ord(ldx > 0);
+    exit;
+  End;
+
+  dx := (x - lx);
+  dy := (y - ly);
+
+  // Try to quickly decide by looking at sign bits.
+  If ((ldy Xor ldx Xor dx Xor dy) And $80000000) <> 0 Then Begin
+    If ((ldy Xor dx) And $80000000) <> 0 Then Begin
+      // (left is negative)
+      result := 1;
+      exit;
+    End;
+    result := 0;
+    exit;
+  End;
+
+  left := FixedMul(SarLongint(ldy, FRACBITS), dx);
+  right := FixedMul(dy, SarLongint(ldx, FRACBITS));
+
+  If (right < left) Then Begin
+    // front side
+    result := 0;
+    exit;
+  End;
+  // back side
+  result := 1;
+End;
+
 Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;
 Var
   side: int;
@@ -822,7 +879,7 @@ Begin
   NetUpdate();
 
   // [crispy] draw fuzz effect independent of rendering frame rate
-//    R_SetFuzzPosDraw();
+  R_SetFuzzPosDraw();
   R_DrawMasked();
 
   // Check for new console commands.
