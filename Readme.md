@@ -46,3 +46,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.01.20) finish wipe function ![](documentation/wipe.gif)
 - (2025.01.22) able to create very first screenrendering ![](documentation/very_first_screenrender.png) <br> still missing flats..
 - (2025.01.23) finally was able to enable flats ![](documentation/with_flats.png)
+- (2025.01.24) add ability to rotate player, lets take a shy look ;) ![](documentation/rotate.gif)
