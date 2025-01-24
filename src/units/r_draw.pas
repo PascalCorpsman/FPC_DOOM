@@ -377,19 +377,17 @@ End;
 //
 
 Procedure R_DrawTranslatedColumn();
+Var
+  count: int;
+  dest: ^pixel_t;
+  frac: fixed_t;
+  fracstep: fixed_t;
+  source: byte;
 Begin
+  count := dc_yh - dc_yl;
+  If (count < 0) Then exit;
+  count := count + 1; // Corpsman Fix off by 1 in While loop
 
-  hier weiter
-
-  //   int			count;
-  //    pixel_t*		dest;
-  //    fixed_t		frac;
-  //    fixed_t		fracstep;
-  //
-  //    count = dc_yh - dc_yl;
-  //    if (count < 0)
-  //	return;
-  //
   //#ifdef RANGECHECK
   //    if ((unsigned)dc_x >= SCREENWIDTH
   //	|| dc_yl < 0
@@ -400,29 +398,31 @@ Begin
   //    }
   //
   //#endif
-  //
-  //
+
+  // WTF: Hier ist das "Flipped" noch nicht berücksichtigt
   //    dest = ylookup[dc_yl] + columnofs[flipviewwidth[dc_x]];
-  //
-  //    // Looks familiar.
-  //    fracstep = dc_iscale;
-  //    frac = dc_texturemid + (dc_yl-centery)*fracstep;
-  //
-  //    // Here we do an additional index re-mapping.
-  //    do
-  //    {
-  //	// Translation tables are used
-  //	//  to map certain colorramps to other ones,
-  //	//  used with PLAY sprites.
-  //	// Thus the "green" ramp of the player 0 sprite
-  //	//  is mapped to gray, red, black/indigo.
-  //	// [crispy] brightmaps
-  //	const byte source = dc_source[frac>>FRACBITS];
-  //	*dest = dc_colormap[dc_brightmap[source]][dc_translation[source]];
-  //	dest += SCREENWIDTH;
-  //
-  //	frac += fracstep;
-  //    } while (count--);
+  dest := @I_VideoBuffer[dc_yl * SCREENWIDTH + dc_x];
+
+  // Looks familiar.
+  fracstep := dc_iscale;
+  frac := dc_texturemid + (dc_yl - centery) * fracstep;
+
+  // Here we do an additional index re-mapping.
+  Repeat
+
+    // Translation tables are used
+    //  to map certain colorramps to other ones,
+    //  used with PLAY sprites.
+    // Thus the "green" ramp of the player 0 sprite
+    //  is mapped to gray, red, black/indigo.
+    // [crispy] brightmaps
+    source := dc_source[frac Shr FRACBITS];
+    dest^ := dc_colormap[dc_brightmap[source]][dc_translation[source]];
+
+    inc(dest, SCREENWIDTH);
+    frac := frac + fracstep;
+    count := count - 1;
+  Until (count <= 0);
 End;
 
 Procedure R_DrawTLColumn();

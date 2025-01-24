@@ -21,7 +21,7 @@ Var
 
 
 Var
-  dc_brightmap: Array Of Byte;
+  dc_brightmap: Array Of Byte; // Wird im initialization definiert
 
 Procedure R_InitBrightmaps();
 
@@ -387,46 +387,38 @@ End;
 
 Function R_BrightmapForSprite_Doom(Const _type: int): TBytes;
 Begin
-  //	if (crispy->brightmaps & BRIGHTMAPS_SPRITES)
-  //	{
-  //		switch (type)
-  //		{
-  //			// Armor Bonus
-  //			case SPR_BON2:
-  //			{
-  //				return greenonly1;
-  //				break;
-  //			}
-  //			// Cell Charge
-  //			case SPR_CELL:
-  //			{
-  //				return greenonly2;
-  //				break;
-  //			}
-  //			// Barrel
-  //			case SPR_BAR1:
-  //			{
-  //				return greenonly3;
-  //				break;
-  //			}
-  //			// Cell Charge Pack
-  //			case SPR_CELP:
-  //			{
-  //				return yellowonly;
-  //				break;
-  //			}
-  //			// BFG9000
-  //			case SPR_BFUG:
-  //			// Plasmagun
-  //			case SPR_PLAS:
-  //			{
-  //				return redonly;
-  //				break;
-  //			}
-  //		}
-  //	}
-  //
-  //	return nobrightmap;
+  If (crispy.brightmaps And BRIGHTMAPS_SPRITES) <> 0 Then Begin
+    Case spritenum_t(_type) Of
+      // Armor Bonus
+      SPR_BON2: Begin
+          result := greenonly1;
+          exit;
+        End;
+      // Cell Charge
+      SPR_CELL: Begin
+          result := greenonly2;
+          exit;
+        End;
+      // Barrel
+      SPR_BAR1: Begin
+          result := greenonly3;
+          exit;
+        End;
+      // Cell Charge Pack
+      SPR_CELP: Begin
+          result := yellowonly;
+          exit;
+        End;
+      // BFG9000
+      SPR_BFUG,
+        // Plasmagun
+      SPR_PLAS: Begin
+          result := redonly;
+          exit;
+        End;
+    End;
+  End;
+  result := nobrightmap;
 End;
 
 Function R_BrightmapForFlatNum_Doom(Const num: int): PByte;
@@ -575,6 +567,7 @@ Begin
 End;
 
 Initialization
+
   dc_brightmap := nobrightmap;
 
   // [crispy] common textures

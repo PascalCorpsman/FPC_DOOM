@@ -649,8 +649,8 @@ End;
 //
 
 Procedure R_DrawVisSprite(vis: Pvissprite_t; x1, x2: int);
-Const
-  error: boolean = false;
+//Const
+//  error: boolean = false;
 Var
   column: ^column_t;
   texturecolumn: int;
@@ -666,12 +666,10 @@ Begin
   dc_brightmap := vis^.brightmap;
 
   If (dc_colormap[0] = Nil) Then Begin
-
     // NULL colormap = shadow draw
     colfunc := fuzzcolfunc;
   End
   Else If (vis^.mobjflags And MF_TRANSLATION) = 0 Then Begin
-
     colfunc := transcolfunc;
     dc_translation := pointer(@translationtables[0]) - 256 +
       ((vis^.mobjflags And MF_TRANSLATION) Shr (MF_TRANSSHIFT - 8));
@@ -683,7 +681,6 @@ Begin
   End
     // [crispy] translucent sprites
   Else If (crispy.translucency <> 0) And ((vis^.mobjflags And MF_TRANSLUCENT) <> 0) Then Begin
-
     If ((vis^.mobjflags And (MF_NOGRAVITY Or MF_COUNTITEM)) = 0) Or
       (((vis^.mobjflags And MF_NOGRAVITY) <> 0) And ((crispy.translucency And TRANSLUCENCY_MISSILE) <> 0)) Or
       (((vis^.mobjflags And MF_COUNTITEM) <> 0) And ((crispy.translucency And TRANSLUCENCY_ITEM) <> 0))
