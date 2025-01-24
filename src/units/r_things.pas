@@ -252,7 +252,6 @@ Begin
           End;
         1: Begin
             // must have all 8 frames
-
             For r := 0 To 8 - 1 Do Begin
               If (sprtemp[frame].lump[r] = -1) Then Begin
                 I_Error(format('R_InitSprites: Sprite %s frame %s is missing rotations',
@@ -505,8 +504,8 @@ Begin
 
   // [JN] killough 4/9/98: clip things which are out of view due to height
   gzt := interpz + spritetopoffset[lump];
-  If (interpz > viewz + FixedDiv(viewheight Shl FRACBITS, xscale)) Or (
-    gzt < int64_t(viewz) - FixedDiv((viewheight Shl FRACBITS) - viewheight, xscale)) Then exit;
+  If (interpz > viewz + FixedDiv(viewheight Shl FRACBITS, xscale)) Or
+    (gzt < int64_t(viewz) - FixedDiv((viewheight Shl FRACBITS) - viewheight, xscale)) Then exit;
 
   // [JN] quickly reject sprites with bad x ranges
   If (x1 >= x2) Then exit;
@@ -669,7 +668,7 @@ Begin
     // NULL colormap = shadow draw
     colfunc := fuzzcolfunc;
   End
-  Else If (vis^.mobjflags And MF_TRANSLATION) = 0 Then Begin
+  Else If (vis^.mobjflags And MF_TRANSLATION) <> 0 Then Begin
     colfunc := transcolfunc;
     dc_translation := pointer(@translationtables[0]) - 256 +
       ((vis^.mobjflags And MF_TRANSLATION) Shr (MF_TRANSSHIFT - 8));
@@ -700,7 +699,7 @@ Begin
 
   For dc_x := vis^.x1 To vis^.x2 Do Begin
 
-    texturecolumn := SarInt64(frac, FRACBITS);
+    texturecolumn := frac Shr FRACBITS;
     //#ifdef RANGECHECK
     //	if (texturecolumn < 0 || texturecolumn >= SHORT(patch^.width))
     //	{
@@ -713,8 +712,6 @@ Begin
     //	    continue;
     //	}
     //#endif
-
-
     Pint := @patch^.columnofs[0];
     column := pointer(patch) + Pint[texturecolumn];
     R_DrawMaskedColumn(column);

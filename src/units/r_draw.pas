@@ -384,6 +384,7 @@ Var
   fracstep: fixed_t;
   source: byte;
 Begin
+  // TODO: Die konnte bisher noch nicht getestet werden !!
   count := dc_yh - dc_yl;
   If (count < 0) Then exit;
   count := count + 1; // Corpsman Fix off by 1 in While loop
@@ -418,7 +419,6 @@ Begin
     // [crispy] brightmaps
     source := dc_source[frac Shr FRACBITS];
     dest^ := dc_colormap[dc_brightmap[source]][dc_translation[source]];
-
     inc(dest, SCREENWIDTH);
     frac := frac + fracstep;
     count := count - 1;

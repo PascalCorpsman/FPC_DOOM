@@ -943,8 +943,6 @@ End;
 //  will have new column_ts generated.
 //
 
-
-
 // [crispy] replace R_DrawColumnInCache(), R_GenerateComposite() and R_GenerateLookup()
 // with Lee Killough's implementations found in MBF to fix Medusa bug
 // taken from mbfsrc/R_DATA.C:136-425
@@ -1264,7 +1262,7 @@ Begin
   For i := 0 To numsprites - 1 Do Begin
     If (spritepresent[i] = 0) Then continue;
     For j := 0 To sprites[i].numframes - 1 Do Begin
-      For k := 0 To 8 - 1 Do Begin
+      For k := 0 To 8 - 1 Do Begin // WTF: Bei Lumps mit 16 Richtungen wäre das hier aber falsch ..
         lump := firstspritelump + sprites[i].spriteframes[j].lump[k];
         spritememory := spritememory + lumpinfo[lump].size;
         //		W_CacheLumpNum(lump , PU_CACHE);
