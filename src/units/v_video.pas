@@ -137,7 +137,7 @@ Begin
           sc := dp_translation[sc];
         End;
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
-        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc];
+        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc] And $00FFFFFF;
 {$ENDIF}
         index := (x + col) + (y + row) * SCREENWIDTH;
         // If (index >= 0) And (index <= high(dest_screen)) Then Begin

@@ -84,8 +84,7 @@ Var
   icon_h: int = 0;
   initialized: Boolean = false;
 Var
-  OpenGLData: Array Of Array[0..2] Of Byte;
-
+  OpenGLData: Array Of uint32; // Only 24-Bit needed, but OpenGL is faster in processing 32-Bit numbers.
 
 Procedure I_InitWindowTitle();
 Begin
@@ -619,7 +618,8 @@ End;
 
 Procedure I_FinishUpdate();
 Var
-  rgb, i: Integer;
+  i: Integer;
+  DestPtr: PUInt32;
 Begin
   //   static int lasttic;
   //    int tics;
@@ -776,14 +776,13 @@ Begin
   glPushMatrix;
   // 1. Umkopieren der DOOM Puffer nach OpenGL
   glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
+  DestPtr := @OpenGLData[0];
   For i := 0 To high(I_VideoBuffer) Do Begin
-    rgb := Doom8BitTo24RGBBit[I_VideoBuffer[i]];
-    OpenGLData[i][0] := (rgb) And $FF;
-    OpenGLData[i][1] := (rgb Shr 8) And $FF;
-    OpenGLData[i][2] := (rgb Shr 16) And $FF;
+    DestPtr^ := Doom8BitTo24RGBBit[I_VideoBuffer[i]];
+    inc(DestPtr);
   End;
 
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SCREENWIDTH, SCREENHEIGHT, GL_RGB, GL_UNSIGNED_BYTE, @OpenGLData[0]);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SCREENWIDTH, SCREENHEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, @OpenGLData[0]);
 
   // 2. Anpassen des Screens
   // TODO: Da kann man später das Aspectratio zeug mit einbaun ...

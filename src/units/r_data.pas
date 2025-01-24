@@ -185,9 +185,11 @@ Begin
   playpal := W_CacheLumpName('PLAYPAL', PU_STATIC);
   For i := 0 To 255 Do Begin
     Doom8BitTo24RGBBit[i] :=
-      (playpal[i * 3] Shl 0)
+         (playpal[i * 3 + 0] Shl 0)
       Or (playpal[i * 3 + 1] Shl 8)
-      Or (playpal[i * 3 + 2] Shl 16);
+      Or (playpal[i * 3 + 2] Shl 16)
+      Or ($FF Shl 24)   // 100% Opak = nicht Transparent
+      ;
   End;
   // TODO: Theoretisch werden hier auch noch irgend welche Lightings erzeugt ..
 End;
