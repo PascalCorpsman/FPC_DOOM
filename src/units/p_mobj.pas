@@ -302,8 +302,8 @@ Begin
     bit := (1 Shl ((integer(gameskill) - 1) And $1F));
   End;
   // [crispy] warn about mapthings without any skill tag set
-  If ((mthing^.options And (MTF_EASY Or MTF_NORMAL Or MTF_HARD)) <> 0) Then Begin
-    writeln(stderr, format('P_SpawnMapThing: Mapthing type %i without any skill tag at (%i, %i)',
+  If ((mthing^.options And (MTF_EASY Or MTF_NORMAL Or MTF_HARD)) = 0) Then Begin
+    writeln(stderr, format('P_SpawnMapThing: Mapthing type %d without any skill tag at (%d, %d)',
       [mthing^._type, mthing^.x, mthing^.y]));
   End;
 
@@ -318,7 +318,7 @@ Begin
   // find which type to spawn
   i := -1;
   For j := 0 To integer(NUMMOBJTYPES) - 1 Do Begin
-    If (mthing^._type = mobjinfo[i].doomednum) Then Begin
+    If (mthing^._type = mobjinfo[j].doomednum) Then Begin
       i := j;
       break;
     End;
@@ -326,7 +326,7 @@ Begin
 
   If (i = -1) Then Begin
     // [crispy] ignore unknown map things
-    writeln(stderr, format('P_SpawnMapThing: Unknown type %i at (%i, %i)', [mthing^._type, mthing^.x, mthing^.y]));
+    writeln(stderr, format('P_SpawnMapThing: Unknown type %d at (%d, %d)', [mthing^._type, mthing^.x, mthing^.y]));
     exit;
   End;
 
