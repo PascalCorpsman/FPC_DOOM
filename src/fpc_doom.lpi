@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="85">
+    <Units Count="86">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -387,6 +387,10 @@
         <Filename Value="units/r_segs.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit84>
+      <Unit85>
+        <Filename Value="units/p_sight.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit85>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

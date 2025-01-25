@@ -988,8 +988,7 @@ Begin
   paused := 0;
   gameaction := ga_nothing;
   // [crispy] update the "singleplayer" variable
-  //    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);
-
+  CheckCrispySingleplayer(Not demorecording And Not demoplayback And Not netgame);
 
   // The Ultimate Doom executable changed the demo sequence to add
   // a DEMO4 demo.  Final Doom was based on Ultimate, so also

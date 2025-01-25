@@ -915,39 +915,39 @@ Begin
   End;
 
   // [crispy] update the "singleplayer" variable
-//    CheckCrispySingleplayer(!demorecording && !demoplayback && !netgame);
+  CheckCrispySingleplayer(Not demorecording And Not demoplayback And Not netgame);
 
-//    // [crispy] double ammo
-//    if (crispy->moreammo && !crispy->singleplayer)
-//    {
-//        const char message[] = "The -doubleammo option is not supported"
-//                               " for demos and\n"
-//                               " network play.";
-//        if (!demo_p) demorecording = false;
-//        I_Error(message);
-//    }
+  //    // [crispy] double ammo
+  //    if (crispy->moreammo && !crispy->singleplayer)
+  //    {
+  //        const char message[] = "The -doubleammo option is not supported"
+  //                               " for demos and\n"
+  //                               " network play.";
+  //        if (!demo_p) demorecording = false;
+  //        I_Error(message);
+  //    }
 
-// [crispy] pistol start
-//    if (crispy->pistolstart)
-//    {
-//        if (crispy->singleplayer)
-//        {
-//            G_PlayerReborn(0);
-//        }
-//        else if ((demoplayback || netdemo) && !singledemo)
-//        {
-//            // no-op - silently ignore pistolstart when playing demo from the
-//            // demo reel
-//        }
-//        else
-//        {
-//            const char message[] = "The -pistolstart option is not supported"
-//                                   " for demos and\n"
-//                                   " network play.";
-//            if (!demo_p) demorecording = false;
-//            I_Error(message);
-//        }
-//    }
+  // [crispy] pistol start
+  //    if (crispy->pistolstart)
+  //    {
+  //        if (crispy->singleplayer)
+  //        {
+  //            G_PlayerReborn(0);
+  //        }
+  //        else if ((demoplayback || netdemo) && !singledemo)
+  //        {
+  //            // no-op - silently ignore pistolstart when playing demo from the
+  //            // demo reel
+  //        }
+  //        else
+  //        {
+  //            const char message[] = "The -pistolstart option is not supported"
+  //                                   " for demos and\n"
+  //                                   " network play.";
+  //            if (!demo_p) demorecording = false;
+  //            I_Error(message);
+  //        }
+  //    }
 
   P_SetupLevel(gameepisode, gamemap, 0, gameskill);
   displayplayer := consoleplayer; // view the guy you are playing

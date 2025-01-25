@@ -16,6 +16,16 @@ Const
   MAXVISSPRITES = 128;
 
 Var
+  // [crispy] extendable, but the last char element must be zero,
+  // keep in sync with multiitem_t multiitem_crosshairtype[] in m_menu.c
+  laserpatch: Array[0..NUM_CROSSHAIRTYPES - 1] Of laserpatch_t = (
+    (c: '+'; a: 'cross1'; l: 0; w: 0; h: 0),
+    (c: '^'; a: 'cross2'; l: 0; w: 0; h: 0),
+    (c: '.'; a: 'cross3'; l: 0; w: 0; h: 0)
+    );
+
+  laserspot: ^degenmobj_t = Nil; // Wird im Initialization und ganz hacky genutzt
+
   // variables used to look up
   //  and range check thing_t sprites patches
   numsprites: int;
@@ -53,10 +63,10 @@ Procedure R_DrawMasked();
 Implementation
 
 Uses
-  doomstat, tables, info
-  , d_loop, d_mode
+  doomstat, tables, info, doomdef
+  , d_loop, d_mode, d_items, d_player
   , i_system
-  , p_tick, p_pspr, p_mobj
+  , p_tick, p_pspr, p_mobj, p_map, p_local
   , r_data, r_main, r_draw, r_bmaps, r_bsp, r_segs
   , v_trans, v_patch
   , w_wad
@@ -394,7 +404,7 @@ Begin
   //      if prudent.
   If (crispy.uncapped <> 0) And
     // Don't interpolate if the mobj did something
-  // that would necessitate turning it off for a tic.
+    // that would necessitate turning it off for a tic.
   (thing^.interp <> 0) And
     // Don't interpolate during a paused state.
   (leveltime > oldleveltime)
@@ -874,43 +884,318 @@ Begin
   quick(0, vissprite_p - 1);
 End;
 
+Function R_LaserspotColor(): TBytes;
+Var
+  health: int;
+Begin
+  result := Nil;
+
+Hier mal hart umschalten um die Translations zu testen ;)
+
+Anscheinend geht das Projizieren auch noch nicht sauber :/
+
+  If (crispy.crosshairtarget <> 0) Then Begin
+
+    // [crispy] the projected crosshair code calls P_LineLaser() itself
+  //		if (crispy->crosshair == CROSSHAIR_STATIC)
+  //		{
+  //			P_LineLaser(viewplayer->mo, viewangle,
+  //			            16*64*FRACUNIT, PLAYER_SLOPE(viewplayer));
+  //		}
+  //		if (linetarget)
+  //		{
+  //			return cr[CR_GRAY];
+  //		}
+  End;
+
+  // [crispy] keep in sync with st_stuff.c:ST_WidgetColor(hudcolor_health)
+  If (crispy.crosshairhealth <> 0) Then Begin
+
+    health := viewplayer^.health;
+
+    //		// [crispy] Invulnerability powerup and God Mode cheat turn Health values gray
+    //		if (viewplayer->cheats & CF_GODMODE ||
+    //		    viewplayer->powers[pw_invulnerability])
+    //			return cr[CR_GRAY];
+    //		else if (health < 25)
+    //			return cr[CR_RED];
+    //		else if (health < 50)
+    //			return cr[CR_GOLD];
+    //		else if (health <= 100)
+    //			return cr[CR_GREEN];
+    //		else
+    //			return cr[CR_BLUE];
+  End;
+End;
+
+// [crispy] generate a vissprite for the laser spot
+
+Procedure R_DrawLSprite();
+Const
+  lump: int = 0;
+Const
+  patch: ^patch_t = Nil;
+Var
+  xscale, tx, tz: fixed_t;
+  vis: ^vissprite_t;
+Begin
+
+  If (weaponinfo[integer(viewplayer^.readyweapon)].ammo = am_noammo) Or
+  (viewplayer^.playerstate <> PST_LIVE) Then exit;
+
+  If (lump <> laserpatch[crispy.crosshairtype].l) Then Begin
+    lump := laserpatch[crispy.crosshairtype].l;
+    patch := W_CacheLumpNum(lump, PU_STATIC);
+  End;
+
+  P_LineLaser(viewplayer^.mo, viewangle, 16 * 64 * FRACUNIT, PLAYER_SLOPE(viewplayer));
+
+  If (laserspot^.thinker._function.acv = Nil) Then exit;
+
+  tz := FixedMul(laserspot^.x - viewx, viewcos) +
+    FixedMul(laserspot^.y - viewy, viewsin);
+
+  If (tz < MINZ) Then exit;
+
+
+  xscale := FixedDiv(projection, tz);
+  // [crispy] the original patch has 5x5 pixels, cap the projection at 20x20
+  If (xscale > 4 * FRACUNIT) Then Begin
+    xscale := 4 * FRACUNIT;
+  End;
+
+  tx := -(FixedMul(laserspot^.y - viewy, viewcos) -
+    FixedMul(laserspot^.x - viewx, viewsin));
+
+  If (abs(tx) > (tz Shl 2)) Then exit;
+
+  vis := R_NewVisSprite();
+  FillChar(vis^, sizeof(vis^), 0); // [crispy] set all fields to NULL, except ...
+
+  vis^.patch := lump - firstspritelump; // [crispy] not a sprite patch
+  If assigned(fixedcolormap) Then Begin
+    vis^.colormap[0] := fixedcolormap;
+    vis^.colormap[1] := fixedcolormap; // [crispy] always full brightness
+  End
+  Else Begin
+    vis^.colormap[0] := colormaps;
+    vis^.colormap[1] := colormaps; // [crispy] always full brightness
+  End;
+  vis^.brightmap := dc_brightmap;
+  vis^.translation := R_LaserspotColor();
+  //#ifdef CRISPY_TRUECOLOR
+  //    vis^.mobjflags |= MF_TRANSLUCENT;
+  //    vis^.blendfunc = I_BlendAdd;
+  //#endif
+  vis^.xiscale := FixedDiv(FRACUNIT, xscale);
+  vis^.texturemid := laserspot^.z - viewz;
+  vis^.scale := xscale Shl detailshift;
+  //
+  tx := tx - SHORT(patch^.width Div 2) Shl FRACBITS;
+  vis^.x1 := SarLongint(centerxfrac + FixedMul(tx, xscale), FRACBITS);
+  tx := tx + SHORT(patch^.width) Shl FRACBITS;
+  vis^.x2 := SarLongint(centerxfrac + FixedMul(tx, xscale), FRACBITS) - 1;
+
+  If (vis^.x1 < 0) Or (vis^.x1 >= viewwidth) Or
+    (vis^.x2 < 0) Or (vis^.x2 >= viewwidth) Then exit;
+
+  R_DrawVisSprite(vis, vis^.x1, vis^.x2);
+End;
+
+
+//
+// R_DrawPSprite
+//
+
+Procedure R_DrawPSprite(Const psp: pspdef_t; psprnum: psprnum_t); // [crispy] differentiate gun from flash sprites
+Begin
+ raise exception.create('R_DrawPSprite');
+  //    fixed_t		tx;
+  //    int			x1;
+  //    int			x2;
+  //    spritedef_t*	sprdef;
+  //    spriteframe_t*	sprframe;
+  //    int			lump;
+  //    boolean		flip;
+  //    vissprite_t*	vis;
+  //    vissprite_t		avis;
+  //
+  //    // decide which patch to use
+  //#ifdef RANGECHECK
+  //    if ( (unsigned)psp->state->sprite >= (unsigned int) numsprites)
+  //	I_Error ("R_ProjectSprite: invalid sprite number %i ",
+  //		 psp->state->sprite);
+  //#endif
+  //    sprdef = &sprites[psp->state->sprite];
+  //    // [crispy] the TNT1 sprite is not supposed to be rendered anyway
+  //    if (!sprdef->numframes && psp->state->sprite == SPR_TNT1)
+  //    {
+  //	return;
+  //    }
+  //#ifdef RANGECHECK
+  //    if ( (psp->state->frame & FF_FRAMEMASK)  >= sprdef->numframes)
+  //	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
+  //		 psp->state->sprite, psp->state->frame);
+  //#endif
+  //    sprframe = &sprdef->spriteframes[ psp->state->frame & FF_FRAMEMASK ];
+  //
+  //    lump = sprframe->lump[0];
+  //    flip = (boolean)sprframe->flip[0] ^ crispy->flipweapons;
+  //
+  //    // calculate edges of the shape
+  //    tx = psp->sx2-(ORIGWIDTH/2)*FRACUNIT;
+  //
+  //    // [crispy] fix sprite offsets for mirrored sprites
+  //    tx -= flip ? 2 * tx - spriteoffset[lump] + spritewidth[lump] : spriteoffset[lump];
+  //    x1 = (centerxfrac + FixedMul (tx,pspritescale) ) >>FRACBITS;
+  //
+  //    // off the right side
+  //    if (x1 > viewwidth)
+  //	return;
+  //
+  //    tx +=  spritewidth[lump];
+  //    x2 = ((centerxfrac + FixedMul (tx, pspritescale) ) >>FRACBITS) - 1;
+  //
+  //    // off the left side
+  //    if (x2 < 0)
+  //	return;
+  //
+  //    // store information in a vissprite
+  //    vis = &avis;
+  //    vis->translation = NULL; // [crispy] no color translation
+  //    vis->mobjflags = 0;
+  //    // [crispy] weapons drawn 1 pixel too high when player is idle
+  //    vis->texturemid = (BASEYCENTER<<FRACBITS)+FRACUNIT/(2<<crispy->hires)-(psp->sy2-spritetopoffset[lump]);
+  //    vis->x1 = x1 < 0 ? 0 : x1;
+  //    vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+  //    vis->scale = pspritescale<<detailshift;
+  //
+  //    if (flip)
+  //    {
+  //	vis->xiscale = -pspriteiscale;
+  //	vis->startfrac = spritewidth[lump]-1;
+  //    }
+  //    else
+  //    {
+  //	vis->xiscale = pspriteiscale;
+  //	vis->startfrac = 0;
+  //    }
+  //
+  //    if (vis->x1 > x1)
+  //	vis->startfrac += vis->xiscale*(vis->x1-x1);
+  //
+  //    vis->patch = lump;
+  //
+  //    if (viewplayer->powers[pw_invisibility] > 4*32
+  //	|| viewplayer->powers[pw_invisibility] & 8)
+  //    {
+  //	// shadow draw
+  //	vis->colormap[0] = vis->colormap[1] = NULL;
+  //    }
+  //    else if (fixedcolormap)
+  //    {
+  //	// fixed color
+  //	vis->colormap[0] = vis->colormap[1] = fixedcolormap;
+  //    }
+  //    else if (psp->state->frame & FF_FULLBRIGHT)
+  //    {
+  //	// full bright
+  //	vis->colormap[0] = vis->colormap[1] = colormaps;
+  //    }
+  //    else
+  //    {
+  //	// local light
+  //	vis->colormap[0] = spritelights[MAXLIGHTSCALE-1];
+  //	vis->colormap[1] = colormaps;
+  //    }
+  //    vis->brightmap = R_BrightmapForState(psp->state - states);
+  //
+  //    // [crispy] translucent gun flash sprites
+  //    if (psprnum == ps_flash)
+  //    {
+  //        vis->mobjflags |= MF_TRANSLUCENT;
+  //#ifdef CRISPY_TRUECOLOR
+  //        vis->blendfunc = I_BlendOverTranmap; // I_BlendAdd;
+  //#endif
+  //    }
+  //
+  //    // interpolate weapon bobbing
+  //    if (crispy->uncapped)
+  //    {
+  //        static int     oldx1, x1_saved;
+  //        static fixed_t oldtexturemid, texturemid_saved;
+  //        static int     oldlump = -1;
+  //        static int     oldgametic = -1;
+  //
+  //        if (oldgametic < gametic)
+  //        {
+  //            oldx1 = x1_saved;
+  //            oldtexturemid = texturemid_saved;
+  //            oldgametic = gametic;
+  //        }
+  //
+  //        x1_saved = vis->x1;
+  //        texturemid_saved = vis->texturemid;
+  //
+  //        if (lump == oldlump && pspr_interp)
+  //        {
+  //            int deltax = vis->x2 - vis->x1;
+  //            vis->x1 = LerpFixed(oldx1, vis->x1);
+  //            vis->x2 = vis->x1 + deltax;
+  //            vis->x2 = vis->x2 >= viewwidth ? viewwidth - 1 : vis->x2;
+  //            vis->texturemid = LerpFixed(oldtexturemid, vis->texturemid);
+  //        }
+  //        else
+  //        {
+  //            oldx1 = vis->x1;
+  //            oldtexturemid = vis->texturemid;
+  //            oldlump = lump;
+  //            pspr_interp = true;
+  //        }
+  //    }
+  //
+  //    // [crispy] free look
+  //    vis->texturemid += FixedMul(((centery - viewheight / 2) << FRACBITS), pspriteiscale) >> detailshift;
+  //
+  //    R_DrawVisSprite (vis, vis->x1, vis->x2);
+End;
+
 //
 // R_DrawPlayerSprites
 //
 
 Procedure R_DrawPlayerSprites();
+Var
+  i: int;
+  lightnum: int;
+  psp: pspdef_t;
 Begin
-  //    int		i;
-  //    int		lightnum;
-  //    pspdef_t*	psp;
-  //
-  //    // get light level
-  //    lightnum =
-  //	(viewplayer->mo->subsector->sector->rlightlevel >> LIGHTSEGSHIFT) // [crispy] A11Y
-  //	+(extralight * LIGHTBRIGHT);
-  //
-  //    if (lightnum < 0)
-  //	spritelights = scalelight[0];
-  //    else if (lightnum >= LIGHTLEVELS)
-  //	spritelights = scalelight[LIGHTLEVELS-1];
-  //    else
-  //	spritelights = scalelight[lightnum];
-  //
-  //    // clip to screen bounds
-  //    mfloorclip = screenheightarray;
-  //    mceilingclip = negonearray;
-  //
-  //    if (crispy->crosshair == CROSSHAIR_PROJECTED)
-  //	R_DrawLSprite();
-  //
-  //    // add all active psprites
-  //    for (i=0, psp=viewplayer->psprites;
-  //	 i<numrpsprites; // [crispy] A11Y number of player sprites to draw
-  //	 i++,psp++)
-  //    {
-  //	if (psp->state)
-  //	    R_DrawPSprite (psp, i); // [crispy] pass gun or flash sprite
-  //    }
+  // get light level
+  lightnum :=
+    SarLongint(viewplayer^.mo^.subsector^.sector^.rlightlevel, LIGHTSEGSHIFT) // [crispy] A11Y
+  + (extralight * LIGHTBRIGHT);
+
+  If (lightnum < 0) Then
+    spritelights := scalelight[0]
+  Else If (lightnum >= LIGHTLEVELS) Then
+    spritelights := scalelight[LIGHTLEVELS - 1]
+  Else
+    spritelights := scalelight[lightnum];
+
+  // clip to screen bounds
+  mfloorclip := screenheightarray;
+  mceilingclip := negonearray;
+
+  If (crispy.crosshair = CROSSHAIR_PROJECTED) Then Begin
+    R_DrawLSprite();
+  End;
+
+  // add all active psprites
+  For i := 0 To numrpsprites - 1 Do Begin // [crispy] A11Y number of player sprites to draw
+    If assigned(viewplayer^.psprites[psprnum_t(i)].state) Then Begin
+      R_DrawPSprite(viewplayer^.psprites[psprnum_t(i)], psprnum_t(i)); // [crispy] pass gun or flash sprite
+    End;
+  End;
 End;
 
 Procedure R_DrawMasked();
@@ -930,11 +1215,6 @@ Begin
     //	     spr++)
     //#else
     For spr := 0 To vissprite_p - 1 Do Begin
-     //	for (spr = vsprsortedhead.next ;
-     //	     spr != &vsprsortedhead ;
-     //	     spr=spr->next)
-     //#endif
-
       R_DrawSprite(@vissprites[spr]);
     End;
   End;
@@ -954,6 +1234,14 @@ Begin
     R_DrawPlayerSprites();
   End
 End;
+
+Initialization
+  new(laserspot);
+  FillChar(laserspot^, sizeof(laserspot^), 0);
+
+Finalization
+  dispose(laserspot);
+
 
 End.
 

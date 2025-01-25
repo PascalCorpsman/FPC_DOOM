@@ -6,6 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
+  , info_types
   , m_fixed
   ;
 Const
@@ -70,7 +71,6 @@ Const
   //
 Const
   MLOOKUNIT = 8;
-  //#define PLAYER_SLOPE(a)	((((a)->lookdir / MLOOKUNIT) << FRACBITS) / 173)
   //void	P_PlayerThink (player_t* player);
 
 
@@ -118,31 +118,38 @@ Const
   //void P_NoiseAlert (mobj_t* target, mobj_t* emmiter);
 
 
+Type
   //
   // P_MAPUTL
   //
-  //typedef struct
-  //{
-  //    fixed_t	x;
-  //    fixed_t	y;
-  //    fixed_t	dx;
-  //    fixed_t	dy;
-  //
-  //} divline_t;
-  //
-  //typedef struct
-  //{
-  //    fixed_t	frac;		// along trace line
-  //    boolean	isaline;
-  //    union {
-  //	mobj_t*	thing;
-  //	line_t*	line;
-  //    }			d;
-  //} intercept_t;
-  //
+  divline_t = Record
+    x: fixed_t;
+    y: fixed_t;
+    dx: fixed_t;
+    dy: fixed_t;
+  End;
+  Pdivline_t = ^divline_t;
+
+  dt = Record
+    Case boolean Of
+      true: (thing: pmobj_t);
+      false: (line: pline_t);
+  End;
+
+  intercept_t = Record
+    frac: fixed_t; // along trace line
+    isaline: boolean;
+    d: dt;
+  End;
+
+  Pintercept_t = ^intercept_t;
+
+  traverser_t = Function(_in: Pintercept_t): Boolean;
+
   //// Extended MAXINTERCEPTS, to allow for intercepts overrun emulation.
   //
-  //#define MAXINTERCEPTS_ORIGINAL 128
+Const
+  MAXINTERCEPTS_ORIGINAL = 128;
   //#define MAXINTERCEPTS          (MAXINTERCEPTS_ORIGINAL + 61)
   //
   ////extern intercept_t	intercepts[MAXINTERCEPTS]; // [crispy] remove INTERCEPTS limit
@@ -166,11 +173,12 @@ Const
   //
   //boolean P_BlockLinesIterator (int x, int y, boolean(*func)(line_t*) );
   //boolean P_BlockThingsIterator (int x, int y, boolean(*func)(mobj_t*) );
-  //
-  //#define PT_ADDLINES		1
-  //#define PT_ADDTHINGS	2
-  //#define PT_EARLYOUT		4
-  //
+
+Const
+  PT_ADDLINES = 1;
+  PT_ADDTHINGS = 2;
+  PT_EARLYOUT = 4;
+
   //extern divline_t	trace;
   //
   //boolean
@@ -230,30 +238,19 @@ Const
   //// slopes to top and bottom of target
   //extern fixed_t	topslope;
   //extern fixed_t	bottomslope;
-  //
-  //
+
   //fixed_t
   //P_AimLineAttack
   //( mobj_t*	t1,
   //  angle_t	angle,
   //  fixed_t	distance );
-  //
-  //void
-  //P_LineAttack
-  //( mobj_t*	t1,
-  //  angle_t	angle,
-  //  fixed_t	distance,
-  //  fixed_t	slope,
-  //  int		damage );
-  //
+
   //void
   //P_RadiusAttack
   //( mobj_t*	spot,
   //  mobj_t*	source,
   //  int		damage );
-  //
-  //
-  //
+
   ////
   //// P_SETUP
   ////
@@ -292,7 +289,14 @@ Const
   //  mobj_t*	source,
   //  int		damage );
 
+Function PLAYER_SLOPE(a: pplayer_t): fixed_t;
+
 Implementation
+
+Function PLAYER_SLOPE(a: pplayer_t): fixed_t;
+Begin
+  result := SarLongint(a^.lookdir Div MLOOKUNIT, FRACBITS) Div 173;
+End;
 
 End.
 

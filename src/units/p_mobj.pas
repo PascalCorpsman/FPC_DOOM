@@ -129,6 +129,8 @@ Procedure P_MobjThinker(mobj: Pmobj_t);
 
 Procedure FreeAllocations();
 
+Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
+
 Implementation
 
 Uses
@@ -705,11 +707,28 @@ Begin
   GlobalAllocCounter := 0;
 End;
 
+Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
+Begin
+  raise exception.create('P_SpawnPuffSafe');
+  //    mobj_t*	th;
+  //
+  //    z += safe ? (Crispy_SubRandom() << 10) : (P_SubRandom() << 10);
+  //
+  //    th = P_SpawnMobjSafe (x,y,z, MT_PUFF, safe);
+  //    th->momz = FRACUNIT;
+  //    th->tics -= safe ? Crispy_Random()&3 : P_Random()&3;
+  //
+  //    if (th->tics < 1)
+  //	th->tics = 1;
+  //
+  //    // don't make punches spark on the wall
+  //    if (attackrange == MELEERANGE)
+  //	P_SetMobjState (th, safe ? P_LatestSafeState(S_PUFF3) : S_PUFF3);
+End;
+
 Finalization
 
   FreeAllocations();
-
-
 
 End.
 

@@ -11,6 +11,7 @@ Uses
   , m_fixed
   , info_types
   ;
+
 Const
   // Silhouette, needed for clipping Segs (mainly)
   // and sprites representing things.
@@ -22,6 +23,12 @@ Const
   MAXDRAWSEGS = 256;
 
 Type
+
+  laserpatch_t = Record
+    c: char;
+    a: String;
+    l, w, h: int;
+  End;
 
   // This could be wider for >8 bit display.
   // Indeed, true color support is posibble

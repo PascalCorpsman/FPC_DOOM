@@ -15,6 +15,8 @@ Procedure R_InterpolateTextureOffsets();
 Procedure P_PlayerInSpecialSector(player: Pplayer_t);
 Procedure P_UpdateSpecials();
 
+Procedure P_ShootSpecialLine(thing: Pmobj_t; line: pline_t);
+
 Implementation
 
 Uses
@@ -426,6 +428,53 @@ Begin
 
   // [crispy] draw fuzz effect independent of rendering frame rate
   R_SetFuzzPosTic();
+End;
+
+//
+// P_ShootSpecialLine - IMPACT SPECIALS
+// Called when a thing shoots a special line.
+//
+
+Procedure P_ShootSpecialLine(thing: Pmobj_t; line: pline_t);
+Begin
+  raise exception.create('P_ShootSpecialLine');
+  //      int		ok;
+  //
+  //    //	Impacts that other things can activate.
+  //    if (!thing->player)
+  //    {
+  //	ok = 0;
+  //	switch(line->special)
+  //	{
+  //	  case 46:
+  //	    // OPEN DOOR IMPACT
+  //	    ok = 1;
+  //	    break;
+  //	}
+  //	if (!ok)
+  //	    return;
+  //    }
+  //
+  //    switch(line->special)
+  //    {
+  //      case 24:
+  //	// RAISE FLOOR
+  //	EV_DoFloor(line,raiseFloor);
+  //	P_ChangeSwitchTexture(line,0);
+  //	break;
+  //
+  //      case 46:
+  //	// OPEN DOOR
+  //	EV_DoDoor(line,vld_open);
+  //	P_ChangeSwitchTexture(line,1);
+  //	break;
+  //
+  //      case 47:
+  //	// RAISE FLOOR NEAR AND CHANGE
+  //	EV_DoPlat(line,raiseToNearestAndChange,0);
+  //	P_ChangeSwitchTexture(line,0);
+  //	break;
+  //    }
 End;
 
 End.

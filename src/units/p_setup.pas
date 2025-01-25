@@ -41,6 +41,17 @@ Var
   // for thing chains
   blocklinks: Array Of Pmobj_t;
 
+  // BLOCKMAP
+  // Created from axis aligned bounding box
+  // of the map, a rectangular array of
+  // blocks of size ...
+  // Used to speed up collision detection
+  // by spatial subdivision in 2D.
+  //
+  blockmap: Array Of int32_t; // int for larger maps // [crispy] BLOCKMAP limit
+  // offsets in blockmap are from here
+  blockmaplump: Array Of int32_t; // [crispy] BLOCKMAP limit
+
   // Blockmap size.
   bmapwidth: int;
   bmapheight: int; // size in mapblocks
@@ -87,17 +98,6 @@ Const
 Var
   // pointer to the current map lump info struct
   maplumpinfo: ^lumpinfo_t;
-
-  // BLOCKMAP
-  // Created from axis aligned bounding box
-  // of the map, a rectangular array of
-  // blocks of size ...
-  // Used to speed up collision detection
-  // by spatial subdivision in 2D.
-  //
-  blockmap: Array Of int32_t; // int for larger maps // [crispy] BLOCKMAP limit
-  // offsets in blockmap are from here
-  blockmaplump: Array Of int32_t; // [crispy] BLOCKMAP limit
 
   //
   // MAP related Lookup tables.

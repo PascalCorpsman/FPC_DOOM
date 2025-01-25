@@ -33,6 +33,8 @@ Var
   MAXLIGHTZ: int;
   LIGHTZSHIFT: int;
 
+  viewplayer: pplayer_t;
+
   viewx: fixed_t;
   viewy: fixed_t;
   viewz: fixed_t;
@@ -132,8 +134,6 @@ Var
   setsizeneeded: boolean;
   setblocks: int;
   setdetail: int;
-
-  viewplayer: pplayer_t;
 
   scaledviewwidth_nonwide, viewwidth_nonwide: int;
   centerxfrac_nonwide: fixed_t;

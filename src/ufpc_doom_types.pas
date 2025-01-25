@@ -23,6 +23,19 @@ Const
   TRANSLUCENCY_BOTH = 3;
   NUM_TRANSLUCENCY = 4;
 
+  CROSSHAIR_OFF = 0;
+  CROSSHAIR_STATIC = 1;
+  CROSSHAIR_PROJECTED = 2;
+  NUM_CROSSHAIRS = 3;
+  CROSSHAIR_INTERCEPT = $10;
+
+  NUM_CROSSHAIRTYPES = 3;
+
+  FREEAIM_AUTO = 0;
+  FREEAIM_DIRECT = 1;
+  FREEAIM_BOTH = 2;
+  NUM_FREEAIMS = 3;
+
 Type
   TProcedure = Procedure();
 
@@ -45,6 +58,9 @@ Type
   int64_t = Int64;
   float = single;
 
+  fixed_t = int;
+  Pfixed_t = ^fixed_t;
+
   TCrispy = Record
     // [crispy] "crispness" config variables
     automapoverlay: int; // 0, ?
@@ -56,10 +72,10 @@ Type
     //    	int centerweapon;
     coloredblood: int;
     //    	int coloredhud;
-    //    	int crosshair;
-    //    	int crosshairhealth;
-    //    	int crosshairtarget;
-    //    	int crosshairtype;
+    crosshair: int;
+    crosshairhealth: int;
+    crosshairtarget: int;
+    crosshairtype: int;
     //    	int defaultskill;
     //    	int demotimer;
     //    	int demotimerdir;
@@ -67,7 +83,7 @@ Type
     //    	int extautomap;
     flipcorpses: int;
     //    	int fpslimit;
-    //    	int freeaim;
+    freeaim: int;
     freelook: int; // 0,1 ?
     //    	int freelook_hh;
     //    	int gamma;
@@ -110,7 +126,7 @@ Type
     //    	boolean havee1m10;
     //    	boolean havemap33;
     //    	boolean havessg;
-    //    	boolean singleplayer;
+    singleplayer: boolean;
     stretchsky: Boolean; // wird in R_InitSkyMap initialisiert
 
     //    	// [crispy] custom difficulty parameters
@@ -133,12 +149,34 @@ Type
 
 Var
   Crispy: TCrispy;
+  Critical: ^TCrispy;
 
 Procedure Nop(); // Just for debugging to have a breakpoint position ;)
 
 Function IfThen(aValue: Boolean; aTrueString: String; aFalseString: String): String;
+Procedure CheckCrispySingleplayer(singleplayer: Boolean);
+
+Function Clamp(Value, Lower, Upper: fixed_t): fixed_t; // overload;
 
 Implementation
+
+Var
+  critical_s: TCrispy; // wird im Initialization gesetzt
+
+Function Clamp(Value, Lower, Upper: fixed_t): fixed_t; // overload;
+Begin
+  If value < lower Then Begin
+    result := lower;
+  End
+  Else Begin
+    If Value > Upper Then Begin
+      result := upper;
+    End
+    Else Begin
+      result := value;
+    End;
+  End;
+End;
 
 Procedure Nop();
 Begin
@@ -156,13 +194,29 @@ Begin
   End;
 End;
 
+Procedure CheckCrispySingleplayer(singleplayer: Boolean);
+Begin
+  crispy.singleplayer := singleplayer;
+  If (crispy.singleplayer) Then Begin
+    critical := @Crispy;
+  End
+  Else Begin
+    critical := @critical_s;
+  End;
+End;
+
 Initialization
 
   Crispy.automapoverlay := 0;
   Crispy.bobfactor := 0;
   Crispy.brightmaps := 0;
   Crispy.coloredblood := 0;
+  Crispy.crosshair := CROSSHAIR_PROJECTED; //CROSSHAIR_OFF;
+  Crispy.crosshairhealth := 0;
+  Crispy.crosshairtarget := 0;
+  Crispy.crosshairtype := 0;
   Crispy.flipcorpses := 0;
+  Crispy.freeaim := 0;
   Crispy.freelook := 0;
 
   Crispy.hires := 1;
@@ -174,6 +228,7 @@ Initialization
   Crispy.uncapped := 0;
   Crispy.cleanscreenshot := 0;
   Crispy.flashinghom := false;
+  Crispy.singleplayer := false;
   Crispy.stretchsky := false;
 
   //  Crispy.smoothscaling := 1;
@@ -184,6 +239,8 @@ Initialization
     //    #Endif
   //  Crispy.vsync := 1;
   //  Crispy.widescreen := 1; // match screen by default
+
+  FillChar(critical_s, sizeof(critical_s), 0);
 
 End.
 

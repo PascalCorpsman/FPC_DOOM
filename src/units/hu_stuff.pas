@@ -27,6 +27,7 @@ Uses
   doomstat
   , d_mode
   , m_argv
+  , r_things
   , w_wad
   , z_zone;
 
@@ -34,6 +35,7 @@ Procedure HU_Init();
 Var
   i, j: int;
   buffer: String;
+  patch: ^patch_t;
 Begin
   // load the heads-up font
   j := ord(HU_FONTSTART);
@@ -61,37 +63,29 @@ Begin
   End;
 
   // [crispy] initialize the crosshair types
+  For i := 0 To high(laserpatch) Do Begin
 
-  //    for (i = 0; laserpatch[i].c; i++)
-  //    {
-  //	patch_t *patch = NULL;
-  //
-  //	// [crispy] check for alternative crosshair patches from e.g. prboom-plus.wad first
-  ////	if ((laserpatch[i].l = W_CheckNumForName(laserpatch[i].a)) == -1)
-  //	{
-  //		DEH_snprintf(buffer, 9, "STCFN%.3d", toupper(laserpatch[i].c));
-  //		laserpatch[i].l = W_GetNumForName(buffer);
-  //
-  //		patch = W_CacheLumpNum(laserpatch[i].l, PU_STATIC);
-  //
-  //		laserpatch[i].w -= SHORT(patch->leftoffset);
-  //		laserpatch[i].h -= SHORT(patch->topoffset);
-  //
-  //		// [crispy] special-case the chevron crosshair type
-  //		if (toupper(laserpatch[i].c) == '^')
-  //		{
-  //			laserpatch[i].h -= SHORT(patch->height)/2;
-  //		}
-  //	}
-  //
-  //	if (!patch)
-  //	{
-  //		patch = W_CacheLumpNum(laserpatch[i].l, PU_STATIC);
-  //	}
-  //
-  //	laserpatch[i].w += SHORT(patch->width)/2;
-  //	laserpatch[i].h += SHORT(patch->height)/2;
-  //    }
+    // [crispy] check for alternative crosshair patches from e.g. prboom-plus.wad first
+   //	if ((laserpatch[i].l = W_CheckNumForName(laserpatch[i].a)) == -1)
+    Begin
+      //		DEH_snprintf(buffer, 9, "STCFN%.3d", toupper(laserpatch[i].c));
+      buffer := format('STCFN%0.3d', [ord(UpperCase(laserpatch[i].c)[1])]);
+      laserpatch[i].l := W_GetNumForName(buffer);
+
+      patch := W_CacheLumpNum(laserpatch[i].l, PU_STATIC);
+
+      laserpatch[i].w := laserpatch[i].w - patch^.leftoffset;
+      laserpatch[i].h := laserpatch[i].h - patch^.topoffset;
+
+      // [crispy] special-case the chevron crosshair type
+      If (laserpatch[i].c = '^') Then Begin
+        laserpatch[i].h := laserpatch[i].h - patch^.height Div 2;
+      End;
+    End;
+
+    laserpatch[i].w := laserpatch[i].w + patch^.width Div 2;
+    laserpatch[i].h := laserpatch[i].h + patch^.height Div 2;
+  End;
 
   If (Not M_ParmExists('-nodeh')) Then Begin
 
