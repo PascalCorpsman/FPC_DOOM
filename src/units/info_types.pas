@@ -1608,7 +1608,7 @@ Type
   mobj_t = Record
 
     // List: thinker links.
-    thinker: thinker_t;
+    thinker: thinker_t; // !! Der muss an erster Stelle im Record stehen !!
 
     // Info for drawing: position.
     x: fixed_t;
@@ -1685,7 +1685,7 @@ Type
     tracer: Pmobj_t;
 
     // [AM] If true, ok to interpolate this tic.
-    interp: boolean; // War int
+    interp: int;
 
     // [AM] Previous position of mobj before think.
     //      Used to interpolate between positions.

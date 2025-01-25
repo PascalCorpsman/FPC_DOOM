@@ -98,7 +98,7 @@ Type
     //    	// [crispy] in-game switches and variables
     //    	int screenshotmsg;
     //    	int snowflakes;
-    //    	int cleanscreenshot;
+    cleanscreenshot: int;
     //    	int demowarp;
     //    	int fps;
 
@@ -172,6 +172,7 @@ Initialization
   Crispy.pitch := 0;
   Crispy.translucency := 0;
   Crispy.uncapped := 0;
+  Crispy.cleanscreenshot := 0;
   Crispy.flashinghom := false;
   Crispy.stretchsky := false;
 

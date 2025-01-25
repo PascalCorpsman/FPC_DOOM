@@ -392,12 +392,12 @@ Begin
 
   // [AM] Interpolate between current and last position,
   //      if prudent.
-  If (crispy.uncapped <> 0) And (
+  If (crispy.uncapped <> 0) And
     // Don't interpolate if the mobj did something
-    // that would necessitate turning it off for a tic.
-    thing^.interp) And (
+  // that would necessitate turning it off for a tic.
+  (thing^.interp <> 0) And
     // Don't interpolate during a paused state.
-    leveltime > oldleveltime)
+  (leveltime > oldleveltime)
     Then Begin
     interpx := LerpFixed(thing^.oldx, thing^.x);
     interpy := LerpFixed(thing^.oldy, thing^.y);
@@ -749,10 +749,10 @@ Begin
   For ds := ds_p - 1 Downto 0 Do Begin
 
     // determine if the drawseg obscures the sprite
-    If (drawsegs[ds].x1 > spr^.x2
-      ) Or (drawsegs[ds].x2 < spr^.x1
-      ) Or ((drawsegs[ds].silhouette = 0
-      ) And (drawsegs[ds].maskedtexturecol <> Nil))
+    If (drawsegs[ds].x1 > spr^.x2)
+      Or (drawsegs[ds].x2 < spr^.x1)
+      Or ((drawsegs[ds].silhouette = 0)
+      And (drawsegs[ds].maskedtexturecol <> Nil))
       Then Begin
       // does not cover sprite
       continue;
@@ -874,10 +874,49 @@ Begin
   quick(0, vissprite_p - 1);
 End;
 
+//
+// R_DrawPlayerSprites
+//
+
+Procedure R_DrawPlayerSprites();
+Begin
+  //    int		i;
+  //    int		lightnum;
+  //    pspdef_t*	psp;
+  //
+  //    // get light level
+  //    lightnum =
+  //	(viewplayer->mo->subsector->sector->rlightlevel >> LIGHTSEGSHIFT) // [crispy] A11Y
+  //	+(extralight * LIGHTBRIGHT);
+  //
+  //    if (lightnum < 0)
+  //	spritelights = scalelight[0];
+  //    else if (lightnum >= LIGHTLEVELS)
+  //	spritelights = scalelight[LIGHTLEVELS-1];
+  //    else
+  //	spritelights = scalelight[lightnum];
+  //
+  //    // clip to screen bounds
+  //    mfloorclip = screenheightarray;
+  //    mceilingclip = negonearray;
+  //
+  //    if (crispy->crosshair == CROSSHAIR_PROJECTED)
+  //	R_DrawLSprite();
+  //
+  //    // add all active psprites
+  //    for (i=0, psp=viewplayer->psprites;
+  //	 i<numrpsprites; // [crispy] A11Y number of player sprites to draw
+  //	 i++,psp++)
+  //    {
+  //	if (psp->state)
+  //	    R_DrawPSprite (psp, i); // [crispy] pass gun or flash sprite
+  //    }
+End;
+
 Procedure R_DrawMasked();
 Var
-  spr: int;
-  ds: ^drawseg_t;
+  ds, spr: int;
+  //  ds: ^drawseg_t;
 Begin
 
   R_SortVisSprites();
@@ -891,30 +930,29 @@ Begin
     //	     spr++)
     //#else
     For spr := 0 To vissprite_p - 1 Do Begin
-      //	for (spr = vsprsortedhead.next ;
-    //	     spr != &vsprsortedhead ;
-    //	     spr=spr->next)
-    //#endif
-
+     //	for (spr = vsprsortedhead.next ;
+     //	     spr != &vsprsortedhead ;
+     //	     spr=spr->next)
+     //#endif
 
       R_DrawSprite(@vissprites[spr]);
     End;
   End;
-  //
-  //    // render any remaining masked mid textures
-  //    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
-  //	if (ds->maskedtexturecol)
-  //	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
-  //
-  //    if (crispy->cleanscreenshot == 2)
-  //        return;
-  //
-  //    // draw the psprites on top of everything
-  //    //  but does not draw on side views
-  //    if (!viewangleoffset)
-  //	R_DrawPlayerSprites ();
 
+  // render any remaining masked mid textures
+  For ds := ds_p - 1 Downto 0 Do Begin
+    If assigned(drawsegs[ds].maskedtexturecol) Then Begin
+      R_RenderMaskedSegRange(ds, drawsegs[ds].x1, drawsegs[ds].x2);
+    End;
+  End;
 
+  If (crispy.cleanscreenshot = 2) Then exit;
+
+  // draw the psprites on top of everything
+  //  but does not draw on side views
+  If (viewangleoffset = 0) Then Begin
+    R_DrawPlayerSprites();
+  End
 End;
 
 End.

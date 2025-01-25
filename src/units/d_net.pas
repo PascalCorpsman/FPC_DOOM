@@ -92,7 +92,7 @@ Begin
   playeringame[player_num] := false;
   players[consoleplayer].message := format('Player %d left the game', [player_num + 1]);
   // [crispy] don't interpolate players who left the game
-  player.mo^.interp := false;
+  player.mo^.interp := 0;
 
   // TODO: check if it is sensible to do this:
 

@@ -169,7 +169,7 @@ Var
 Begin
   // [AM] Assume we can interpolate at the beginning
   //      of the tic.
-  player^.mo^.interp := true;
+  player^.mo^.interp := 1;
 
   // [AM] Store starting position for player interpolation.
   player^.mo^.oldx := player^.mo^.x;

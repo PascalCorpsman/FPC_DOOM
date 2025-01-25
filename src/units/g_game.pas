@@ -541,14 +541,12 @@ Begin
 
   // [crispy] demo sync of revenant tracers and RNG (from prboom-plus)
   If ((paused And 2) <> 0) Or ((Not demoplayback) And menuactive And (Not netgame)) Then Begin
-
     demostarttic := demostarttic + 1;
   End
   Else Begin
     // get commands, check consistancy,
     // and build new consistancy check
     buf := (gametic Div ticdup) Mod BACKUPTICS;
-
     For i := 0 To MAXPLAYERS - 1 Do Begin
       If (playeringame[i]) Then Begin
         cmd := @players[i].cmd;
@@ -667,7 +665,6 @@ Begin
 
   // do main actions
   Case (gamestate) Of
-
     GS_LEVEL: Begin
         P_Ticker();
         //	ST_Ticker ();

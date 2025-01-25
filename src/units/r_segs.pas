@@ -909,7 +909,7 @@ Begin
       //
       // This calculation used to overflow and cause crashes in Doom:
       //
-      // sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
+      // sprtopscreen := centeryfrac - FixedMul(dc_texturemid, spryscale);
       //
       // This code fixes it, by using double-precision intermediate
       // arithmetic and by skipping the drawing of 2s normals whose
@@ -917,8 +917,8 @@ Begin
 
       Begin
         t := (int64_t(centeryfrac) Shl FRACBITS) - int64_t(dc_texturemid) * spryscale;
-        If (t + int64_t(textureheight[texnum]) * spryscale < 0) Or (
-          t > int64_t(SCREENHEIGHT) Shl FRACBITS * 2) Then Begin
+        If (t + textureheight[texnum] * spryscale < 0) Or
+          (t > int64(SCREENHEIGHT) Shl int64(FRACBITS * 2)) Then Begin
           spryscale := spryscale + rw_scalestep; // [crispy] MBF had this in the for-loop iterator
           continue; // skip if the texture is out of screen's range
         End;

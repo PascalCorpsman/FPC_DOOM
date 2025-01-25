@@ -67,6 +67,7 @@ Var
   // flattening the arc to a flat projection plane.
   // There will be many angles mapped to the same X.
   viewangletox: Array[0..FINEANGLES Div 2] Of int;
+  viewangleoffset: int = 0; // Wenn Doom im 3-Fenster modus läuft, dann gibt dieses Offset an wo man hinsieht..
 
   // The xtoviewangleangle[] table maps a screen pixel
   // to the lowest viewangle that maps back to x ranges
@@ -131,8 +132,6 @@ Var
   setsizeneeded: boolean;
   setblocks: int;
   setdetail: int;
-
-  viewangleoffset: int;
 
   viewplayer: pplayer_t;
 
@@ -753,7 +752,7 @@ Begin
     leveltime > 1) And (
     // Don't interpolate if the player did something
     // that would necessitate turning it off for a tic.
-    player^.mo^.interp = true) And (
+    player^.mo^.interp <> 0) And (
     // Don't interpolate during a paused state
     leveltime > oldleveltime)) Then Begin
     //        const boolean use_localview = CheckLocalView(player);

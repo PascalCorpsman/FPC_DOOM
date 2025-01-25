@@ -69,6 +69,7 @@ Implementation
 
 Uses
   sounds, tables
+  , d_player
   , g_game
   , m_fixed
   , p_pspr, p_map
@@ -150,24 +151,27 @@ End;
 //
 
 Procedure A_Look(actor: Pmobj_t);
+Var
+  targ: ^mobj_t;
 Begin
-  //   mobj_t*	targ;
-  //
-  //    actor->threshold = 0;	// any shot will wake up
-  //    targ = actor->subsector->sector->soundtarget;
-  //
-  //    // [crispy] monsters don't look for players with NOTARGET cheat
-  //    if (targ && targ->player && (targ->player->cheats & CF_NOTARGET))
-  //        return;
-  //
+
+  actor^.threshold := 0; // any shot will wake up
+  targ := actor^.subsector^.sector^.soundtarget;
+
+  // [crispy] monsters don't look for players with NOTARGET cheat
+  If assigned(targ) And assigned(targ^.player) And ((targ^.player^.cheats And integer(CF_NOTARGET)) <> 0) Then
+    exit;
+
+  // TODO: hier fehlt noch viel !
+
   //    if (targ
-  //	&& (targ->flags & MF_SHOOTABLE) )
+  //	&& (targ^.flags & MF_SHOOTABLE) )
   //    {
-  //	actor->target = targ;
+  //	actor^.target = targ;
   //
-  //	if ( actor->flags & MF_AMBUSH )
+  //	if ( actor^.flags & MF_AMBUSH )
   //	{
-  //	    if (P_CheckSight (actor, actor->target))
+  //	    if (P_CheckSight (actor, actor^.target))
   //		goto seeyou;
   //	}
   //	else
@@ -180,11 +184,11 @@ Begin
   //
   //    // go into chase state
   //  seeyou:
-  //    if (actor->info->seesound)
+  //    if (actor^.info^.seesound)
   //    {
   //	int		sound;
   //
-  //	switch (actor->info->seesound)
+  //	switch (actor^.info^.seesound)
   //	{
   //	  case sfx_posit1:
   //	  case sfx_posit2:
@@ -198,28 +202,28 @@ Begin
   //	    break;
   //
   //	  default:
-  //	    sound = actor->info->seesound;
+  //	    sound = actor^.info^.seesound;
   //	    break;
   //	}
   //
-  //	if (actor->type==MT_SPIDER
-  //	    || actor->type == MT_CYBORG)
+  //	if (actor^.type==MT_SPIDER
+  //	    || actor^.type == MT_CYBORG)
   //	{
   //	    // full volume
   //	    // [crispy] prevent from adding up volume
-  //	    crispy->soundfull ? S_StartSoundOnce (NULL, sound) : S_StartSound (NULL, sound);
+  //	    crispy^.soundfull ? S_StartSoundOnce (NULL, sound) : S_StartSound (NULL, sound);
   //	}
   //	else
   //	    S_StartSound (actor, sound);
   //
   //	// [crispy] make seesounds uninterruptible
-  //	if (crispy->soundfull)
+  //	if (crispy^.soundfull)
   //	{
   //		S_UnlinkSound(actor);
   //	}
   //    }
   //
-  //    P_SetMobjState (actor, actor->info->seestate);
+  //    P_SetMobjState (actor, actor^.info^.seestate);
 End;
 
 //
