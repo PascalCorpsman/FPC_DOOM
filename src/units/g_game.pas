@@ -20,6 +20,7 @@ Var
   nodrawers: boolean = false; // for comparative timing purposes
   gamestate: gamestate_t;
   gameaction: gameaction_t = ga_nothing;
+  gamemap: int;
   gameepisode: int;
   gameskill: skill_t;
   demorecording: Boolean;
@@ -125,7 +126,6 @@ Var
 
   turbodetected: Array[0..MAXPLAYERS - 1] Of boolean;
 
-  gamemap: int;
   demostarttic: int; // [crispy] fix revenant internal demo bug
   levelstarttic: int; // gametic at level start
 
@@ -759,23 +759,17 @@ Begin
   End;
 
   If (gamestate = GS_LEVEL) Then Begin
-    //#if 0
-    //	if (devparm && ev->type == ev_keydown && ev->data1 == ';')
-    //	{
-    //	    G_DeathMatchSpawnPlayer (0);
-    //	    return true;
-    //	}
-    //#endif
     //	if (HU_Responder (ev))
     //	    return true;	// chat ate the event
     //	if (ST_Responder (ev))
     //	    return true;	// status window ate it
-    //	if (AM_Responder (ev))
-    //	    return true;	// automap ate it
-    //    }
-    //
-    //    if (gamestate == GS_FINALE)
-    //    {
+    If (AM_Responder(ev)) Then Begin
+      result := true; // automap ate it
+      exit;
+    End;
+  End;
+
+  If (gamestate = GS_FINALE) Then Begin
     //	if (F_Responder (ev))
     //	    return true;	// finale ate the event
   End;

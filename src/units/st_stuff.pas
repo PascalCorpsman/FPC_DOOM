@@ -7,8 +7,16 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomdef
+  , d_event
   , i_video
+  , m_cheat
   ;
+
+Const
+  // Das wirkt sich auf viewheight aus, und das dann wohl auf die Sprites ..
+  ST_HEIGHT = 0; // WTF: Ist die <> 0 bringt es noch irgendwelche Puffer durcheinander, sie sollte aber 32 sein !
+
+  Entweder den Bug hier finden, oder AM_Map weiter machen
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
@@ -16,6 +24,10 @@ Var
 Procedure ST_Start();
 
 Procedure ST_Drawer(fullscreen, refresh: boolean);
+
+Function cht_CheckCheatSP(Const cht: cheatseq_t; key: char): int;
+
+Function ST_Responder(Const ev: Pevent_t): boolean;
 
 Implementation
 
@@ -529,6 +541,666 @@ Begin
   End;
 
   dp_translucent := false;
+End;
+
+Function cht_CheckCheatSP(Const cht: cheatseq_t; key: char): int;
+Begin
+  If (cht_CheckCheat(cht, key) <> 0) Then Begin
+    result := 0;
+    exit;
+  End
+  Else Begin
+    If (crispy.singleplayer) Then Begin
+      plyr^.message := 'Cheater!';
+      result := 0;
+      exit;
+    End;
+  End;
+  result := 1;
+End;
+
+// Respond to keyboard input events,
+//  intercept cheats.
+
+Function ST_Responder(Const ev: Pevent_t): boolean;
+Var
+  i: int;
+Begin
+  // Filter automap on/off.
+  If (ev^._type = ev_keyup)
+    And ((ev^.data1 And $FFFF0000) = AM_MSGHEADER) Then Begin
+
+    Case ev^.data1 Of
+
+      AM_MSGENTERED: Begin
+          st_firsttime := true;
+        End;
+
+      AM_MSGEXITED: Begin
+          //	writeln(stderr, 'AM exited');
+        End;
+    End;
+  End
+    // if a user keypress...
+  Else If (ev^._type = ev_keydown) Then Begin
+
+    //    if (!netgame && gameskill != sk_nightmare)
+    //    {
+    //      // 'dqd' cheat for toggleable god mode
+    //      if (cht_CheckCheatSP(&cheat_god, ev->data2))
+    //      {
+    //	// [crispy] dead players are first respawned at the current position
+    //	mapthing_t mt = {0};
+    //	if (plyr->playerstate == PST_DEAD)
+    //	{
+    //	    signed int an;
+    //	    extern void P_SpawnPlayer (mapthing_t* mthing);
+    //
+    //	    mt.x = plyr->mo->x >> FRACBITS;
+    //	    mt.y = plyr->mo->y >> FRACBITS;
+    //	    mt.angle = (plyr->mo->angle + ANG45/2)*(uint64_t)45/ANG45;
+    //	    mt.type = consoleplayer + 1;
+    //	    P_SpawnPlayer(&mt);
+    //
+    //	    // [crispy] spawn a teleport fog
+    //	    an = plyr->mo->angle >> ANGLETOFINESHIFT;
+    //	    P_SpawnMobj(plyr->mo->x+20*finecosine[an], plyr->mo->y+20*finesine[an], plyr->mo->z, MT_TFOG);
+    //	    S_StartSound(plyr, sfx_slop);
+    //
+    //	    // Fix reviving as "zombie" if god mode was already enabled
+    //	    if (plyr->mo)
+    //	        plyr->mo->health = deh_god_mode_health;
+    //	    plyr->health = deh_god_mode_health;
+    //	}
+    //
+    //	plyr->cheats ^= CF_GODMODE;
+    //	if (plyr->cheats & CF_GODMODE)
+    //	{
+    //	  if (plyr->mo)
+    //	    plyr->mo->health = deh_god_mode_health;
+    //
+    //	  plyr->health = deh_god_mode_health;
+    //	  plyr->message = DEH_String(STSTR_DQDON);
+    //	}
+    //	else
+    //	  plyr->message = DEH_String(STSTR_DQDOFF);
+    //
+    //	// [crispy] eat key press when respawning
+    //	if (mt.type)
+    //	    return true;
+    //      }
+    //      // 'fa' cheat for killer fucking arsenal
+    //      else if (cht_CheckCheatSP(&cheat_ammonokey, ev->data2))
+    //      {
+    //	plyr->armorpoints = deh_idfa_armor;
+    //	plyr->armortype = deh_idfa_armor_class;
+    //
+    //	// [crispy] give backpack
+    //	GiveBackpack(true);
+    //
+    //	for (i=0;i<NUMWEAPONS;i++)
+    //	 if (WeaponAvailable(i)) // [crispy] only give available weapons
+    //	  plyr->weaponowned[i] = true;
+    //
+    //	for (i=0;i<NUMAMMO;i++)
+    //	  plyr->ammo[i] = plyr->maxammo[i];
+    //
+    //	// [crispy] trigger evil grin now
+    //	plyr->bonuscount += 2;
+    //
+    //	plyr->message = DEH_String(STSTR_FAADDED);
+    //      }
+    //      // 'kfa' cheat for key full ammo
+    //      else if (cht_CheckCheatSP(&cheat_ammo, ev->data2))
+    //      {
+    //	plyr->armorpoints = deh_idkfa_armor;
+    //	plyr->armortype = deh_idkfa_armor_class;
+    //
+    //	// [crispy] give backpack
+    //	GiveBackpack(true);
+    //
+    //	for (i=0;i<NUMWEAPONS;i++)
+    //	 if (WeaponAvailable(i)) // [crispy] only give available weapons
+    //	  plyr->weaponowned[i] = true;
+    //
+    //	for (i=0;i<NUMAMMO;i++)
+    //	  plyr->ammo[i] = plyr->maxammo[i];
+    //
+    //	for (i=0;i<NUMCARDS;i++)
+    //	  plyr->cards[i] = true;
+    //
+    //	// [crispy] trigger evil grin now
+    //	plyr->bonuscount += 2;
+    //
+    //	plyr->message = DEH_String(STSTR_KFAADDED);
+    //      }
+    //      // 'mus' cheat for changing music
+    //      else if (cht_CheckCheat(&cheat_mus, ev->data2))
+    //      {
+    //
+    //	char	buf[3];
+    //	int		musnum;
+    //
+    //	plyr->message = DEH_String(STSTR_MUS);
+    //	cht_GetParam(&cheat_mus, buf);
+    //
+    //        // Note: The original v1.9 had a bug that tried to play back
+    //        // the Doom II music regardless of gamemode.  This was fixed
+    //        // in the Ultimate Doom executable so that it would work for
+    //        // the Doom 1 music as well.
+    //
+    //	// [crispy] restart current music if IDMUS00 is entered
+    //	if (buf[0] == '0' && buf[1] == '0')
+    //	{
+    //	  S_ChangeMusic(0, 2);
+    //	  // [crispy] eat key press, i.e. don't change weapon upon music change
+    //	  return true;
+    //	}
+    //	else
+    //	// [JN] Fixed: using a proper IDMUS selection for shareware
+    //	// and registered game versions.
+    //	if (gamemode == commercial /* || gameversion < exe_ultimate */ )
+    //	{
+    //	  musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
+    //
+    //	  /*
+    //	  if (((buf[0]-'0')*10 + buf[1]-'0') > 35
+    //       && gameversion >= exe_doom_1_8)
+    //	  */
+    //	  // [crispy] prevent crash with IDMUS00
+    //	  if (musnum < mus_runnin || musnum >= NUMMUSIC)
+    //	    plyr->message = DEH_String(STSTR_NOMUS);
+    //	  else
+    //	  {
+    //	    S_ChangeMusic(musnum, 1);
+    //	    // [crispy] eat key press, i.e. don't change weapon upon music change
+    //	    return true;
+    //	  }
+    //	}
+    //	else
+    //	{
+    //	  musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
+    //
+    //	  /*
+    //	  if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
+    //	  */
+    //	  // [crispy] prevent crash with IDMUS0x or IDMUSx0
+    //	  if (musnum < mus_e1m1 || musnum >= mus_runnin ||
+    //	      // [crispy] support dedicated music tracks for the 4th episode
+    //	      S_music[musnum].lumpnum == -1)
+    //	    plyr->message = DEH_String(STSTR_NOMUS);
+    //	  else
+    //	  {
+    //	    S_ChangeMusic(musnum, 1);
+    //	    // [crispy] eat key press, i.e. don't change weapon upon music change
+    //	    return true;
+    //	  }
+    //	}
+    //      }
+    //      // [crispy] eat up the first digit typed after a cheat expecting two parameters
+    //      else if (cht_CheckCheat(&cheat_mus1, ev->data2))
+    //      {
+    //	char buf[2];
+    //
+    //	cht_GetParam(&cheat_mus1, buf);
+    //
+    //	return isdigit(buf[0]);
+    //      }
+    //      // [crispy] allow both idspispopd and idclip cheats in all gamemissions
+    //      else if ( ( /* logical_gamemission == doom
+    //                 && */ cht_CheckCheatSP(&cheat_noclip, ev->data2))
+    //             || ( /* logical_gamemission != doom
+    //                 && */ cht_CheckCheatSP(&cheat_commercial_noclip,ev->data2)))
+    //      {
+    //        // Noclip cheat.
+    //        // For Doom 1, use the idspipsopd cheat; for all others, use
+    //        // idclip
+    //
+    //	plyr->cheats ^= CF_NOCLIP;
+    //
+    //	if (plyr->cheats & CF_NOCLIP)
+    //	  plyr->message = DEH_String(STSTR_NCON);
+    //	else
+    //	  plyr->message = DEH_String(STSTR_NCOFF);
+    //      }
+    //      // 'behold?' power-up cheats
+    //      for (i=0;i<6;i++)
+    //      {
+    //	if (i < 4 ? cht_CheckCheatSP(&cheat_powerup[i], ev->data2) : cht_CheckCheat(&cheat_powerup[i], ev->data2))
+    //	{
+    //	  if (!plyr->powers[i])
+    //	    P_GivePower( plyr, i);
+    //	  else if (i!=pw_strength && i!=pw_allmap) // [crispy] disable full Automap
+    //	    plyr->powers[i] = 1;
+    //	  else
+    //	    plyr->powers[i] = 0;
+    //
+    //	  plyr->message = DEH_String(STSTR_BEHOLDX);
+    //	}
+    //      }
+    //      // [crispy] idbehold0
+    //      if (cht_CheckCheatSP(&cheat_powerup[7], ev->data2))
+    //      {
+    //	memset(plyr->powers, 0, sizeof(plyr->powers));
+    //	plyr->mo->flags &= ~MF_SHADOW; // [crispy] cancel invisibility
+    //	plyr->message = DEH_String(STSTR_BEHOLDX);
+    //      }
+    //
+    //      // 'behold' power-up menu
+    //      if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
+    //      {
+    //	plyr->message = DEH_String(STSTR_BEHOLD);
+    //      }
+    //      // 'choppers' invulnerability & chainsaw
+    //      else if (cht_CheckCheatSP(&cheat_choppers, ev->data2))
+    //      {
+    //	plyr->weaponowned[wp_chainsaw] = true;
+    //	plyr->powers[pw_invulnerability] = true;
+    //	plyr->message = DEH_String(STSTR_CHOPPERS);
+    //      }
+    //      // 'mypos' for player position
+    //      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
+    //      {
+    ///*
+    //        static char buf[ST_MSGWIDTH];
+    //        M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
+    //                   players[consoleplayer].mo->angle,
+    //                   players[consoleplayer].mo->x,
+    //                   players[consoleplayer].mo->y);
+    //        plyr->message = buf;
+    //*/
+    //        // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
+    //        plyr->powers[pw_mapcoords] = 10*TICRATE;
+    //      }
+    //
+    //// [crispy] now follow "critical" Crispy Doom specific cheats
+    //
+    //      // [crispy] implement Boom's "tntem" cheat
+    //      else if (cht_CheckCheatSP(&cheat_massacre, ev->data2) ||
+    //               cht_CheckCheatSP(&cheat_massacre2, ev->data2) ||
+    //               cht_CheckCheatSP(&cheat_massacre3, ev->data2))
+    //      {
+    //	int killcount = ST_cheat_massacre();
+    //	const char *const monster = (gameversion == exe_chex) ? "Flemoid" : "Monster";
+    //	const char *const killed = (gameversion == exe_chex) ? "returned" : "killed";
+    //
+    //	M_snprintf(msg, sizeof(msg), "%s%d %s%s%s %s",
+    //	           crstr[CR_GOLD],
+    //	           killcount, crstr[CR_NONE], monster, (killcount == 1) ? "" : "s", killed);
+    //	plyr->message = msg;
+    //      }
+    //      // [crispy] implement Crispy Doom's "spechits" cheat
+    //      else if (cht_CheckCheatSP(&cheat_spechits, ev->data2))
+    //      {
+    //	int triggeredlines = ST_cheat_spechits();
+    //
+    //	M_snprintf(msg, sizeof(msg), "%s%d %sSpecial Line%s Triggered",
+    //	           crstr[CR_GOLD],
+    //	           triggeredlines, crstr[CR_NONE], (triggeredlines == 1) ? "" : "s");
+    //	plyr->message = msg;
+    //      }
+    //      // [crispy] implement PrBoom+'s "notarget" cheat
+    //      else if (cht_CheckCheatSP(&cheat_notarget, ev->data2) ||
+    //               cht_CheckCheatSP(&cheat_notarget2, ev->data2))
+    //      {
+    //	plyr->cheats ^= CF_NOTARGET;
+    //
+    //	if (plyr->cheats & CF_NOTARGET)
+    //	{
+    //		int i;
+    //		thinker_t *th;
+    //
+    //		// [crispy] let mobjs forget their target and tracer
+    //		for (th = thinkercap.next; th != &thinkercap; th = th->next)
+    //		{
+    //			if (th->function.acp1 == (actionf_p1)P_MobjThinker)
+    //			{
+    //				mobj_t *const mo = (mobj_t *)th;
+    //
+    //				if (mo->target && mo->target->player)
+    //				{
+    //					mo->target = NULL;
+    //				}
+    //
+    //				if (mo->tracer && mo->tracer->player)
+    //				{
+    //					mo->tracer = NULL;
+    //				}
+    //			}
+    //		}
+    //		// [crispy] let sectors forget their soundtarget
+    //		for (i = 0; i < numsectors; i++)
+    //		{
+    //			sector_t *const sector = &sectors[i];
+    //
+    //			sector->soundtarget = NULL;
+    //		}
+    //	}
+    //
+    //	M_snprintf(msg, sizeof(msg), "Notarget Mode %s%s",
+    //	           crstr[CR_GREEN],
+    //	           (plyr->cheats & CF_NOTARGET) ? "ON" : "OFF");
+    //	plyr->message = msg;
+    //      }
+    //      // [crispy] implement "nomomentum" cheat, ne debug aid -- pretty useless, though
+    //      else if (cht_CheckCheatSP(&cheat_nomomentum, ev->data2))
+    //      {
+    //	plyr->cheats ^= CF_NOMOMENTUM;
+    //
+    //	M_snprintf(msg, sizeof(msg), "Nomomentum Mode %s%s",
+    //	           crstr[CR_GREEN],
+    //	           (plyr->cheats & CF_NOMOMENTUM) ? "ON" : "OFF");
+    //	plyr->message = msg;
+    //      }
+    //      // [crispy] implement Crispy Doom's "goobers" cheat, ne easter egg
+    //      else if (cht_CheckCheatSP(&cheat_goobers, ev->data2))
+    //      {
+    //	extern void EV_DoGoobers (void);
+    //
+    //	EV_DoGoobers();
+    //
+    //	R_SetGoobers(true);
+    //
+    //	M_snprintf(msg, sizeof(msg), "Get Psyched!");
+    //	plyr->message = msg;
+    //      }
+    //      // [crispy] implement Boom's "tntweap?" weapon cheats
+    //      else if (cht_CheckCheatSP(&cheat_weapon, ev->data2))
+    //      {
+    //	char		buf[2];
+    //	int		w;
+    //
+    //	cht_GetParam(&cheat_weapon, buf);
+    //	w = *buf - '1';
+    //
+    //	// [crispy] TNTWEAP0 takes away all weapons and ammo except for the pistol and 50 bullets
+    //	if (w == -1)
+    //	{
+    //	    GiveBackpack(false);
+    //	    plyr->powers[pw_strength] = 0;
+    //
+    //	    for (i = 0; i < NUMWEAPONS; i++)
+    //	    {
+    //		oldweaponsowned[i] = plyr->weaponowned[i] = false;
+    //	    }
+    //	    oldweaponsowned[wp_fist] = plyr->weaponowned[wp_fist] = true;
+    //	    oldweaponsowned[wp_pistol] = plyr->weaponowned[wp_pistol] = true;
+    //
+    //	    for (i = 0; i < NUMAMMO; i++)
+    //	    {
+    //		plyr->ammo[i] = 0;
+    //	    }
+    //	    plyr->ammo[am_clip] = deh_initial_bullets;
+    //
+    //	    if (plyr->readyweapon > wp_pistol)
+    //	    {
+    //		plyr->pendingweapon = wp_pistol;
+    //	    }
+    //
+    //	    plyr->message = "All weapons removed!";
+    //
+    //	    return true;
+    //	}
+    //
+    //	// [crispy] only give available weapons
+    //	if (!WeaponAvailable(w))
+    //	    return false;
+    //
+    //	// make '1' apply beserker strength toggle
+    //	if (w == wp_fist)
+    //	{
+    //	    if (!plyr->powers[pw_strength])
+    //	    {
+    //		P_GivePower(plyr, pw_strength);
+    //		S_StartSound(NULL, sfx_getpow);
+    //		plyr->message = DEH_String(GOTBERSERK);
+    //	    }
+    //	    else
+    //	    {
+    //		plyr->powers[pw_strength] = 0;
+    //		plyr->message = DEH_String(STSTR_BEHOLDX);
+    //	    }
+    //	}
+    //	else
+    //	{
+    //	    if (!plyr->weaponowned[w])
+    //	    {
+    //		extern boolean P_GiveWeapon (player_t* player, weapontype_t weapon, boolean dropped);
+    //		extern const char *const WeaponPickupMessages[NUMWEAPONS];
+    //
+    //		P_GiveWeapon(plyr, w, false);
+    //		S_StartSound(NULL, sfx_wpnup);
+    //
+    //		if (w > 1)
+    //		{
+    //		    plyr->message = DEH_String(WeaponPickupMessages[w]);
+    //		}
+    //
+    //		// [crispy] trigger evil grin now
+    //		plyr->bonuscount += 2;
+    //	    }
+    //	    else
+    //	    {
+    //		// [crispy] no reason for evil grin
+    //		oldweaponsowned[w] = plyr->weaponowned[w] = false;
+    //
+    //		// [crispy] removed current weapon, select another one
+    //		if (w == plyr->readyweapon)
+    //		{
+    //		    extern boolean P_CheckAmmo (player_t* player);
+    //
+    //		    P_CheckAmmo(plyr);
+    //		}
+    //	    }
+    //	}
+    //
+    //	if (!plyr->message)
+    //	{
+    //	    M_snprintf(msg, sizeof(msg), "Weapon %s%d%s %s",
+    //	               crstr[CR_GOLD], w + 1, crstr[CR_NONE],
+    //	               plyr->weaponowned[w] ? "added" : "removed");
+    //	    plyr->message = msg;
+    //	}
+    //      }
+    //    }
+    //
+    //// [crispy] now follow "harmless" Crispy Doom specific cheats
+    //
+    //    // [crispy] implement Crispy Doom's "showfps" cheat, ne debug aid
+    //    if (cht_CheckCheat(&cheat_showfps, ev->data2) ||
+    //             cht_CheckCheat(&cheat_showfps2, ev->data2))
+    //    {
+    //	plyr->powers[pw_showfps] ^= 1;
+    //    }
+    //    // [crispy] implement Boom's "tnthom" cheat
+    //    else if (cht_CheckCheat(&cheat_hom, ev->data2))
+    //    {
+    //	crispy->flashinghom = !crispy->flashinghom;
+    //
+    //	M_snprintf(msg, sizeof(msg), "HOM Detection %s%s",
+    //	           crstr[CR_GREEN],
+    //	           (crispy->flashinghom) ? "ON" : "OFF");
+    //	plyr->message = msg;
+    //    }
+    //    // [crispy] Show engine version, build date and SDL version
+    //    else if (cht_CheckCheat(&cheat_version, ev->data2))
+    //    {
+    //#ifndef BUILD_DATE
+    //#define BUILD_DATE __DATE__
+    //#endif
+    //      M_snprintf(msg, sizeof(msg), "%s (%s) x%ld SDL%s",
+    //                 PACKAGE_STRING,
+    //                 BUILD_DATE,
+    //                 (long) sizeof(void *) * CHAR_BIT,
+    //                 crispy->sdlversion);
+    //#undef BUILD_DATE
+    //      plyr->message = msg;
+    //      fprintf(stderr, "%s\n", msg);
+    //    }
+    //    // [crispy] Show skill level
+    //    else if (cht_CheckCheat(&cheat_skill, ev->data2))
+    //    {
+    //      extern const char *skilltable[];
+    //
+    //      M_snprintf(msg, sizeof(msg), "Skill: %s",
+    //                 skilltable[BETWEEN(0,5,(int) gameskill+1)]);
+    //      plyr->message = msg;
+    //    }
+    //    // [crispy] snow
+    //    else if (cht_CheckCheat(&cheat_snow, ev->data2))
+    //    {
+    //      crispy->snowflakes = !crispy->snowflakes;
+    //    }
+    //
+    //    // 'clev' change-level cheat
+    //    if (!netgame && cht_CheckCheat(&cheat_clev, ev->data2) && !menuactive) // [crispy] prevent only half the screen being updated
+    //    {
+    //      char		buf[3];
+    //      int		epsd;
+    //      int		map;
+    //
+    //      cht_GetParam(&cheat_clev, buf);
+    //
+    //      if (gamemode == commercial)
+    //      {
+    //	if (gamemission == pack_master)
+    //	    epsd = 3;
+    //	else
+    //	if (gamemission == pack_nerve)
+    //	    epsd = 2;
+    //	else
+    //	epsd = 0;
+    //	map = (buf[0] - '0')*10 + buf[1] - '0';
+    //      }
+    //      else
+    //      {
+    //	epsd = buf[0] - '0';
+    //	map = buf[1] - '0';
+    //
+    //        // Chex.exe always warps to episode 1.
+    //
+    //        if (gameversion == exe_chex)
+    //        {
+    //            if (epsd > 1)
+    //            {
+    //                epsd = 1;
+    //            }
+    //            if (map > 5)
+    //            {
+    //                map = 5;
+    //            }
+    //        }
+    //      }
+    //
+    //  // [crispy] only fix episode/map if it doesn't exist
+    //  if (P_GetNumForMap(epsd, map, false) < 0)
+    //  {
+    //      // Catch invalid maps.
+    //      if (gamemode != commercial)
+    //      {
+    //          // [crispy] allow IDCLEV0x to work in Doom 1
+    //          if (epsd == 0)
+    //          {
+    //              epsd = gameepisode;
+    //          }
+    //          if (epsd < 1)
+    //          {
+    //              return false;
+    //          }
+    //          if (epsd > 4)
+    //          {
+    //              // [crispy] Sigil
+    //              if (!(crispy->haved1e5 && epsd == 5) &&
+    //                  !(crispy->haved1e6 && epsd == 6))
+    //              return false;
+    //          }
+    //          if (epsd == 4 && gameversion < exe_ultimate)
+    //          {
+    //              return false;
+    //          }
+    //          // [crispy] IDCLEV00 restarts current map
+    //          if ((map == 0) && (buf[0] - '0' == 0))
+    //          {
+    //              map = gamemap;
+    //          }
+    //          // [crispy] support E1M10 "Sewers"
+    //          if ((map == 0 || map > 9) && crispy->havee1m10 && epsd == 1)
+    //          {
+    //              map = 10;
+    //          }
+    //          if (map < 1)
+    //          {
+    //              return false;
+    //          }
+    //          if (map > 9)
+    //          {
+    //              // [crispy] support E1M10 "Sewers"
+    //              if (!(crispy->havee1m10 && epsd == 1 && map == 10))
+    //              return false;
+    //          }
+    //      }
+    //      else
+    //      {
+    //          // [crispy] IDCLEV00 restarts current map
+    //          if ((map == 0) && (buf[0] - '0' == 0))
+    //          {
+    //              map = gamemap;
+    //          }
+    //          if (map < 1)
+    //          {
+    //              return false;
+    //          }
+    //          if (map > 40)
+    //          {
+    //              return false;
+    //          }
+    //          if (map > 9 && gamemission == pack_nerve)
+    //          {
+    //              return false;
+    //          }
+    //          if (map > 21 && gamemission == pack_master)
+    //          {
+    //              return false;
+    //          }
+    //      }
+    //  }
+    //
+    //      // [crispy] prevent idclev to nonexistent levels exiting the game
+    //      if (P_GetNumForMap(epsd, map, false) >= 0)
+    //      {
+    //      // So be it.
+    //      plyr->message = DEH_String(STSTR_CLEV);
+    //      // [crisp] allow IDCLEV during demo playback and warp to the requested map
+    //      if (demoplayback)
+    //      {
+    //          crispy->demowarp = map;
+    //          nodrawers = true;
+    //          singletics = true;
+    //
+    //          if (map <= gamemap)
+    //          {
+    //              G_DoPlayDemo();
+    //          }
+    //
+    //           return true;
+    //      }
+    //      else
+    //      G_DeferedInitNew(gameskill, epsd, map);
+    //      // [crispy] eat key press, i.e. don't change weapon upon level change
+    //      return true;
+    //      }
+    //    }
+    //    // [crispy] eat up the first digit typed after a cheat expecting two parameters
+    //    else if (!netgame && cht_CheckCheat(&cheat_clev1, ev->data2) && !menuactive)
+    //    {
+    //	char buf[2];
+    //
+    //	cht_GetParam(&cheat_clev1, buf);
+    //
+    //	return isdigit(buf[0]);
+    //    }
+  End;
+  result := false;
 End;
 
 End.

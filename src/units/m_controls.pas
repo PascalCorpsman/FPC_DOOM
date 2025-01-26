@@ -93,11 +93,11 @@ Var
   //
   //extern int key_map_north;
   //extern int key_map_south;
-  //extern int key_map_east;
+  key_map_east: int;
   //extern int key_map_west;
   //extern int key_map_zoomin;
   //extern int key_map_zoomout;
-  //extern int key_map_toggle;
+  key_map_toggle: int;
   //extern int key_map_maxzoom;
   //extern int key_map_follow;
   //extern int key_map_grid;
@@ -228,6 +228,23 @@ End;
 Procedure M_BindMenuControls();
 Begin
   // ACHTUNG, Alle werte hier sind "Geraten"
+
+  // Map control keys:
+
+// key_map_north     := KEY_UPARROW;
+// key_map_south     := KEY_DOWNARROW;
+  key_map_east := KEY_RIGHTARROW;
+  // key_map_west      := KEY_LEFTARROW;
+  // key_map_zoomin    := '=';
+  // key_map_zoomout   := '-';
+  key_map_toggle := KEY_TAB;
+  // key_map_maxzoom   := '0';
+  // key_map_follow    := 'f';
+  // key_map_grid      := 'g';
+  // key_map_mark      := 'm';
+  // key_map_clearmark := 'c';
+  // key_map_overlay   := 'o'; // [crispy]
+  // key_map_rotate    := 'r'; // [crispy]
 
 
   key_speed := KEY_RSHIFT;

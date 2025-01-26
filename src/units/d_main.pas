@@ -740,16 +740,13 @@ Begin
 
   // do buffered drawing
   Case gamestate Of
-
     GS_LEVEL: Begin
         If (gametic <> 0) Then Begin
-
-          //	if (automapactive && !crispy->automapoverlay)
-          //	{
-          //	    // [crispy] update automap while playing
-          //	    R_RenderPlayerView (&players[displayplayer]);
-          //	    AM_Drawer ();
-          //	}
+          If (automapactive) And (crispy.automapoverlay = 0) Then Begin
+            // [crispy] update automap while playing
+            R_RenderPlayerView(@players[displayplayer]);
+            AM_Drawer();
+          End;
           If (wipe {)or( (viewheight <> SCREENHEIGHT )and ( fullscreen)}) Then
             redrawsbar := true;
           If (inhelpscreensstate) And (Not inhelpscreens) Then
@@ -786,7 +783,7 @@ Begin
 
   // [crispy] in automap overlay mode,
   // the HUD is drawn on top of everything else
-  If (gamestate = GS_LEVEL) And (gametic <> 0) And (Not (automapactive {&& crispy->automapoverlay})) Then Begin
+  If (gamestate = GS_LEVEL) And (gametic <> 0) And (Not (automapactive And (crispy.automapoverlay <> 0))) Then Begin
     //    HU_Drawer();
   End;
 
@@ -832,17 +829,16 @@ Begin
   oldgamestate := gamestate;
   wipegamestate := gamestate;
 
-  //    // [crispy] in automap overlay mode,
-  //    // draw the automap and HUD on top of everything else
-  //    if (automapactive && crispy->automapoverlay)
-  //    {
-  //	AM_Drawer ();
-  //	HU_Drawer ();
-  //
-  //	// [crispy] force redraw of status bar and border
-  //	viewactivestate = false;
-  //	inhelpscreensstate = true;
-  //    }
+  // [crispy] in automap overlay mode,
+  // draw the automap and HUD on top of everything else
+  If (automapactive) And (crispy.automapoverlay <> 0) Then Begin
+    AM_Drawer();
+    //	HU_Drawer ();
+
+     // [crispy] force redraw of status bar and border
+    viewactivestate := false;
+    inhelpscreensstate := true;
+  End;
 
   //    // [crispy] Snow
   //    if (crispy->snowflakes)
@@ -860,15 +856,14 @@ Begin
   //	return false;
   //    }
 
-      // draw pause pic
+  // draw pause pic
   If (paused <> 0) Then Begin
-
-    //	if (automapactive && !crispy->automapoverlay)
-    //	    y = 4;
-    //	else
-    //	    y = (viewwindowy >> crispy->hires)+4;
-    //	V_DrawPatchDirect((viewwindowx >> crispy->hires) + ((scaledviewwidth >> crispy->hires) - 68) / 2 - WIDESCREENDELTA, y,
-    //                          W_CacheLumpName (DEH_String("M_PAUSE"), PU_CACHE));
+    If (automapactive) And (crispy.automapoverlay = 0) Then
+      y := 4
+    Else
+      y := (viewwindowy Shr crispy.hires) + 4;
+    V_DrawPatchDirect((viewwindowx Shr crispy.hires) + ((scaledviewwidth Shr crispy.hires) - 68) Div 2 , y,
+      W_CacheLumpName('M_PAUSE', PU_CACHE));
   End;
 
 

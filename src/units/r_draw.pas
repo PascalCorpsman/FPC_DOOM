@@ -56,6 +56,9 @@ Var
   dc_translation: PByte;
   translationtables: Array Of Byte;
 
+  viewwindowx: int;
+  viewwindowy: int;
+
 Procedure R_DrawColumn();
 
 Procedure R_DrawFuzzColumn();
@@ -158,21 +161,21 @@ Begin
   // Handle resize,
   //  e.g. smaller view windows
   //  with border and/or status bar.
-//    viewwindowx := (SCREENWIDTH-width) >> 1;
-//
-//    // Column offset. For windows.
-//    for (i=0 ; i<width ; i++)
-//	columnofs[i] = viewwindowx + i;
-//
-//    // Samw with base row offset.
-//    if (width == SCREENWIDTH)
-//	viewwindowy = 0;
-//    else
-//	viewwindowy = (SCREENHEIGHT-SBARHEIGHT-height) >> 1;
-//
-//    // Preclaculate all row offsets.
-//    for (i=0 ; i<height ; i++)
-//	ylookup[i] = I_VideoBuffer + (i+viewwindowy)*SCREENWIDTH;
+  viewwindowx := (SCREENWIDTH - width) Shr 1;
+
+  // Column offset. For windows.
+  //    for (i=0 ; i<width ; i++)
+  //	columnofs[i] = viewwindowx + i;
+
+  // Samw with base row offset.
+  If (width = SCREENWIDTH) Then
+    viewwindowy := 0
+  Else
+    viewwindowy := (SCREENHEIGHT {-SBARHEIGHT} - height) Shr 1;
+
+  // Preclaculate all row offsets.
+  //    for (i=0 ; i<height ; i++)
+  //	ylookup[i] = I_VideoBuffer + (i+viewwindowy)*SCREENWIDTH;
 End;
 
 //

@@ -20,7 +20,7 @@ Const
   KEY_DOWNARROW = VK_DOWN;
   KEY_ESCAPE = VK_ESCAPE;
   KEY_ENTER = VK_RETURN;
-  //  #define KEY_TAB		9
+  KEY_TAB = VK_TAB;
   //  #define KEY_F1		(0x80+0x3b)
   //  #define KEY_F2		(0x80+0x3c)
   //  #define KEY_F3		(0x80+0x3d)

@@ -7,7 +7,6 @@ Interface
 Uses
   ufpc_doom_types, Classes, SysUtils
   , doomtype
-  , m_fixed
   ;
 
 Const

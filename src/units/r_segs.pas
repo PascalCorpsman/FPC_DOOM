@@ -24,7 +24,6 @@ Var
 Procedure R_StoreWallRange(start, stop: int);
 
 Procedure R_RenderMaskedSegRange(ds: int; x1, x2: int);
-Procedure R_DrawMaskedColumn(column: Pcolumn_t);
 
 Implementation
 
@@ -757,60 +756,6 @@ Begin
   End;
 
   inc(ds_p);
-End;
-
-//
-// R_DrawMaskedColumn
-// Used for sprites and masked mid textures.
-// Masked means: partly transparent, i.e. stored
-//  in posts/runs of opaque pixels.
-//
-
-Procedure R_DrawMaskedColumn(column: Pcolumn_t);
-Var
-  topscreen: int64_t; // [crispy] WiggleFix
-  bottomscreen: int64_t; // [crispy] WiggleFix
-  basetexturemid: fixed_t;
-  top: int;
-Begin
-  top := -1;
-  basetexturemid := dc_texturemid;
-  dc_texheight := 0; // [crispy] Tutti-Frutti fix
-
-  While column^.topdelta <> $FF Do Begin
-    // [crispy] support for DeePsea tall patches
-    If (column^.topdelta <= top) Then Begin
-      top := top + column^.topdelta;
-    End
-    Else Begin
-      top := column^.topdelta;
-    End;
-    // calculate unclipped screen coordinates
-    //  for post
-    topscreen := sprtopscreen + spryscale * top;
-    bottomscreen := topscreen + spryscale * column^.length;
-
-    dc_yl := int(SarInt64(topscreen + FRACUNIT - 1, FRACBITS)); // [crispy] WiggleFix
-    dc_yh := int(SarInt64(bottomscreen - 1, FRACBITS)); // [crispy] WiggleFix
-
-    If (dc_yh >= mfloorclip[dc_x]) Then
-      dc_yh := mfloorclip[dc_x] - 1;
-    If (dc_yl <= mceilingclip[dc_x]) Then
-      dc_yl := mceilingclip[dc_x] + 1;
-
-    If (dc_yl <= dc_yh) Then Begin
-
-      dc_source := pointer(column) + 3;
-      dc_texturemid := basetexturemid - (top Shl FRACBITS);
-      // dc_source = (byte *)column + 3 - top;
-
-      // Drawn by either R_DrawColumn
-      //  or (SHADOW) R_DrawFuzzColumn.
-      colfunc();
-    End;
-    column := pointer(column) + column^.length + 4;
-  End;
-  dc_texturemid := basetexturemid;
 End;
 
 Procedure R_RenderMaskedSegRange(ds: int; x1, x2: int);

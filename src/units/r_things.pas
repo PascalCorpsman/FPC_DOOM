@@ -10,6 +10,7 @@ Uses
   , i_video
   , m_fixed
   , r_defs
+  , v_patch
   ;
 
 Const
@@ -59,6 +60,7 @@ Procedure R_ClearSprites();
 
 Procedure R_AddSprites(sec: Psector_t);
 Procedure R_DrawMasked();
+Procedure R_DrawMaskedColumn(column: Pcolumn_t);
 
 Implementation
 
@@ -68,7 +70,7 @@ Uses
   , i_system
   , p_tick, p_pspr, p_mobj, p_map, p_local
   , r_data, r_main, r_draw, r_bmaps, r_bsp, r_segs
-  , v_trans, v_patch
+  , v_trans
   , w_wad
   , z_zone
   ;
@@ -404,7 +406,7 @@ Begin
   //      if prudent.
   If (crispy.uncapped <> 0) And
     // Don't interpolate if the mobj did something
-    // that would necessitate turning it off for a tic.
+// that would necessitate turning it off for a tic.
   (thing^.interp <> 0) And
     // Don't interpolate during a paused state.
   (leveltime > oldleveltime)
@@ -1054,7 +1056,7 @@ Begin
   vis^.translation := Nil; // [crispy] no color translation
   vis^.mobjflags := 0;
   // [crispy] weapons drawn 1 pixel too high when player is idle
-  vis^.texturemid := (BASEYCENTER Shl FRACBITS) + FRACUNIT Div (2 Shl crispy.hires) - (psp.sy2 -spritetopoffset[lump]);
+  vis^.texturemid := (BASEYCENTER Shl FRACBITS) + FRACUNIT Div (2 Shl crispy.hires) - (psp.sy2 - spritetopoffset[lump]);
   If x1 < 0 Then Begin
     vis^.x1 := 0;
   End
@@ -1192,6 +1194,61 @@ Begin
   End;
 End;
 
+
+//
+// R_DrawMaskedColumn
+// Used for sprites and masked mid textures.
+// Masked means: partly transparent, i.e. stored
+//  in posts/runs of opaque pixels.
+//
+
+Procedure R_DrawMaskedColumn(column: Pcolumn_t);
+Var
+  topscreen: int64_t; // [crispy] WiggleFix
+  bottomscreen: int64_t; // [crispy] WiggleFix
+  basetexturemid: fixed_t;
+  top: int;
+Begin
+  top := -1;
+  basetexturemid := dc_texturemid;
+  dc_texheight := 0; // [crispy] Tutti-Frutti fix
+
+  While column^.topdelta <> $FF Do Begin
+    // [crispy] support for DeePsea tall patches
+    If (column^.topdelta <= top) Then Begin
+      top := top + column^.topdelta;
+    End
+    Else Begin
+      top := column^.topdelta;
+    End;
+    // calculate unclipped screen coordinates
+    //  for post
+    topscreen := sprtopscreen + spryscale * top;
+    bottomscreen := topscreen + spryscale * column^.length;
+
+    dc_yl := int(SarInt64(topscreen + FRACUNIT - 1, FRACBITS)); // [crispy] WiggleFix
+    dc_yh := int(SarInt64(bottomscreen - 1, FRACBITS)); // [crispy] WiggleFix
+
+    If (dc_yh >= mfloorclip[dc_x]) Then
+      dc_yh := mfloorclip[dc_x] - 1;
+    If (dc_yl <= mceilingclip[dc_x]) Then
+      dc_yl := mceilingclip[dc_x] + 1;
+
+    If (dc_yl <= dc_yh) Then Begin
+
+      dc_source := pointer(column) + 3;
+      dc_texturemid := basetexturemid - (top Shl FRACBITS);
+      // dc_source = (byte *)column + 3 - top;
+
+      // Drawn by either R_DrawColumn
+      //  or (SHADOW) R_DrawFuzzColumn.
+      colfunc();
+    End;
+    column := pointer(column) + column^.length + 4;
+  End;
+  dc_texturemid := basetexturemid;
+End;
+
 Procedure R_DrawMasked();
 Var
   ds, spr: int;
@@ -1238,4 +1295,6 @@ Finalization
 
 
 End.
+
+
 
