@@ -48,4 +48,5 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.01.23) finally was able to enable flats ![](documentation/with_flats.png)
 - (2025.01.24) add ability to rotate player, lets take a shy look around ;) ![](documentation/rotate.gif)
 - (2025.01.25) enable sprite rendering ![](documentation/sprites.png)
+- (2026.01.26) give the player a weapon ![](documentation/raise_pistol.gif) <br> still not able to shoot or move :(
   
