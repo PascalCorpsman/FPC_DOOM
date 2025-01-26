@@ -20,7 +20,7 @@ Uses
   , d_player, d_ticcmd
   , g_game
   , m_fixed
-  , p_local, p_tick, p_mobj, p_spec
+  , p_local, p_tick, p_mobj, p_spec, p_pspr
   , r_main
   ;
 
@@ -34,7 +34,6 @@ Const
 Var
   onground: boolean;
 
-
   //
   // P_DeathThink
   // Fall on your face when dying.
@@ -45,9 +44,9 @@ Procedure P_DeathThink(player: Pplayer_t);
 Begin
   //      angle_t		angle;
   //      angle_t		delta;
-  //
-  //      P_MovePsprites (player);
-  //
+
+  P_MovePsprites(player);
+
   //      // fall to the ground
   //      if (player->viewheight > 6*FRACUNIT)
   //  	player->viewheight -= FRACUNIT;
@@ -89,7 +88,6 @@ Begin
   //      if (player->cmd.buttons & BT_USE)
   //  	player->playerstate = PST_REBORN;
 End;
-
 
 //
 // P_MovePlayer
@@ -344,68 +342,68 @@ Begin
 //    }
 //    else
 //	player^.usedown = false;
-//
-//    // cycle psprites
-//    P_MovePsprites (player);
-//
-//    // Counters, time dependend power ups.
-//
-//    // Strength counts up to diminish fade.
-//    if (player^.powers[pw_strength])
-//	player^.powers[pw_strength]++;
-//
-//    if (player^.powers[pw_invulnerability])
-//	player^.powers[pw_invulnerability]--;
-//
-//    if (player^.powers[pw_invisibility])
-//	if (! --player^.powers[pw_invisibility] )
-//	    player^.mo^.flags &= ~MF_SHADOW;
-//
-//    if (player^.powers[pw_infrared])
-//	player^.powers[pw_infrared]--;
-//
-//    if (player^.powers[pw_ironfeet])
-//	player^.powers[pw_ironfeet]--;
-//
-//    if (player^.damagecount)
-//	player^.damagecount--;
-//
-//    if (player^.bonuscount)
-//	player^.bonuscount--;
-//
-//
-//    // [crispy] A11Y
-//    if (!a11y_invul_colormap)
-//    {
-//	if (player^.powers[pw_invulnerability] || player^.powers[pw_infrared])
-//	    player^.fixedcolormap = 1;
-//	else
-//	    player^.fixedcolormap = 0;
-//    }
-//    else
-//    // Handling colormaps.
-//    if (player^.powers[pw_invulnerability])
-//    {
-//	if (player^.powers[pw_invulnerability] > 4*32
-//	    || (player^.powers[pw_invulnerability]&8) )
-//	    player^.fixedcolormap = INVERSECOLORMAP;
-//	else
-//	    // [crispy] Visor effect when Invulnerability is fading out
-//	    player^.fixedcolormap = player^.powers[pw_infrared] ? 1 : 0;
-//    }
-//    else if (player^.powers[pw_infrared])
-//    {
-//	if (player^.powers[pw_infrared] > 4*32
-//	    || (player^.powers[pw_infrared]&8) )
-//	{
-//	    // almost full bright
-//	    player^.fixedcolormap = 1;
-//	}
-//	else
-//	    player^.fixedcolormap = 0;
-//    }
-//    else
-//	player^.fixedcolormap = 0;
+
+    // cycle psprites
+  P_MovePsprites(player);
+
+  //    // Counters, time dependend power ups.
+  //
+  //    // Strength counts up to diminish fade.
+  //    if (player^.powers[pw_strength])
+  //	player^.powers[pw_strength]++;
+  //
+  //    if (player^.powers[pw_invulnerability])
+  //	player^.powers[pw_invulnerability]--;
+  //
+  //    if (player^.powers[pw_invisibility])
+  //	if (! --player^.powers[pw_invisibility] )
+  //	    player^.mo^.flags &= ~MF_SHADOW;
+  //
+  //    if (player^.powers[pw_infrared])
+  //	player^.powers[pw_infrared]--;
+  //
+  //    if (player^.powers[pw_ironfeet])
+  //	player^.powers[pw_ironfeet]--;
+  //
+  //    if (player^.damagecount)
+  //	player^.damagecount--;
+  //
+  //    if (player^.bonuscount)
+  //	player^.bonuscount--;
+  //
+  //
+  //    // [crispy] A11Y
+  //    if (!a11y_invul_colormap)
+  //    {
+  //	if (player^.powers[pw_invulnerability] || player^.powers[pw_infrared])
+  //	    player^.fixedcolormap = 1;
+  //	else
+  //	    player^.fixedcolormap = 0;
+  //    }
+  //    else
+  //    // Handling colormaps.
+  //    if (player^.powers[pw_invulnerability])
+  //    {
+  //	if (player^.powers[pw_invulnerability] > 4*32
+  //	    || (player^.powers[pw_invulnerability]&8) )
+  //	    player^.fixedcolormap = INVERSECOLORMAP;
+  //	else
+  //	    // [crispy] Visor effect when Invulnerability is fading out
+  //	    player^.fixedcolormap = player^.powers[pw_infrared] ? 1 : 0;
+  //    }
+  //    else if (player^.powers[pw_infrared])
+  //    {
+  //	if (player^.powers[pw_infrared] > 4*32
+  //	    || (player^.powers[pw_infrared]&8) )
+  //	{
+  //	    // almost full bright
+  //	    player^.fixedcolormap = 1;
+  //	}
+  //	else
+  //	    player^.fixedcolormap = 0;
+  //    }
+  //    else
+  //	player^.fixedcolormap = 0;
 End;
 
 Procedure P_CalcHeight(player: Pplayer_t);

@@ -48,7 +48,7 @@ Var
   // Used to speed up collision detection
   // by spatial subdivision in 2D.
   //
-  blockmap: Array Of int32_t; // int for larger maps // [crispy] BLOCKMAP limit
+  blockmap: ^int32_t; // int for larger maps // [crispy] BLOCKMAP limit
   // offsets in blockmap are from here
   blockmaplump: Array Of int32_t; // [crispy] BLOCKMAP limit
 
@@ -156,9 +156,8 @@ Begin
   wadblockmaplump := Nil;
   setlength(wadblockmaplump, lumplen);
   W_ReadLump(lump, @wadblockmaplump[0]);
-  //    blockmaplump = Z_Malloc(sizeof(*blockmaplump) * count, PU_LEVEL, NULL);
   setlength(blockmaplump, count);
-  blockmap := pointer(blockmaplump) + 4;
+  blockmap := pointer(@blockmaplump[0]) + 4;
 
   blockmaplump[0] := wadblockmaplump[0];
   blockmaplump[1] := wadblockmaplump[1];
@@ -349,7 +348,7 @@ End;
 Procedure P_LoadLineDefs(lump: int);
 Var
   i: int;
-  mld: Array Of maplinedef_t;
+  mld: ^maplinedef_t;
   v1, v2: ^vertex_t;
   warn, warn2: int; // [crispy] warn about invalid linedefs
 Begin

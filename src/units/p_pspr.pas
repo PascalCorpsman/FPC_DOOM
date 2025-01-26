@@ -41,6 +41,8 @@ Procedure A_BFGSpray(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 
 Procedure P_SetupPsprites(player: Pplayer_t);
 
+Procedure P_MovePsprites(player: Pplayer_t);
+
 Implementation
 
 Uses
@@ -313,22 +315,21 @@ Begin
 End;
 
 Procedure A_Raise(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Var
+  newstate: statenum_t;
 Begin
-  //       statenum_t	newstate;
-  //
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    psp->sy -= RAISESPEED;
-  //
-  //    if (psp->sy > WEAPONTOP )
-  //	return;
-  //
-  //    psp->sy = WEAPONTOP;
-  //
-  //    // The weapon has been raised all the way,
-  //    //  so change to the ready state.
-  //    newstate = weaponinfo[player->readyweapon].readystate;
-  //
-  //    P_SetPsprite (player, ps_weapon, newstate);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  psp^.sy := psp^.sy - RAISESPEED;
+  If (psp^.sy > WEAPONTOP) Then exit;
+
+
+  psp^.sy := WEAPONTOP;
+
+  // The weapon has been raised all the way,
+  //  so change to the ready state.
+  newstate := weaponinfo[integer(player^.readyweapon)].readystate;
+
+  P_SetPsprite(player, ps_weapon, newstate);
 End;
 
 Procedure A_Punch(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -620,18 +621,6 @@ Begin
     S_StartSound(player^.mo, sfx_sawup); // [crispy] intentionally not weapon sound source
   End;
 
-  (*
-      // [crispy] play "power up" sound when selecting berserk fist...
-      if (player->pendingweapon == wp_fist && player->powers[pw_strength])
-      {
-   // [crispy] ...only if not playing already
-   if (player == &players[consoleplayer])
-   {
-       S_StartSoundOnce (NULL, sfx_getpow);
-   }
-      }
-  *)
-
   newstate := weaponinfo[integer(player^.pendingweapon)].upstate;
 
   player^.pendingweapon := wp_nochange;
@@ -660,11 +649,77 @@ Begin
 
   // [crispy] A11Y
   If a11y_weapon_pspr_ <> 0 Then Begin
-    numrpsprites := integer(NUMSPRITES);
+    numrpsprites := integer(NUMPSPRITES);
   End
   Else Begin
-    numrpsprites := integer(NUMSPRITES) - 1;
+    numrpsprites := integer(NUMPSPRITES) - 1;
   End;
+End;
+
+//
+// P_MovePsprites
+// Called every tic by player thinking routine.
+//
+
+Procedure P_MovePsprites(player: Pplayer_t);
+Var
+  i: int;
+  psp: ^pspdef_t;
+Begin
+  For i := 0 To integer(NUMPSPRITES) - 1 Do Begin
+    psp := @player^.psprites[psprnum_t(i)];
+    //    psp := @sprites[i];
+
+    // a null state means not active
+    If (psp^.state <> Nil) Then Begin
+
+      // drop tic count and possibly change state
+
+      // a -1 tic count never changes
+      If (psp^.tics <> -1) Then Begin
+        psp^.tics := psp^.tics - 1;
+        If (psp^.tics = 0) Then
+          P_SetPsprite(player, psprnum_t(i), psp^.state^.nextstate);
+      End;
+    End;
+  End;
+
+  player^.psprites[ps_flash].sx := player^.psprites[ps_weapon].sx;
+  player^.psprites[ps_flash].sy := player^.psprites[ps_weapon].sy;
+
+  // [crispy] apply bobbing (or centering) to the player's weapon sprite
+  psp := @player^.psprites[psprnum_t(0)];
+  psp^.sx2 := psp^.sx;
+  psp^.sy2 := psp^.sy;
+  If (psp^.state <> Nil) And ((crispy.bobfactor <> 0) Or (crispy.centerweapon <> 0) Or (crispy.uncapped <> 0)) Then Begin
+    Raise exception.create('Need port.');
+    // [crispy] don't center vertically during lowering and raising states
+   //	if (psp^.state^.misc1 ||
+   //	    psp^.state^.action.acp3 == (actionf_p3)A_Lower ||
+   //	    psp^.state^.action.acp3 == (actionf_p3)A_Raise)
+   //	{
+   //	}
+   //	else
+   //	// [crispy] not attacking means idle
+   //	if (!player^.attackdown ||
+   //	    crispy^.centerweapon == CENTERWEAPON_BOB)
+   //	{
+   //		angle_t angle = (128 * leveltime) & FINEMASK;
+   //		psp^.sx2 = FRACUNIT + FixedMul(player^.bob2, finecosine[angle]);
+   //		angle &= FINEANGLES / 2 - 1;
+   //		psp^.sy2 = WEAPONTOP + FixedMul(player^.bob2, finesine[angle]);
+   //	}
+   //	else
+   //	// [crispy] center the weapon sprite horizontally and push up vertically
+   //	if (crispy^.centerweapon == CENTERWEAPON_CENTER)
+   //	{
+   //		psp^.sx2 = FRACUNIT;
+   //		psp^.sy2 = WEAPONTOP;
+   //	}
+  End;
+
+  player^.psprites[ps_flash].sx2 := psp^.sx2;
+  player^.psprites[ps_flash].sy2 := psp^.sy2;
 End;
 
 End.

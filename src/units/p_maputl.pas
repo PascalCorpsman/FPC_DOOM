@@ -649,7 +649,6 @@ Begin
   result := P_TraverseIntercepts(trav, FRACUNIT);
 End;
 
-
 //
 // P_LineOpening
 // Sets opentop and openbottom to the window

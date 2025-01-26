@@ -11,7 +11,7 @@ Type
   R_BrightmapForTexNameT = Function(Const texname: String): TBytes;
   R_BrightmapForSpriteT = Function(Const _type: int): TBytes; // TODO: das int sollte spritenum_t sein !
   R_BrightmapForFlatNumT = Function(Const num: int): PByte;
-  R_BrightmapForStateT = Function(Const state: int): String;
+  R_BrightmapForStateT = Function(Const state: int): TBytes;
 
 Var
   R_BrightmapForTexName: R_BrightmapForTexNameT = Nil;
@@ -434,24 +434,20 @@ Begin
   result := @nobrightmap[0];
 End;
 
-Function R_BrightmapForState_Doom(Const state: int): String;
+Function R_BrightmapForState_Doom(Const state: int): TBytes;
 Begin
-  //	if (crispy->brightmaps & BRIGHTMAPS_SPRITES)
-  //	{
-  //		switch (state)
-  //		{
-  //			case S_BFG1:
-  //			case S_BFG2:
-  //			case S_BFG3:
-  //			case S_BFG4:
-  //			{
-  //				return redonly;
-  //				break;
-  //			}
-  //		}
-  //	}
-  //
-  //	return nobrightmap;
+  If (crispy.brightmaps And BRIGHTMAPS_SPRITES) <> 0 Then Begin
+    Case statenum_t(state) Of
+      S_BFG1,
+        S_BFG2,
+        S_BFG3,
+        S_BFG4: Begin
+          result := redonly;
+          exit;
+        End;
+    End;
+  End;
+  result := nobrightmap;
 End;
 
 Procedure R_InitBrightmaps();

@@ -10,6 +10,9 @@ Uses
   , m_fixed
   ;
 
+Var
+  linetarget: Pmobj_t; // who got hit (or NULL)
+
 Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
 
 // [crispy] update laser spot position
@@ -29,7 +32,6 @@ Uses
   ;
 
 Var
-  linetarget: Pmobj_t; // who got hit (or NULL)
   shootthing: Pmobj_t;
   // Height if not aiming up or down
   // ???: use slope for monsters?
@@ -255,7 +257,7 @@ Begin
     // [crispy] increase accuracy
     If (linetarget = Nil) Then Begin
       an := angle;
-      an := an + 1 Shl 26;
+      an := angle_t(an + 1 Shl 26);
       lslope := P_AimLineAttack(t1, an, distance);
 
       If (linetarget = Nil) Then Begin
@@ -271,7 +273,7 @@ Begin
 
   If ((crispy.crosshair And Not CROSSHAIR_INTERCEPT) = CROSSHAIR_PROJECTED) Then Begin
     // [crispy] don't aim at Spectres
-    If (linetarget <> Nil) And (((linetarget^.flags And MF_SHADOW) <> 0) And (critical^.freeaim <> FREEAIM_DIRECT)) Then
+    If (linetarget <> Nil) And ((linetarget^.flags And MF_SHADOW) <> 0) And (critical^.freeaim <> FREEAIM_DIRECT) Then
       P_LineAttack(t1, angle, distance, aimslope, INT_MIN)
     Else
       // [crispy] double the auto aim distance
@@ -489,14 +491,10 @@ Begin
   // [crispy] smooth laser spot movement with uncapped framerate
   If (damage = INT_MIN) Then Begin
     t1x := viewx;
-  End
-  Else Begin
-    t1x := t1^.x;
-  End;
-  If (damage = INT_MIN) Then Begin
     t1y := viewy;
   End
   Else Begin
+    t1x := t1^.x;
     t1y := t1^.y;
   End;
 

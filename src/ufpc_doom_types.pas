@@ -69,7 +69,7 @@ Type
     bobfactor: int; // 0,1,2
     brightmaps: int;
     //    	int btusetimer;
-    //    	int centerweapon;
+    centerweapon: int;
     coloredblood: int;
     //    	int coloredhud;
     crosshair: int;
@@ -120,7 +120,7 @@ Type
 
     flashinghom: Boolean;
     //    	boolean fliplevels;
-    //    	boolean flipweapons;
+    flipweapons: Boolean;
     //    	boolean haved1e5;
     //    	boolean haved1e6;
     //    	boolean havee1m10;
@@ -210,8 +210,9 @@ Initialization
   Crispy.automapoverlay := 0;
   Crispy.bobfactor := 0;
   Crispy.brightmaps := 0;
+  Crispy.centerweapon := 0;
   Crispy.coloredblood := 0;
-  Crispy.crosshair := CROSSHAIR_PROJECTED; //CROSSHAIR_OFF;
+  Crispy.crosshair := CROSSHAIR_OFF; // TODO: der CROSSHAIR_PROJECTED erzeugt noch an ettlichen stellen einen Bug, obwohl er eigentlich gehen sollte :/
   Crispy.crosshairhealth := 0;
   Crispy.crosshairtarget := 0;
   Crispy.crosshairtype := 0;
@@ -228,6 +229,7 @@ Initialization
   Crispy.uncapped := 0;
   Crispy.cleanscreenshot := 0;
   Crispy.flashinghom := false;
+  Crispy.flipweapons := false;
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;
 

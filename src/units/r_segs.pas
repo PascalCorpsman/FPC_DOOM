@@ -328,7 +328,6 @@ Begin
   End;
 End;
 
-
 // [crispy] WiggleFix: move R_ScaleFromGlobalAngle function to r_segs.c,
 // above R_StoreWallRange
 
