@@ -119,7 +119,7 @@ Type
     //    	int fps;
 
     flashinghom: Boolean;
-    //    	boolean fliplevels;
+    fliplevels: boolean;
     flipweapons: Boolean;
     //    	boolean haved1e5;
     //    	boolean haved1e6;
@@ -229,6 +229,7 @@ Initialization
   Crispy.uncapped := 0;
   Crispy.cleanscreenshot := 0;
   Crispy.flashinghom := false;
+  Crispy.fliplevels := false;
   Crispy.flipweapons := false;
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;

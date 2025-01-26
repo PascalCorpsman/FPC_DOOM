@@ -41,7 +41,7 @@ Uses
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
   Graphics,
 {$ENDIF}
-  m_fixed, m_bbox
+  m_bbox
   , i_video
   ;
 
@@ -92,6 +92,79 @@ Begin
   If (dest_screen = I_VideoBuffer) Then Begin
     M_AddToBox(dirtybox, x, y);
     M_AddToBox(dirtybox, x + width - 1, y + height - 1);
+  End;
+End;
+
+(*
+ Rendert patch so "gestreckt", dass er füllend im Rechteck aus
+ x .. x + Width, y .. y + Height
+ liegt, genutzt wird die Nearest Neighbour Interpolation
+ *)
+Type
+  TPatchBuffer = Record
+    used: Boolean; // Nur wenn True, dann wurde der Pixel auch beschrieben -> soll gerendert werden
+    Value: Byte; // Der Aktuelle Farbwert
+  End;
+
+Var
+  PatchBuffer: Array Of TPatchBuffer = Nil;
+
+// TODO: Das ist nicht gerade schnell, bei 1280x800 dauert so das Main Menu Rendern bereits mehr als 35ms :/
+//       bei 640x400 gehts aber noch gut und da Fullscreenpatches nur in den Menü's oder Endscreens vorkommen ists ok.
+Procedure V_DrawStretchedPatch(x, y, Width, Height: int; Const patch: ppatch_t);
+Var
+  col, i, j, srcX, srcY, srcIndex: int;
+  column: Pcolumn_t;
+  source: PByte;
+  row, index: integer;
+  count: Byte;
+  Pint: ^integer;
+  sc: byte;
+Begin
+  // 1. Den Patch in einen Internen "nicht" gestretchten Puffer entpacken
+  // 1.1 Initialisieren
+  If (length(PatchBuffer) <> patch^.width * patch^.height) Then Begin
+    setlength(PatchBuffer, patch^.width * patch^.height);
+  End;
+  FillChar(PatchBuffer[0], patch^.width * patch^.height * sizeof(TPatchBuffer), 0);
+  // 1.2 Das eigentliche Rendern in den Puffer
+  col := 0;
+  Pint := @patch^.columnofs[0];
+  While col < patch^.width Do Begin
+    column := Pointer(patch) + pint^;
+    inc(Pint);
+    row := 0;
+    While column^.topdelta <> $FF Do Begin
+      source := pointer(column) + 3;
+      row := column^.topdelta;
+      count := column^.length;
+      While count > 0 Do Begin
+        sc := source^;
+        If assigned(dp_translation) Then Begin
+          sc := dp_translation[sc];
+        End;
+        index := (col) + (row) * patch^.width;
+        PatchBuffer[index].Value := sc;
+        PatchBuffer[index].used := true;
+        source := pointer(source) + 1;
+        row := row + 1;
+        dec(Count);
+      End;
+      column := pointer(column) + column^.length + 4;
+    End;
+    inc(col);
+  End;
+  // 2. Den Puffer in den Screen rendern
+  For i := x To x + Width - 1 Do Begin
+    For j := y To y + Height - 1 Do Begin
+      srcX := ((i - x) * patch^.width) Div Width; // Nearest Neighbour Interpolation
+      srcY := ((j - y) * patch^.height) Div Height; // Nearest Neighbour Interpolation
+      srcIndex := srcY * patch^.width + srcX;
+      If PatchBuffer[srcIndex].used Then Begin
+        index := i + j * SCREENWIDTH;
+        dest_screen[index] := PatchBuffer[srcIndex].Value;
+      End;
+    End;
   End;
 End;
 
@@ -164,40 +237,24 @@ Begin
 End;
 
 Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);
-Var
-  x: int;
 Begin
-  //    int x = ((SCREENWIDTH >> crispy->hires) - SHORT(patch->width)) / 2 - WIDESCREENDELTA;
-  x := 0;
-  //    static int black = -1;
-
   patch^.leftoffset := 0;
   patch^.topoffset := 0;
 
-  //    if (black == -1)
-  //    {
-  //#ifndef CRISPY_TRUECOLOR
-  //        black = I_GetPaletteIndex(0x00, 0x00, 0x00);
-  //#else
-  //        black = I_MapRGB(0x00, 0x00, 0x00);
-  //#endif
-  //    }
-
-  //    // [crispy] fill pillarboxes in widescreen mode
-  //    if (SCREENWIDTH != NONWIDEWIDTH)
-  //    {
-  //        V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, black);
-  //    }
-
   If (flipped) Then Begin
-
-    //        V_DrawPatchFlipped(x, 0, patch);
+    raise exception.create('V_DrawPatchFullScreen für flipped implementieren.');
+    // V_DrawPatchFlipped(0, 0, patch);
   End
   Else Begin
-    V_DrawPatch(x, 0, patch);
+    If Crispy.hires <> 0 Then Begin
+      V_DrawStretchedPatch(0, 0, SCREENWIDTH, SCREENHEIGHT, patch);
+    End
+    Else Begin
+      // Ohne Scallierung ist Fullscreen einfach ;)
+      V_DrawPatch(0, 0, patch);
+    End;
   End;
 End;
-
 
 Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 Begin

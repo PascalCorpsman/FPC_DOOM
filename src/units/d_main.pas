@@ -324,12 +324,8 @@ Begin
 End;
 
 Procedure D_PageDrawer();
-Var
-  p: ppatch_t;
 Begin
-  // TODO: Cool wäre wenn man das als Stretchdraw hin bekäme ..
-  p := W_CacheLumpName(pagename, PU_CACHE);
-  V_DrawPatchDirect((SCREENWIDTH - ORIGWIDTH) Div 2, (SCREENHEIGHT - ORIGHEIGHT) Div 2, p);
+  V_DrawPatchFullScreen(W_CacheLumpName(pagename, PU_CACHE), Crispy.fliplevels);
 End;
 
 Procedure D_SetGameDescription();
