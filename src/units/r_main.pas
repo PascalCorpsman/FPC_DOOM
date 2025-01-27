@@ -414,7 +414,6 @@ Var
   i, j, level, startmap: int;
   num: fixed_t;
 Begin
-
   setsizeneeded := false;
 
   If (setblocks >= 11) Then Begin // [crispy] Crispy HUD

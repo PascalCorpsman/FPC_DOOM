@@ -99,7 +99,7 @@ Type
     //    	int smoothlight;
     //    	int smoothmap;
     //    	int smoothscaling;
-    //    	int soundfix;
+    soundfix: int;
     //    	int soundfull;
     //    	int soundmono;
     //    	int statsformat;
@@ -225,6 +225,7 @@ Initialization
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.pitch := 0;
+  Crispy.soundfix := 1;
   Crispy.translucency := 0;
   Crispy.uncapped := 0;
   Crispy.cleanscreenshot := 0;
@@ -235,7 +236,6 @@ Initialization
   Crispy.stretchsky := false;
 
   //  Crispy.smoothscaling := 1;
-  //  Crispy.soundfix := 1;
     //    #ifdef CRISPY_TRUECOLOR
     //    Crispy.smoothlight := 1;
     //    Crispy.truecolor := 1;

@@ -15,7 +15,6 @@ Var
   viewwidth: int;
   scaledviewwidth: int;
 
-
   //
   // R_DrawColumn - Variablen
   //
@@ -91,7 +90,7 @@ Implementation
 Uses
   doomtype
   , i_video
-  , r_bmaps
+  , r_bmaps, r_main
   , v_video
   ;
 
@@ -150,14 +149,13 @@ End;
 //  for getting the framebuffer address
 //  of a pixel to draw.
 //
-Var
-  CENTERY: int;
 
 Procedure R_InitBuffer(width, height: int);
 Var
-  i: int;
+  i, SBARHEIGHT: int;
 Begin
-  CENTERY := (SCREENHEIGHT Div 2);
+  SBARHEIGHT := (32 Shl crispy.hires); // WTF: diese 32 sollte eigentlich ST_HEIGHT sein.
+
   // Handle resize,
   //  e.g. smaller view windows
   //  with border and/or status bar.
@@ -171,7 +169,7 @@ Begin
   If (width = SCREENWIDTH) Then
     viewwindowy := 0
   Else
-    viewwindowy := (SCREENHEIGHT {-SBARHEIGHT} - height) Shr 1;
+    viewwindowy := (SCREENHEIGHT - SBARHEIGHT - height) Shr 1;
 
   // Preclaculate all row offsets.
   //    for (i=0 ; i<height ; i++)
@@ -231,6 +229,7 @@ Begin
   // Determine scaling,
   //  which is the only mapping to be done.
   fracstep := dc_iscale;
+
   frac := dc_texturemid + (dc_yl - centery) * fracstep;
 
   // Inner loop that does the actual texture mapping,
@@ -241,7 +240,6 @@ Begin
   If (dc_texheight And heightmask) <> 0 Then Begin // not a power of 2 -- killough
     inc(heightmask);
     heightmask := heightmask Shl FRACBITS;
-
     If (frac < 0) Then
       While frac < 0 Do Begin
         frac := frac + heightmask;

@@ -1252,7 +1252,6 @@ End;
 Procedure R_DrawMasked();
 Var
   ds, spr: int;
-  //  ds: ^drawseg_t;
 Begin
 
   R_SortVisSprites();
@@ -1292,7 +1291,6 @@ Initialization
 
 Finalization
   dispose(laserspot);
-
 
 End.
 

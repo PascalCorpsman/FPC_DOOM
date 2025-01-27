@@ -718,9 +718,9 @@ Begin
     End;
 
     // set the degenmobj_t to the middle of the bounding box
-    If (false {!crispy.soundfix}) Then Begin
-      //	sectors[i].soundorg.x = (bbox[BOXRIGHT]+bbox[BOXLEFT])/2;
-      //	sectors[i].soundorg.y = (bbox[BOXTOP]+bbox[BOXBOTTOM])/2;
+    If (crispy.soundfix = 0) Then Begin
+      sectors[i].soundorg.x := (bbox[BOXRIGHT] + bbox[BOXLEFT]) Div 2;
+      sectors[i].soundorg.y := (bbox[BOXTOP] + bbox[BOXBOTTOM]) Div 2;
     End
     Else Begin
       // [crispy] Andrey Budko: fix sound origin for large levels

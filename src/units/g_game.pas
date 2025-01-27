@@ -746,7 +746,7 @@ Begin
       ((ev^._type = ev_mouse) And (ev^.data1 <> 0)) Or
       ((ev^._type = ev_joystick) And (ev^.data1 <> 0))) Then Begin
       // [crispy] play a sound if the menu is activated with a different key than ESC
-      If (Not menuactive) {And (crispy^.soundfix)} Then Begin
+      If (Not menuactive) And (crispy.soundfix <> 0) Then Begin
         S_StartSoundOptional(Nil, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
       End;
       M_StartControlPanel();

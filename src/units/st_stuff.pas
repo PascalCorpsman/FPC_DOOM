@@ -14,9 +14,7 @@ Uses
 
 Const
   // Das wirkt sich auf viewheight aus, und das dann wohl auf die Sprites ..
-  ST_HEIGHT = 0; // WTF: Ist die <> 0 bringt es noch irgendwelche Puffer durcheinander, sie sollte aber 32 sein !
-
-  Entweder den Bug hier finden, oder AM_Map weiter machen
+  ST_HEIGHT = 32;
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
