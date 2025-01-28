@@ -40,6 +40,7 @@ Type
   mline_t = Record
     a, b: mpoint_t;
   End;
+  Pmline_t = ^mline_t;
 
   islope_t = Record
     slp, islp: fixed_t;
@@ -79,6 +80,12 @@ Uses
   ;
 
 Const
+
+  // how much the automap moves window per tic in frame-buffer coordinates
+  // moves 140 pixels in 1 second
+  F_PANINC = 4;
+  // [crispy] pan faster by holding run button
+  F2_PANINC = 12;
 
   AM_NUMMARKPOINTS = 10;
 
@@ -127,6 +134,37 @@ Const
   MAPPLAYERRADIUS = (16 * (1 Shl MAPBITS));
 
   INITSCALEMTOF = (FRACUNIT Div 5);
+
+  R = ((8 * MAPPLAYERRADIUS) Div 7); // WTF: sollte hier nicht auch das "crispy.hires" mit rein ?
+
+  player_arrow: Array Of mline_t = (
+    (a: (x: - R + R Div 8; y: 0); b: (x: R; y: 0)), // -----
+    (a: (x: R; y: 0); b: (x: R - R Div 2; y: R Div 4)), // ----->
+    (a: (x: R; y: 0); b: (x: R - R Div 2; y: - R Div 4)),
+    (a: (x: - R + R Div 8; y: 0); b: (x: - R - R Div 8; y: R Div 4)), // >---->
+    (a: (x: - R + R Div 8; y: 0); b: (x: - R - R Div 8; y: - R Div 4)),
+    (a: (x: - R + 3 * R Div 8; y: 0); b: (x: - R + R Div 8; y: R Div 4)), // >>--->
+    (a: (x: - R + 3 * R Div 8; y: 0); b: (x: - R + R Div 8; y: - R Div 4))
+    );
+
+  cheat_player_arrow: Array Of mline_t = (
+    (a: (x: - R + R Div 8; y: 0); b: (x: R; y: 0)), // -----
+    (a: (x: R; y: 0); b: (x: R - R Div 2; y: R Div 6)), // ----->
+    (a: (x: R; y: 0); b: (x: R - R Div 2; y: - R Div 6)),
+    (a: (x: - R + R Div 8; y: 0); b: (x: - R - R Div 8; y: R Div 6)), // >----->
+    (a: (x: - R + R Div 8; y: 0); b: (x: - R - R Div 8; y: - R Div 6)),
+    (a: (x: - R + 3 * R Div 8; y: 0); b: (x: - R + R Div 8; y: R Div 6)), // >>----->
+    (a: (x: - R + 3 * R Div 8; y: 0); b: (x: - R + R Div 8; y: - R Div 6)),
+    (a: (x: - R Div 2; y: 0); b: (x: - R Div 2; y: - R Div 6)), // >>-d--->
+    (a: (x: - R Div 2; y: - R Div 6); b: (x: - R Div 2 + R Div 6; y: - R Div 6)),
+    (a: (x: - R Div 2 + R Div 6; y: - R Div 6); b: (x: - R Div 2 + R Div 6; y: R Div 4)),
+    (a: (x: - R Div 6; y: 0); b: (x: - R Div 6; y: - R Div 6)), // >>-dd-->
+    (a: (x: - R Div 6; y: - R Div 6); b: (x: 0; y: - R Div 6)),
+    (a: (x: 0; y: - R Div 6); b: (x: 0; y: R Div 4)),
+    (a: (x: R Div 6; y: R Div 4); b: (x: R Div 6; y: - R Div 7)), // >>-ddt->
+    (a: (x: R Div 6; y: - R Div 7); b: (x: R Div 6 + R Div 32; y: - R Div 7 - R Div 32)),
+    (a: (x: R Div 6 + R Div 32; y: - R Div 7 - R Div 32); b: (x: R Div 6 + R Div 10; y: - R Div 7))
+    );
 
 Var
   lastlevel: int = -1;
@@ -213,6 +251,16 @@ End;
 Function MTOF(x: int64): int64;
 Begin
   result := SarInt64(SarInt64(((x) * scale_mtof), FRACBITS), FRACBITS)
+End;
+
+Function CXMTOF(x: int64): int64;
+Begin
+  result := (f_x + MTOF((x) - m_x));
+End;
+
+Function CYMTOF(y: int64): int64;
+Begin
+  result := (f_y + (f_h - MTOF((y) - m_y)));
 End;
 
 //
@@ -568,8 +616,8 @@ Begin
   min_w := 2 * MAPPLAYERRADIUS; // const? never changed?
   min_h := 2 * MAPPLAYERRADIUS;
 
-  a := FixedDiv(SarLongint(f_w, FRACBITS), max_w);
-  b := FixedDiv(SarLongint(f_h, FRACBITS), max_h);
+  a := FixedDiv(f_w Shl FRACBITS, max_w);
+  b := FixedDiv(f_h Shl FRACBITS, max_h);
 
   If a < b Then Begin
     min_scale_mtof := a;
@@ -577,9 +625,8 @@ Begin
   Else Begin
     min_scale_mtof := b;
   End;
-  max_scale_mtof := FixedDiv(SarLongint(f_h, FRACBITS), 2 * MAPPLAYERRADIUS);
+  max_scale_mtof := FixedDiv(f_h Shl FRACBITS, 2 * MAPPLAYERRADIUS);
 End;
-
 
 Procedure AM_drawCrosshair(color: int; force: boolean);
 Const
@@ -1065,20 +1112,31 @@ Begin
     key := ev^.data1;
 
     If (key = key_map_east) Then Begin // pan right
-      //            // [crispy] keep the map static in overlay mode
-      //            // if not following the player
-      //            if (!followplayer)
-      //                m_paninc.x = crispy->fliplevels ?
-      //                    -FTOM(f_paninc << crispy->hires) : FTOM(f_paninc << crispy->hires);
-      //            else rc = false;
+      // [crispy] keep the map static in overlay mode
+      // if not following the player
+      If (followplayer = 0) Then Begin
+        If crispy.fliplevels Then Begin
+          m_paninc.x := -FTOM(f_paninc Shl crispy.hires);
+        End
+        Else Begin
+          m_paninc.x := FTOM(f_paninc Shl crispy.hires);
+        End;
+      End
+      Else
+        rc := false;
     End
-      //        else if (key == key_map_west)     // pan left
-      //        {
-      //            if (!followplayer)
-      //                m_paninc.x = crispy->fliplevels ?
-      //                    FTOM(f_paninc << crispy->hires) : -FTOM(f_paninc << crispy->hires);
-      //            else rc = false;
-      //        }
+    Else If (key = key_map_west) Then Begin // pan left
+      If (followplayer = 0) Then Begin
+        If crispy.fliplevels Then Begin
+          m_paninc.x := FTOM(f_paninc Shl crispy.hires);
+        End
+        Else Begin
+          m_paninc.x := -FTOM(f_paninc Shl crispy.hires);
+        End;
+      End
+      Else
+        rc := false;
+    End
       //        else if (key == key_map_north)    // pan up
       //        {
       //            if (!followplayer)
@@ -1205,6 +1263,303 @@ Begin
   result := rc;
 End;
 
+
+//
+// Automap clipping of lines.
+//
+// Based on Cohen-Sutherland clipping algorithm but with a slightly
+// faster reject and precalculated slopes.  If the speed is needed,
+// use a hash algorithm to handle the common cases.
+//
+
+Function AM_clipMline(ml: Pmline_t; fl: Pfline_t): boolean;
+Const
+  LEFT = 1;
+  RIGHT = 2;
+  BOTTOM = 4;
+  TOP = 8;
+
+  Procedure DOOUTCODE(Out oc: int; mx, my: int64_t);
+  Begin
+    oc := 0;
+    If ((my) < 0) Then
+      oc := oc Or TOP
+    Else If ((my) >= f_h) Then
+      oc := oc Or BOTTOM;
+    If ((mx) < 0) Then
+      oc := oc Or LEFT
+    Else If ((mx) >= f_w) Then
+      oc := oc Or RIGHT;
+  End;
+
+Var
+  outcode1: int;
+  outcode2: int;
+  outside: int;
+  tmp: fpoint_t;
+  dx: int;
+  dy: int;
+Begin
+  result := false;
+  outcode1 := 0;
+  outcode2 := 0;
+
+  // do trivial rejects and outcodes
+  If (ml^.a.y > m_y2) Then
+    outcode1 := TOP
+  Else If (ml^.a.y < m_y) Then
+    outcode1 := BOTTOM;
+
+  If (ml^.b.y > m_y2) Then
+    outcode2 := TOP
+  Else If (ml^.b.y < m_y) Then
+    outcode2 := BOTTOM;
+
+  If (outcode1 <> 0) And (outcode2 <> 0) Then
+    exit; // trivially outside
+
+  If (ml^.a.x < m_x) Then
+    outcode1 := outcode1 Or LEFT
+  Else If (ml^.a.x > m_x2) Then
+    outcode1 := outcode1 Or RIGHT;
+
+  If (ml^.b.x < m_x) Then
+    outcode2 := outcode2 Or LEFT
+  Else If (ml^.b.x > m_x2) Then
+    outcode2 := outcode2 Or RIGHT;
+
+  If (outcode1 <> 0) And (outcode2 <> 0) Then
+    exit; // trivially outside
+
+  // transform to frame-buffer coordinates.
+  fl^.a.x := CXMTOF(ml^.a.x);
+  fl^.a.y := CYMTOF(ml^.a.y);
+  fl^.b.x := CXMTOF(ml^.b.x);
+  fl^.b.y := CYMTOF(ml^.b.y);
+
+  DOOUTCODE(outcode1, fl^.a.x, fl^.a.y);
+  DOOUTCODE(outcode2, fl^.b.x, fl^.b.y);
+
+  If (outcode1 <> 0) And (outcode2 <> 0) Then
+    exit;
+
+  While (outcode1 <> 0) Or (outcode2 <> 0) Do Begin
+    // may be partially inside box
+    // find an outside point
+    If (outcode1 <> 0) Then
+      outside := outcode1
+    Else
+      outside := outcode2;
+
+    // clip to each side
+    If (outside And TOP) <> 0 Then Begin
+      dy := fl^.a.y - fl^.b.y;
+      dx := fl^.b.x - fl^.a.x;
+      // [crispy] 'int64_t' math to avoid overflows on long lines.
+      tmp.x := fl^.a.x + fixed_t(((int64_t(dx * (fl^.a.y - f_y))) Div dy));
+      tmp.y := 0;
+    End
+    Else If (outside And BOTTOM) <> 0 Then Begin
+
+      dy := fl^.a.y - fl^.b.y;
+      dx := fl^.b.x - fl^.a.x;
+      tmp.x := fl^.a.x + fixed_t(((int64_t(dx * (fl^.a.y - (f_y + f_h)))) Div dy));
+      tmp.y := f_h - 1;
+    End
+    Else If (outside And RIGHT) <> 0 Then Begin
+
+      dy := fl^.b.y - fl^.a.y;
+      dx := fl^.b.x - fl^.a.x;
+      tmp.y := fl^.a.y + fixed_t(((int64_t(dy * (f_x + f_w - 1 - fl^.a.x))) Div dx));
+      tmp.x := f_w - 1;
+    End
+    Else If (outside And LEFT) <> 0 Then Begin
+      dy := fl^.b.y - fl^.a.y;
+      dx := fl^.b.x - fl^.a.x;
+      tmp.y := fl^.a.y + fixed_t(((int64_t(dy * (f_x - fl^.a.x))) Div dx));
+      tmp.x := 0;
+    End
+    Else Begin
+      tmp.x := 0;
+      tmp.y := 0;
+    End;
+
+    If (outside = outcode1) Then Begin
+      fl^.a := tmp;
+      DOOUTCODE(outcode1, fl^.a.x, fl^.a.y);
+    End
+    Else Begin
+      fl^.b := tmp;
+      DOOUTCODE(outcode2, fl^.b.x, fl^.b.y);
+    End;
+
+    If (outcode1 <> 0) And (outcode2 <> 0) Then
+      exit; // trivially outside
+  End;
+  result := true;
+End;
+
+//
+// Clip lines, draw visible part sof lines.
+//
+
+Procedure AM_drawMline(ml: Pmline_t; color: int);
+Var
+  fl: fline_t;
+Begin
+  If (AM_clipMline(ml, @fl)) Then Begin
+    AM_drawFline(@fl, color); // draws it on frame buffer using fb coords
+  End;
+End;
+
+Procedure AM_drawLineCharacter(
+  lineguy: Pmline_t;
+  lineguylines: int;
+  scale: fixed_t;
+  angle: angle_t;
+  color: int;
+  x: fixed_t;
+  y: fixed_t
+  );
+
+Var
+  i: int;
+  l: mline_t;
+Begin
+  If (crispy.automaprotate <> 0) Then Begin
+    angle := angle + mapangle;
+  End;
+
+  For i := 0 To lineguylines - 1 Do Begin
+
+    l.a.x := lineguy[i].a.x;
+    l.a.y := lineguy[i].a.y;
+
+    If (scale <> 0) Then Begin
+      l.a.x := FixedMul(scale, l.a.x);
+      l.a.y := FixedMul(scale, l.a.y);
+    End;
+
+    If (angle <> 0) Then Begin
+      AM_rotate(@l.a.x, @l.a.y, angle);
+    End;
+
+    l.a.x := l.a.x + x;
+    l.a.y := l.a.y + y;
+
+    l.b.x := lineguy[i].b.x;
+    l.b.y := lineguy[i].b.y;
+
+    If (scale <> 0) Then Begin
+      l.b.x := FixedMul(scale, l.b.x);
+      l.b.y := FixedMul(scale, l.b.y);
+    End;
+
+    If (angle <> 0) Then Begin
+      AM_rotate(@l.b.x, @l.b.y, angle);
+    End;
+
+    l.b.x := l.b.x + x;
+    l.b.y := l.b.y + y;
+    AM_drawMline(@l, color);
+  End;
+End;
+
+Procedure AM_drawPlayers();
+Var
+  //int		i;
+  //   player_t*	p;
+  //   static int 	their_colors[] = { GREENS, GRAYS, BROWNS, REDS };
+  //   int		their_color = -1;
+  //   int		color;
+  pt: mpoint_t;
+Var
+  smoothangle: angle_t;
+Begin
+  If (Not netgame) Then Begin
+
+    // [crispy] smooth player arrow rotation
+    If crispy.automaprotate <> 0 Then Begin
+      smoothangle := plr^.mo^.angle
+    End
+    Else Begin
+      smoothangle := viewangle;
+    End;
+
+    // [crispy] interpolate player arrow
+    If (crispy.uncapped <> 0) And (leveltime > oldleveltime) Then Begin
+      pt.x := SarLongint(viewx, FRACTOMAPBITS);
+      pt.y := SarLongint(viewy, FRACTOMAPBITS);
+    End
+    Else Begin
+      pt.x := SarLongint(plr^.mo^.x, FRACTOMAPBITS);
+      pt.y := SarLongint(plr^.mo^.y, FRACTOMAPBITS);
+    End;
+    If (crispy.automaprotate <> 0) Then Begin
+      AM_rotatePoint(@pt);
+    End;
+
+    If (cheating <> 0) Then Begin
+      AM_drawLineCharacter
+        (@cheat_player_arrow[0], length(cheat_player_arrow), 0,
+        smoothangle, WHITE, pt.x, pt.y);
+    End
+    Else Begin
+      AM_drawLineCharacter
+        (@player_arrow[0], length(player_arrow), 0, smoothangle,
+        WHITE, pt.x, pt.y);
+    End;
+    exit;
+  End;
+
+  //    for (i=0;i<MAXPLAYERS;i++)
+  //    {
+  //	// [crispy] interpolate other player arrows angle
+  //	angle_t theirangle;
+  //
+  //	their_color++;
+  //	p = &players[i];
+  //
+  //	if ( (deathmatch && !singledemo) && p != plr)
+  //	    continue;
+  //
+  //	if (!playeringame[i])
+  //	    continue;
+  //
+  //	if (p->powers[pw_invisibility])
+  //	    color = 246; // *close* to black
+  //	else
+  //	    color = their_colors[their_color];
+  //
+  //	// [crispy] interpolate other player arrows
+  //	if (crispy->uncapped && leveltime > oldleveltime)
+  //	{
+  //	    pt.x = LerpFixed(p->mo->oldx, p->mo->x) >> FRACTOMAPBITS;
+  //	    pt.y = LerpFixed(p->mo->oldy, p->mo->y) >> FRACTOMAPBITS;
+  //	}
+  //	else
+  //	{
+  //	    pt.x = p->mo->x >> FRACTOMAPBITS;
+  //	    pt.y = p->mo->y >> FRACTOMAPBITS;
+  //	}
+  //
+  //	if (crispy->automaprotate)
+  //	{
+  //	    AM_rotatePoint(&pt);
+  //	    theirangle = p->mo->angle;
+  //	}
+  //	else
+  //	{
+  //        theirangle = LerpAngle(p->mo->oldangle, p->mo->angle);
+  //	}
+  //
+  //	AM_drawLineCharacter
+  //	    (player_arrow, arrlen(player_arrow), 0, theirangle,
+  //	     color, pt.x, pt.y);
+  //    }
+
+End;
+
 Procedure AM_Drawer();
 Begin
   If (Not automapactive) Then exit;
@@ -1236,12 +1591,9 @@ Begin
     AM_clearFB(BACKGROUND);
     pspr_interp := false; // interpolate weapon bobbing
   End;
-
-  Jetzt kann das eigentliche "Malen" los gehen ;)
-
   //  If (grid) Then AM_drawGrid(GRIDCOLORS);
-  //  AM_drawWalls();
-  //  AM_drawPlayers();
+  AM_drawWalls();
+  AM_drawPlayers();
   //  If (cheating = 2) Then AM_drawThings(THINGCOLORS, THINGRANGE);
   //  AM_drawCrosshair(XHAIRCOLORS, false);
 

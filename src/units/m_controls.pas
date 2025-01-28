@@ -94,7 +94,7 @@ Var
   //extern int key_map_north;
   //extern int key_map_south;
   key_map_east: int;
-  //extern int key_map_west;
+  key_map_west: int;
   //extern int key_map_zoomin;
   //extern int key_map_zoomout;
   key_map_toggle: int;
@@ -234,7 +234,7 @@ Begin
 // key_map_north     := KEY_UPARROW;
 // key_map_south     := KEY_DOWNARROW;
   key_map_east := KEY_RIGHTARROW;
-  // key_map_west      := KEY_LEFTARROW;
+  key_map_west := KEY_LEFTARROW;
   // key_map_zoomin    := '=';
   // key_map_zoomout   := '-';
   key_map_toggle := KEY_TAB;
