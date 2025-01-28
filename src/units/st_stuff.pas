@@ -27,6 +27,8 @@ Function cht_CheckCheatSP(Const cht: cheatseq_t; key: char): int;
 
 Function ST_Responder(Const ev: Pevent_t): boolean;
 
+Procedure ST_refreshBackground(force: boolean);
+
 Implementation
 
 Uses
@@ -307,7 +309,7 @@ Begin
 
 End;
 
-Procedure ST_Start();
+procedure ST_Start;
 Begin
   If (Not st_stopped) Then ST_Stop();
 
@@ -316,10 +318,8 @@ Begin
   st_stopped := false;
 End;
 
-
-Procedure ST_refreshBackground(force: boolean);
+procedure ST_refreshBackground(force: boolean);
 Begin
-
   //    if (st_classicstatusbar || force)
   //    {
   //        V_UseBuffer(st_backing_screen);
@@ -504,7 +504,7 @@ Begin
   ST_drawWidgets(false);
 End;
 
-Procedure ST_Drawer(fullscreen, refresh: boolean);
+procedure ST_Drawer(fullscreen, refresh: boolean);
 Begin
   st_statusbaron := (Not fullscreen) Or ((automapactive) And (true {!crispy->automapoverlay}));
   // [crispy] immediately redraw status bar after help screens have been shown
@@ -541,7 +541,7 @@ Begin
   dp_translucent := false;
 End;
 
-Function cht_CheckCheatSP(Const cht: cheatseq_t; key: char): int;
+function cht_CheckCheatSP(const cht: cheatseq_t; key: char): int;
 Begin
   If (cht_CheckCheat(cht, key) <> 0) Then Begin
     result := 0;
@@ -560,7 +560,7 @@ End;
 // Respond to keyboard input events,
 //  intercept cheats.
 
-Function ST_Responder(Const ev: Pevent_t): boolean;
+function ST_Responder(const ev: Pevent_t): boolean;
 Var
   i: int;
 Begin

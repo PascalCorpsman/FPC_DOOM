@@ -23,6 +23,13 @@ Var
   deathmatchstarts: Array[0..MAX_DEATHMATCH_STARTS - 1] Of mapthing_t;
   deathmatch_p: int;
 
+  //
+  // MAP related Lookup tables.
+  // Store VERTEXES, LINEDEFS, SIDEDEFS, etc.
+  //
+  numvertexes: int;
+  vertexes: Array Of vertex_t;
+
   numnodes: int;
   nodes: Array Of node_t;
 
@@ -98,13 +105,6 @@ Const
 Var
   // pointer to the current map lump info struct
   maplumpinfo: ^lumpinfo_t;
-
-  //
-  // MAP related Lookup tables.
-  // Store VERTEXES, LINEDEFS, SIDEDEFS, etc.
-  //
-  numvertexes: int;
-  vertexes: Array Of vertex_t;
 
   totallines: int;
 

@@ -89,6 +89,11 @@ Var
   centerx: int;
 
   localview: localview_t; // [crispy]
+  setsizeneeded: boolean;
+  // [crispy] lookup table for horizontal screen coordinates
+  flipscreenwidth: Array[0..MAXWIDTH - 1] Of int;
+  //int		*flipviewwidth;
+
 
 Procedure R_Init();
 Procedure R_ExecuteSetViewSize();
@@ -131,16 +136,12 @@ Var
   framecount: int;
   goobers_mode: boolean = false;
 
-  setsizeneeded: boolean;
+
   setblocks: int;
   setdetail: int;
 
   scaledviewwidth_nonwide, viewwidth_nonwide: int;
   centerxfrac_nonwide: fixed_t;
-
-  // [crispy] lookup table for horizontal screen coordinates
-  //int		flipscreenwidth[MAXWIDTH];
-  //int		*flipviewwidth;
 
 Procedure R_InitLightTables();
 Var
@@ -535,15 +536,18 @@ Begin
   End;
 
   // [crispy] lookup table for horizontal screen coordinates
-  //    for (i = 0, j = SCREENWIDTH - 1; i < SCREENWIDTH; i++, j--)
-  //    {
-  //	flipscreenwidth[i] = crispy->fliplevels ? j : i;
-  //    }
-
+  For i := 0 To SCREENWIDTH - 1 Do Begin
+    If crispy.fliplevels Then Begin
+      flipscreenwidth[i] := SCREENWIDTH - i - 1;
+    End
+    Else Begin
+      flipscreenwidth[i] := i;
+    End;
+  End;
   //    flipviewwidth = flipscreenwidth + (crispy->fliplevels ? (SCREENWIDTH - scaledviewwidth) : 0);
 
   // [crispy] forcefully initialize the status bar backing screen
-  //    ST_refreshBackground(true);
+  ST_refreshBackground(true);
 
   pspr_interp := false; // interpolate weapon bobbing
 End;

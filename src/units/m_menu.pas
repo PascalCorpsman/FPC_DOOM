@@ -54,7 +54,7 @@ Var
 
   // Blocky mode, has default, 0 = high, 1 = normal
   detailLevel: int = 0;
-  screenblocks: int = 10; // [crispy] increased
+  screenblocks: int = 11; // [crispy] increased CORPSMAN Default = 10, aber so lange das HUD noch nicht läuft sieht das sonst doof aus ..
 
 Implementation
 

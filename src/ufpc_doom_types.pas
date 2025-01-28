@@ -56,6 +56,7 @@ Type
   unsigned_int = uint32;
   P_unsigned_int = ^unsigned_int;
   int64_t = Int64;
+  Pint64_t = ^int64_t;
   float = single;
 
   fixed_t = int;
@@ -64,7 +65,7 @@ Type
   TCrispy = Record
     // [crispy] "crispness" config variables
     automapoverlay: int; // 0, ?
-    //    	int automaprotate;
+    automaprotate: int;
     //    	int automapstats;
     bobfactor: int; // 0,1,2
     brightmaps: int;
@@ -97,7 +98,7 @@ Type
     //    	int playercoords;
     //    	int secretmessage;
     //    	int smoothlight;
-    //    	int smoothmap;
+    smoothmap: int;
     //    	int smoothscaling;
     soundfix: int;
     //    	int soundfull;
@@ -208,6 +209,7 @@ End;
 Initialization
 
   Crispy.automapoverlay := 0;
+  Crispy.automaprotate := 0;
   Crispy.bobfactor := 0;
   Crispy.brightmaps := 0;
   Crispy.centerweapon := 0;
@@ -225,23 +227,23 @@ Initialization
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.pitch := 0;
+  Crispy.smoothmap := 0;
+  //  Crispy.smoothscaling := 1;
+  //    #ifdef CRISPY_TRUECOLOR
+  //    Crispy.smoothlight := 1;
+  //    Crispy.truecolor := 1;
+  //    #Endif
   Crispy.soundfix := 1;
   Crispy.translucency := 0;
   Crispy.uncapped := 0;
+  //  Crispy.vsync := 1;
+  //  Crispy.widescreen := 1; // match screen by default
   Crispy.cleanscreenshot := 0;
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;
-
-  //  Crispy.smoothscaling := 1;
-    //    #ifdef CRISPY_TRUECOLOR
-    //    Crispy.smoothlight := 1;
-    //    Crispy.truecolor := 1;
-    //    #Endif
-  //  Crispy.vsync := 1;
-  //  Crispy.widescreen := 1; // match screen by default
 
   FillChar(critical_s, sizeof(critical_s), 0);
 

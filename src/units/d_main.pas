@@ -697,34 +697,31 @@ End;
 
 Function D_Display(): Boolean;
 Const
+  borderdrawcount: int = 0;
   viewactivestate: boolean = false;
   menuactivestate: boolean = false;
   inhelpscreensstate: Boolean = false;
   oldgamestate: gamestate_t = GS_NEG_1;
-  //    static  int			borderdrawcount;
+
   fullscreen: boolean = false;
 Var
   wipe: Boolean;
   y: int;
   redrawsbar: Boolean;
 Begin
-
   redrawsbar := false;
-
-  //    if (crispy->uncapped)
-  //    {
-  //        I_StartDisplay();
-  //        G_FastResponder();
-  //        G_PrepTiccmd();
-  //    }
+  If (crispy.uncapped <> 0) Then Begin
+    //        I_StartDisplay();
+    //        G_FastResponder();
+    //        G_PrepTiccmd();
+  End;
 
   // change the view size if needed
-  //    if (setsizeneeded)
-  //    {
-  //	R_ExecuteSetViewSize ();
-  //	oldgamestate = -1;                      // force background redraw
-  //	borderdrawcount = 3;
-  //    }
+  If (setsizeneeded) Then Begin
+    R_ExecuteSetViewSize();
+    oldgamestate := GS_NEG_1; // force background redraw
+    borderdrawcount := 3;
+  End;
 
   // save the current screen if about to wipe
   If (gamestate <> wipegamestate) Then Begin
@@ -862,7 +859,7 @@ Begin
       y := 4
     Else
       y := (viewwindowy Shr crispy.hires) + 4;
-    V_DrawPatchDirect((viewwindowx Shr crispy.hires) + ((scaledviewwidth Shr crispy.hires) - 68) Div 2 , y,
+    V_DrawPatchDirect((viewwindowx Shr crispy.hires) + ((scaledviewwidth Shr crispy.hires) - 68) Div 2, y,
       W_CacheLumpName('M_PAUSE', PU_CACHE));
   End;
 

@@ -10,9 +10,8 @@ Uses
 Type
   cheatseq_t = Record
     // settings for this cheat
-
     sequence: String;
-    sequence_len: int;
+  //  sequence_len: int;  // -- Den Braucht man doch eigentlich gar nicht meh, oder ?
     parameter_chars: int;
 
     // state used during the game
