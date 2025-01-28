@@ -26,6 +26,7 @@ Var
   crstr: Array Of String = Nil;
 
 Function V_Colorize(Const playpal: Pbyte; cr: int; source: byte; keepgray109: boolean): Byte;
+Function V_GetPaletteIndex(palette: PByte; r, g, b: int): int;
 
 Implementation
 

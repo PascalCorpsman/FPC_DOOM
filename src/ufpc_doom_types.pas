@@ -81,7 +81,7 @@ Type
     //    	int demotimer;
     //    	int demotimerdir;
     //    	int demobar;
-    //    	int extautomap;
+    extautomap: int; // 0,1
     flipcorpses: int;
     //    	int fpslimit;
     freeaim: int;
@@ -96,7 +96,7 @@ Type
     //    	int overunder;
     pitch: int; // ?
     //    	int playercoords;
-    //    	int secretmessage;
+    secretmessage: int;
     //    	int smoothlight;
     smoothmap: int;
     //    	int smoothscaling;
@@ -218,6 +218,7 @@ Initialization
   Crispy.crosshairhealth := 0;
   Crispy.crosshairtarget := 0;
   Crispy.crosshairtype := 0;
+  Crispy.extautomap := 0; // Wenn <> 0, dann werden Schlüssel Türen auf der Kartenvorschau in ihrer Farbe gezeichnet
   Crispy.flipcorpses := 0;
   Crispy.freeaim := 0;
   Crispy.freelook := 0;
@@ -227,6 +228,7 @@ Initialization
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.pitch := 0;
+  Crispy.secretmessage := 0;
   Crispy.smoothmap := 0;
   //  Crispy.smoothscaling := 1;
   //    #ifdef CRISPY_TRUECOLOR

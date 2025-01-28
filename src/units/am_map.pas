@@ -67,14 +67,14 @@ Procedure AM_Drawer();
 Implementation
 
 Uses
-  doomtype, g_game, info_types, tables
+  doomdata, doomtype, doomdef, g_game, info_types, tables
   , d_loop
   , i_video
   , m_controls, m_menu, m_fixed
   , p_setup, p_tick
   , r_main, r_things
   , st_stuff
-  , v_patch, v_video
+  , v_patch, v_video, v_trans
   , w_wad
   , z_zone
   ;
@@ -109,17 +109,13 @@ Const
   BACKGROUND = BLACK;
   YOURCOLORS = WHITE;
   YOURRANGE = 0;
-  //   WALLCOLORS=	(crispy->extautomap ? REDS+4 : REDS) // [crispy] slightly darker red
   WALLRANGE = REDRANGE;
   TSWALLCOLORS = GRAYS;
   TSWALLRANGE = GRAYSRANGE;
-  //   FDWALLCOLORS	=(crispy->extautomap ? BROWNS+6 : BROWNS) // [crispy] darker brown
   FDWALLRANGE = BROWNRANGE;
-  //   CDWALLCOLORS	=(crispy->extautomap ? 163 : YELLOWS) // [crispy] golden yellow
   CDWALLRANGE = YELLOWRANGE;
   THINGCOLORS = GREENS;
   THINGRANGE = GREENRANGE;
-  //  SECRETWALLCOLORS = WALLCOLORS;
   //  CRISPY_HIGHLIGHT_ = REVEALED_SECRETS;
   SECRETWALLRANGE = WALLRANGE;
   GRIDCOLORS = (GRAYS + GRAYSRANGE Div 2);
@@ -166,7 +162,18 @@ Const
     (a: (x: R Div 6 + R Div 32; y: - R Div 7 - R Div 32); b: (x: R Div 6 + R Div 10; y: - R Div 7))
     );
 
+  // the following is crap
+  LINE_NEVERSEE = ML_DONTDRAW;
+
 Var
+  WALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
+  FDWALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
+  CDWALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
+
+  // [JN] Make wall colors of secret sectors palette-independent.
+  secretwallcolors: int = -1; // wird in AM_LevelInit initialisiert
+  revealedsecretwallcolors: int = -1; // wird in AM_LevelInit initialisiert
+
   lastlevel: int = -1;
   lastepisode: int = -1;
 
@@ -665,6 +672,8 @@ Const
   precalc_once: int = 0; // [crispy] Only need to precalculate color lookup tables once
 Var
   a, b: fixed_t;
+  playpal: PByte;
+  // color: int;
 Begin
 
   f_x := 0;
@@ -717,13 +726,10 @@ Begin
 
   // [crispy] Precalculate color lookup tables for antialiased line drawing using COLORMAP
   If (precalc_once = 0) Then Begin
-    // TODO: das Braucht man nur im Smooth mode, den haben wir eh nicht ...
-
-    //        unsigned char *playpal = W_CacheLumpName("PLAYPAL", PU_STATIC);
+    playpal := W_CacheLumpName('PLAYPAL', PU_STATIC);
 
     precalc_once := 1;
-    //        for (int color = 0; color < 256; ++color)
-    //        {
+    //    For color := 0 To 255 Do Begin
     //#define REINDEX(I) (color + I * 256)
     //            // Pick a range of shades for a steep gradient to keep lines thin
     //            int shade_index[NUMSHADES] =
@@ -735,13 +741,13 @@ Begin
     //            {
     //                color_shades[color * NUMSHADES + shade] = colormaps[shade_index[shade]];
     //            }
-    //        }
-    //
-    //        // [crispy] Make secret wall colors independent from PLAYPAL color indexes
-    //        secretwallcolors = V_GetPaletteIndex(playpal, 255, 0, 255);
-    //        revealedsecretwallcolors = V_GetPaletteIndex(playpal, 119, 255, 111);
-    //
-    //        W_ReleaseLumpName("PLAYPAL");
+    //    End;
+
+    // [crispy] Make secret wall colors independent from PLAYPAL color indexes
+    secretwallcolors := V_GetPaletteIndex(playpal, 255, 0, 255);
+    revealedsecretwallcolors := V_GetPaletteIndex(playpal, 119, 255, 111);
+
+    W_ReleaseLumpName('PLAYPAL');
   End;
 End;
 
@@ -849,6 +855,16 @@ Procedure AM_Start();
 Begin
   If (Not stopped) Then AM_Stop();
   stopped := false;
+  If crispy.extautomap <> 0 Then Begin
+    WALLCOLORS := REDS + 4; // [crispy] slightly darker red
+    FDWALLCOLORS := BROWNS + 6; // [crispy] darker brown
+    CDWALLCOLORS := 163; // [crispy] golden yellow
+  End
+  Else Begin
+    WALLCOLORS := REDS; // [crispy] slightly darker red
+    FDWALLCOLORS := BROWNS; // [crispy] darker brown
+    CDWALLCOLORS := YELLOWS; // [crispy] golden yellow
+  End;
   If (lastlevel <> gamemap) Or (lastepisode <> gameepisode) Then Begin
     AM_LevelInit(false);
     lastlevel := gamemap;
@@ -1557,7 +1573,163 @@ Begin
   //	    (player_arrow, arrlen(player_arrow), 0, theirangle,
   //	     color, pt.x, pt.y);
   //    }
+End;
 
+Function AM_DoorColor(_type: int): keycolor_t;
+Begin
+  result := no_key;
+  If (crispy.extautomap <> 0) Then Begin
+    Case _Type Of
+      26,
+        32,
+        99,
+        133: result := blue_key;
+      27,
+        34,
+        136,
+        137: result := yellow_key;
+      28,
+        33,
+        134,
+        135: result := red_key;
+    End;
+  End;
+End;
+
+Procedure AM_drawWalls();
+Var
+  i: int;
+  l: mline_t;
+  amd: keycolor_t;
+Begin
+  For i := 0 To numlines - 1 Do Begin
+    l.a.x := SarLongint(lines[i].v1^.x, FRACTOMAPBITS);
+    l.a.y := SarLongint(lines[i].v1^.y, FRACTOMAPBITS);
+    l.b.x := SarLongint(lines[i].v2^.x, FRACTOMAPBITS);
+    l.b.y := SarLongint(lines[i].v2^.y, FRACTOMAPBITS);
+    If (crispy.automaprotate <> 0) Then Begin
+      AM_rotatePoint(@l.a);
+      AM_rotatePoint(@l.b);
+    End;
+
+    If (cheating <> 0) Or ((lines[i].flags And ML_MAPPED) <> 0) Then Begin
+      If ((lines[i].flags And LINE_NEVERSEE) <> 0) And (cheating = 0) Then
+        continue;
+
+      // [crispy] draw keyed doors in their respective colors
+      // (no Boom multiple keys)
+      // make keyed doors flash for easier visibility
+      amd := AM_DoorColor(lines[i].special);
+      If ((lines[i].flags And ML_SECRET) = 0) And
+        (amd > no_key) Then Begin
+        Case amd Of
+          blue_key: Begin
+              If (leveltime And 16) <> 0 Then Begin
+                AM_drawMline(@l, BLUES);
+              End
+              Else Begin
+                AM_drawMline(@l, GRIDCOLORS);
+              End;
+              continue;
+            End;
+          yellow_key: Begin
+              If (leveltime And 16) <> 0 Then Begin
+                AM_drawMline(@l, (YELLOWS - 2));
+              End
+              Else Begin
+                AM_drawMline(@l, GRIDCOLORS);
+              End;
+              continue;
+            End;
+          red_key: Begin
+              If (leveltime And 16) <> 0 Then Begin
+                AM_drawMline(@l, (REDS - 2));
+              End
+              Else Begin
+                AM_drawMline(@l, GRIDCOLORS);
+              End;
+              continue;
+            End;
+        End;
+      End;
+
+      // [crispy] draw exit lines in white (no Boom exit lines 197, 198)
+      // NB: Choco does not have this at all, Boom/PrBoom+ have this disabled by default
+      If (crispy.extautomap <> 0) And (
+        (lines[i].special = 11) Or
+        (lines[i].special = 51) Or
+        (lines[i].special = 52) Or
+        (lines[i].special = 124)) Then Begin
+        AM_drawMline(@l, WHITE);
+        continue;
+      End;
+      If (lines[i].backsector = Nil) Then Begin
+
+        // [crispy] draw 1S secret sector boundaries in purple
+        If (crispy.extautomap <> 0) And (
+          cheating <> 0) And ((lines[i].frontsector^.special = 9)) Then
+          AM_drawMline(@l, secretwallcolors)
+            // [crispy] draw revealed secret sector boundaries in green
+        Else If (crispy.extautomap <> 0) And
+          (crispy.secretmessage <> 0) And ((lines[i].frontsector^.oldspecial = 9)) Then
+          AM_drawMline(@l, revealedsecretwallcolors)
+        Else
+          AM_drawMline(@l, WALLCOLORS + lightlev);
+      End
+      Else Begin
+        // [crispy] draw teleporters in green
+        // and also WR teleporters 97 if they are not secret
+        // (no monsters-only teleporters 125, 126; no Boom teleporters)
+        If (lines[i].special = 39) Or
+          ((crispy.extautomap <> 0) And ((lines[i].flags And ML_SECRET) = 0) And (lines[i].special = 97)) Then Begin
+          // teleporters
+          If crispy.extautomap <> 0 Then Begin
+            AM_drawMline(@l, (GREENS + GREENRANGE Div 2));
+          End
+          Else Begin
+            AM_drawMline(@l, (WALLCOLORS + WALLRANGE Div 2));
+          End;
+        End
+        Else If (lines[i].flags And ML_SECRET) <> 0 Then Begin // secret door
+
+          // [crispy] NB: Choco has this check, but (SECRETWALLCOLORS == WALLCOLORS)
+          // Boom/PrBoom+ does not have this check at all
+          If (false) And (cheating <> 0) Then
+            AM_drawMline(@l, secretwallcolors + lightlev)
+          Else
+            AM_drawMline(@l, WALLCOLORS + lightlev);
+        End
+
+          // [crispy] draw revealed secret sector boundaries in green
+        Else If (crispy.extautomap <> 0) And (crispy.secretmessage <> 0) And (
+          ((lines[i].backsector^.oldspecial = 9) Or (
+          lines[i].frontsector^.oldspecial = 9))) Then Begin
+          AM_drawMline(@l, revealedsecretwallcolors);
+        End
+
+          // [crispy] draw 2S secret sector boundaries in purple
+        Else If (crispy.extautomap <> 0) And (cheating <> 0) And
+          (((lines[i].backsector^.special = 9) Or (
+          lines[i].frontsector^.special = 9))) Then Begin
+          AM_drawMline(@l, secretwallcolors);
+        End
+        Else If (lines[i].backsector^.floorheight
+          <> lines[i].frontsector^.floorheight) Then Begin
+          AM_drawMline(@l, FDWALLCOLORS + lightlev); // floor level change
+        End
+        Else If (lines[i].backsector^.ceilingheight
+          <> lines[i].frontsector^.ceilingheight) Then Begin
+          AM_drawMline(@l, CDWALLCOLORS + lightlev); // ceiling level change
+        End
+        Else If (cheating <> 0) Then Begin
+          AM_drawMline(@l, TSWALLCOLORS + lightlev);
+        End;
+      End;
+    End
+    Else If (plr^.powers[integer(pw_allmap)] <> 0) Then Begin
+      If ((lines[i].flags And LINE_NEVERSEE) = 0) Then AM_drawMline(@l, GRAYS + 3);
+    End;
+  End;
 End;
 
 Procedure AM_Drawer();
