@@ -16,7 +16,6 @@ Const
   AM_MSGENTERED = (AM_MSGHEADER Or (ord('e') Shl 8));
   AM_MSGEXITED = (AM_MSGHEADER Or (ord('x') Shl 8));
 
-  //  cheatseq_t cheat_amap = CHEAT("iddt", 0);
   cheat_amap: cheatseq_t = (
     sequence: 'iddt'; parameter_chars: 0
     );
@@ -63,15 +62,16 @@ Procedure AM_Ticker();
 Function AM_Responder(Const ev: Pevent_t): boolean;
 
 Procedure AM_Drawer();
+Procedure AM_ResetIDDTcheat();
 
 Implementation
 
 Uses
-  doomdata, doomtype, doomdef, g_game, info_types, tables
-  , d_loop
+  doomdata, doomtype, doomdef, doomstat, g_game, info_types, tables
+  , d_loop, d_mode
   , i_video
   , m_controls, m_menu, m_fixed
-  , p_setup, p_tick
+  , p_setup, p_tick, p_local
   , r_main, r_things
   , st_stuff
   , v_patch, v_video, v_trans
@@ -178,7 +178,7 @@ Var
   lastepisode: int = -1;
 
   cheating: int = 0;
-  grid: int = 0;
+  grid: int = 0; // 1 = Grid an, 0 = Grid aus
 
   // location of window on screen
   f_x: int;
@@ -1240,13 +1240,11 @@ Begin
     Else Begin
       rc := false;
     End;
-    //
-    //        if ((!deathmatch || gameversion <= exe_doom_1_8)
-    //         && cht_CheckCheat(&cheat_amap, ev->data2))
-    //        {
-    //            rc = false;
-    //            cheating = (cheating + 1) % 3;
-    //        }
+    If ((deathmatch = 0) Or (gameversion <= exe_doom_1_8))
+      And (cht_CheckCheat(cheat_amap, chr(ev^.data2)) <> 0) Then Begin
+      rc := false;
+      cheating := (cheating + 1) Mod 3;
+    End;
   End
   Else If (ev^._type = ev_keyup) Then Begin
 
@@ -1732,6 +1730,88 @@ Begin
   End;
 End;
 
+
+//
+// Draws flat (floor/ceiling tile) aligned grid lines.
+//
+
+Procedure AM_drawGrid(color: int);
+Var
+  x, y: int64_t;
+  start, _end: int64_t;
+  gridsize: fixed_t;
+  ml: mline_t;
+Begin
+  gridsize := MAPBLOCKUNITS Shl MAPBITS;
+
+  // Figure out start of vertical gridlines
+  start := m_x;
+  If (crispy.automaprotate <> 0) Then Begin
+
+    start := start - m_h Div 2;
+  End;
+  // [crispy] fix losing grid lines near the automap boundary
+  If ((start - (bmaporgx Shr FRACTOMAPBITS)) Mod gridsize) <> 0 Then
+    start := start + // (MAPBLOCKUNITS shl FRACBITS)
+    -((start - (bmaporgx Shr FRACTOMAPBITS)) Mod gridsize);
+  _end := m_x + m_w;
+  If (crispy.automaprotate <> 0) Then Begin
+    _end := _end + m_h Div 2;
+  End;
+
+  // draw vertical gridlines
+  x := start;
+  While x < _end Do Begin
+    ml.a.x := x;
+    ml.b.x := x;
+    // [crispy] moved here
+    ml.a.y := m_y;
+    ml.b.y := m_y + m_h;
+    If (crispy.automaprotate <> 0) Then Begin
+
+      ml.a.y := ml.a.y - m_w Div 2;
+      ml.b.y := ml.b.y + m_w Div 2;
+      AM_rotatePoint(@ml.a);
+      AM_rotatePoint(@ml.b);
+    End;
+    AM_drawMline(@ml, color);
+    x := x + gridsize;
+  End;
+
+  // Figure out start of horizontal gridlines
+  start := m_y;
+  If (crispy.automaprotate <> 0) Then Begin
+
+    start := start - m_w Div 2;
+  End;
+  // [crispy] fix losing grid lines near the automap boundary
+  If ((start - (bmaporgy Shr FRACTOMAPBITS)) Mod gridsize) <> 0 Then
+    start := start + // (MAPBLOCKUNITS shl FRACBITS)
+    -((start - (bmaporgy Shr FRACTOMAPBITS)) Mod gridsize);
+  _end := m_y + m_h;
+  If (crispy.automaprotate <> 0) Then Begin
+    _end := _end + m_w Div 2;
+  End;
+
+  // draw horizontal gridlines
+  y := start;
+  While y < _end Do Begin
+    ml.a.y := y;
+    ml.b.y := y;
+    // [crispy] moved here
+    ml.a.x := m_x;
+    ml.b.x := m_x + m_w;
+    If (crispy.automaprotate <> 0) Then Begin
+      ml.a.x := ml.a.x - m_h Div 2;
+      ml.b.x := ml.b.x + m_h Div 2;
+      AM_rotatePoint(@ml.a);
+      AM_rotatePoint(@ml.b);
+    End;
+    AM_drawMline(@ml, color);
+    y := y + gridsize;
+  End;
+End;
+
 Procedure AM_Drawer();
 Begin
   If (Not automapactive) Then exit;
@@ -1763,7 +1843,7 @@ Begin
     AM_clearFB(BACKGROUND);
     pspr_interp := false; // interpolate weapon bobbing
   End;
-  //  If (grid) Then AM_drawGrid(GRIDCOLORS);
+  If (grid) Then AM_drawGrid(GRIDCOLORS);
   AM_drawWalls();
   AM_drawPlayers();
   //  If (cheating = 2) Then AM_drawThings(THINGCOLORS, THINGRANGE);
@@ -1772,6 +1852,11 @@ Begin
   //  AM_drawMarks();
 
   V_MarkRect(f_x, f_y, f_w, f_h);
+End;
+
+Procedure AM_ResetIDDTcheat();
+Begin
+  cheating := 0;
 End;
 
 End.

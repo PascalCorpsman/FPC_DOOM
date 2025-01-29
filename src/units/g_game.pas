@@ -1875,12 +1875,11 @@ Begin
   // [crispy] if a new game is started during demo recording, start a new demo
   If (demorecording) Then Begin
     // [crispy] reset IDDT cheat when re-starting map during demo recording
-//    AM_ResetIDDTcheat();
-//    AM_ResetIDDTcheat();
-//
+    AM_ResetIDDTcheat();
+
     G_CheckDemoStatus();
     //    Z_Free(demoname);
-    //
+
     //    G_RecordDemo(orig_demoname);
     //    G_BeginRecording();
   End;

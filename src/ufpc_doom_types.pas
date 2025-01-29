@@ -224,7 +224,7 @@ Initialization
   Crispy.freelook := 0;
 
   Crispy.hires := 1;
-  //  Crispy.extautomap := 1;
+  Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.pitch := 0;
