@@ -388,10 +388,10 @@ Const
   //
   //  #define AMSTR_GRIDON	"Grid ON"
   //  #define AMSTR_GRIDOFF	"Grid OFF"
-  //
-  //  #define AMSTR_MARKEDSPOT	"Marked Spot"
-  //  #define AMSTR_MARKSCLEARED	"All Marks Cleared"
-  //
+
+  AMSTR_MARKEDSPOT = 'Marked Spot';
+  AMSTR_MARKSCLEARED = 'All Marks Cleared';
+
   //  #define AMSTR_OVERLAYON	"Overlay Mode ON"
   //  #define AMSTR_OVERLAYOFF	"Overlay Mode OFF"
   //

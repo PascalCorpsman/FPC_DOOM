@@ -101,8 +101,8 @@ Var
   //extern int key_map_maxzoom;
   //extern int key_map_follow;
   //extern int key_map_grid;
-  //extern int key_map_mark;
-  //extern int key_map_clearmark;
+  key_map_mark: int;
+  key_map_clearmark: int;
   //extern int key_map_overlay;
   //extern int key_map_rotate;
 
@@ -241,8 +241,8 @@ Begin
   // key_map_maxzoom   := '0';
   // key_map_follow    := 'f';
   // key_map_grid      := 'g';
-  // key_map_mark      := 'm';
-  // key_map_clearmark := 'c';
+  key_map_mark := VK_M;
+  key_map_clearmark := VK_C;
   // key_map_overlay   := 'o'; // [crispy]
   // key_map_rotate    := 'r'; // [crispy]
 

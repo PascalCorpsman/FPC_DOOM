@@ -68,7 +68,7 @@ Implementation
 
 Uses
   doomdata, doomtype, doomdef, doomstat, g_game, info_types, tables
-  , d_loop, d_mode
+  , d_loop, d_mode, d_englsh
   , i_video
   , m_controls, m_menu, m_fixed
   , p_setup, p_tick, p_local, p_mobj
@@ -579,6 +579,34 @@ Begin
   End;
 End;
 
+//
+// adds a marker at the current location
+//
+
+Procedure AM_addMark();
+Begin
+  // [crispy] keep the map static in overlay mode
+  //  If Not following the player
+  If (Not ((followplayer = 0) And (crispy.automapoverlay <> 0))) Then Begin
+    markpoints[markpointnum].x := m_x + m_w Div 2;
+    markpoints[markpointnum].y := m_y + m_h Div 2;
+  End
+  Else Begin
+    markpoints[markpointnum].x := SarLongint(plr^.mo^.x, FRACTOMAPBITS);
+    markpoints[markpointnum].y := SarLongint(plr^.mo^.y, FRACTOMAPBITS);
+  End;
+  markpointnum := (markpointnum + 1) Mod AM_NUMMARKPOINTS;
+End;
+
+Procedure AM_clearMarks();
+Var
+  i: int;
+Begin
+  For i := 0 To AM_NUMMARKPOINTS - 1 Do
+    markpoints[i].x := -1; // means empty
+  markpointnum := 0;
+End;
+
 Procedure AM_Stop();
 Const
   st_notify: event_t = (
@@ -596,17 +624,6 @@ Begin
   ST_Responder(@st_notify);
   stopped := true;
 End;
-
-Procedure AM_clearMarks();
-Var
-  i: int;
-Begin
-  For i := 0 To AM_NUMMARKPOINTS - 1 Do Begin
-    markpoints[i].x := -1; // means empty
-  End;
-  markpointnum := 0;
-End;
-
 
 //
 // Determines bounding box of all vertices,
@@ -1232,18 +1249,14 @@ Begin
       //            else
       //                plr->message = DEH_String(AMSTR_GRIDOFF);
       //        }
-      //        else if (key == key_map_mark)
-      //        {
-      //            M_snprintf(buffer, sizeof(buffer), "%s %d",
-      //                       DEH_String(AMSTR_MARKEDSPOT), markpointnum);
-      //            plr->message = buffer;
-      //            AM_addMark();
-      //        }
-      //        else if (key == key_map_clearmark)
-      //        {
-      //            AM_clearMarks();
-      //            plr->message = DEH_String(AMSTR_MARKSCLEARED);
-      //        }
+    Else If (key = key_map_mark) Then Begin
+      plr^.message := format('%s %d', [AMSTR_MARKEDSPOT, markpointnum]);
+      AM_addMark();
+    End
+    Else If (key = key_map_clearmark) Then Begin
+      AM_clearMarks();
+      plr^.message := AMSTR_MARKSCLEARED;
+    End
       //        else if (key == key_map_overlay)
       //        {
       //            // [crispy] force redraw status bar
@@ -1946,6 +1959,33 @@ Begin
   End;
 End;
 
+Procedure AM_drawMarks();
+Var
+  i, fx, fy, w, h: int;
+  fx_flip: int; // [crispy] support for marks drawing in flipped levels
+  pt: mpoint_t;
+Begin
+  For i := 0 To AM_NUMMARKPOINTS - 1 Do Begin
+    If (markpoints[i].x <> -1) Then Begin
+      //      w = SHORT(marknums[i]->width);
+      //      h = SHORT(marknums[i]->height);
+      w := 5; // because something's wrong with the wad, i guess
+      h := 6; // because something's wrong with the wad, i guess
+      // [crispy] center marks around player
+      pt.x := markpoints[i].x;
+      pt.y := markpoints[i].y;
+      If (crispy.automaprotate <> 0) Then Begin
+        AM_rotatePoint(@pt);
+      End;
+      fx := (CXMTOF(pt.x) {Shr crispy.hires}) - 1;
+      fy := (CYMTOF(pt.y) {Shr crispy.hires}) - 2;
+      fx_flip := (flipscreenwidth[CXMTOF(pt.x)] {Shr crispy.hires}) - 1;
+      If (fx >= f_x) And (fx <= (f_w {Shr crispy.hires}) - w) And (fy >= f_y) And (fy <= (f_h {Shr crispy.hires}) - h) Then
+        V_DrawPatchDirect(fx_flip - WIDESCREENDELTA, fy, marknums[i]);
+    End;
+  End;
+End;
+
 Procedure AM_Drawer();
 Begin
   If (Not automapactive) Then exit;
@@ -1981,9 +2021,9 @@ Begin
   AM_drawWalls();
   AM_drawPlayers();
   If (cheating = 2) Then AM_drawThings(THINGCOLORS, THINGRANGE);
-  //  AM_drawCrosshair(XHAIRCOLORS, false);
+  AM_drawCrosshair(XHAIRCOLORS, false);
 
-  //  AM_drawMarks();
+  AM_drawMarks();
 
   V_MarkRect(f_x, f_y, f_w, f_h);
 End;
