@@ -236,6 +236,8 @@ Procedure TForm1.FormCreate(Sender: TObject);
 Var
   i: Integer;
 Begin
+  ClientWidth := Scale96ToScreen(ORIGWIDTH * 2);
+  ClientHeight := Scale96ToScreen(ORIGHEIGHT * 2);
   Constraints.MinWidth := ORIGWIDTH;
   Constraints.MinHeight := ORIGHEIGHT;
   //  width := 852; // TODO: Debug to be removed
