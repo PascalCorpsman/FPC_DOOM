@@ -71,7 +71,7 @@ Uses
   , d_loop, d_mode
   , i_video
   , m_controls, m_menu, m_fixed
-  , p_setup, p_tick, p_local
+  , p_setup, p_tick, p_local, p_mobj
   , r_main, r_things
   , st_stuff
   , v_patch, v_video, v_trans
@@ -131,7 +131,7 @@ Const
 
   INITSCALEMTOF = (FRACUNIT Div 5);
 
-  R = ((8 * MAPPLAYERRADIUS) Div 7); // WTF: sollte hier nicht auch das "crispy.hires" mit rein ?
+  R = ((8 * MAPPLAYERRADIUS) Div 7);
 
   player_arrow: Array Of mline_t = (
     (a: (x: - R + R Div 8; y: 0); b: (x: R; y: 0)), // -----
@@ -160,6 +160,32 @@ Const
     (a: (x: R Div 6; y: R Div 4); b: (x: R Div 6; y: - R Div 7)), // >>-ddt->
     (a: (x: R Div 6; y: - R Div 7); b: (x: R Div 6 + R Div 32; y: - R Div 7 - R Div 32)),
     (a: (x: R Div 6 + R Div 32; y: - R Div 7 - R Div 32); b: (x: R Div 6 + R Div 10; y: - R Div 7))
+    );
+
+  RR = (FRACUNIT);
+
+  //  triangle_guy: Array Of mline_t = (
+  //    (a: (x: trunc(-0.867 * RR); y: trunc(-0.5 * RR)); b: (x: trunc(0.867 * RR); y: trunc(-0.5 * RR))),
+  //    (a: (x: trunc(0.867 * RR); y: trunc(-0.5 * RR)); b: (x: trunc(0); y: trunc(RR))),
+  //    (a: (x: trunc(0); y: trunc(RR)); b: (x: trunc(-0.867 * RR); y: trunc(-0.5 * RR)))
+  //    );
+
+  thintriangle_guy: Array Of mline_t = (
+    (a: (x: trunc(-0.5 * RR); y: trunc(-0.7 * RR)); b: (x: trunc(RR); y: trunc(0))),
+    (a: (x: trunc(RR); y: trunc(0)); b: (x: trunc(-0.5 * RR); y: trunc(0.7 * RR))),
+    (a: (x: trunc(-0.5 * RR); y: trunc(0.7 * RR)); b: (x: trunc(-0.5 * RR); y: trunc(-0.7 * RR)))
+    );
+
+  // [crispy] print keys as crosses
+  cross_mark: Array Of mline_t = (
+    (a: (x: - RR; y: 0); b: (x: RR; y: 0)),
+    (a: (x: 0; y: - RR); b: (x: 0; y: RR))
+    );
+  square_mark: Array Of mline_t = (
+    (a: (x: - RR; y: 0); b: (x: 0; y: RR)),
+    (a: (x: 0; y: RR); b: (x: RR; y: 0)),
+    (a: (x: RR; y: 0); b: (x: 0; y: - RR)),
+    (a: (x: 0; y: - RR); b: (x: - RR; y: 0))
     );
 
   // the following is crap
@@ -1812,6 +1838,114 @@ Begin
   End;
 End;
 
+Procedure AM_drawThings(colors, colorrange: int);
+Var
+  col, i: int;
+  t: ^mobj_t;
+  key: keycolor_t;
+  pt: mpoint_t;
+Begin
+
+  For i := 0 To numsectors - 1 Do Begin
+
+    t := sectors[i].thinglist;
+    While assigned(t) Do Begin
+
+      // [crispy] do not draw an extra triangle for the player
+      If (t = plr^.mo) Then Begin
+        t := t^.snext;
+        continue;
+      End;
+
+      // [crispy] interpolate thing triangles movement
+      If (leveltime > oldleveltime) Then Begin
+        pt.x := SarLongint(LerpFixed(t^.oldx, t^.x), FRACTOMAPBITS);
+        pt.y := SarLongint(LerpFixed(t^.oldy, t^.y), FRACTOMAPBITS);
+      End
+      Else Begin
+        pt.x := SarLongint(t^.x, FRACTOMAPBITS);
+        pt.y := SarLongint(t^.y, FRACTOMAPBITS);
+      End;
+      If (crispy.automaprotate <> 0) Then Begin
+        AM_rotatePoint(@pt);
+      End;
+
+      If (crispy.extautomap <> 0) Then Begin
+        // [crispy] skull keys and key cards
+        Case (t^.info^.doomednum) Of
+          38, 13: key := red_key;
+          39, 6: key := yellow_key;
+          40, 5: key := blue_key;
+        Else
+          key := no_key;
+        End;
+        // [crispy] draw keys as crosses in their respective colors
+        If (key > no_key) Then Begin
+          Case key Of
+            red_key: col := REDS;
+            yellow_key: col := YELLOWS;
+            blue_key: col := BLUES
+          Else
+            col := colors + lightlev;
+          End;
+          AM_drawLineCharacter
+            (@cross_mark[0], length(cross_mark),
+            16 Shl MAPBITS, t^.angle,
+            col,
+            pt.x, pt.y);
+        End
+          // [crispy] draw blood splats and puffs as small squares
+        Else If (t^._type = MT_BLOOD) Or (t^._type = MT_PUFF) Then Begin
+          If (t^._type = MT_BLOOD) Then Begin
+            col := REDS;
+          End
+          Else Begin
+            col := GRAYS;
+          End;
+          AM_drawLineCharacter
+            (@square_mark[0], length(square_mark),
+            (t^.radius Shr 2) Shr FRACTOMAPBITS, t^.angle,
+            col,
+            pt.x, pt.y);
+        End
+        Else Begin
+
+          // [crispy] show countable kills in red ...
+          If ((t^.flags And (MF_COUNTKILL Or MF_CORPSE)) = MF_COUNTKILL) Then
+            col := REDS
+              // [crispy] ... show Lost Souls and missiles in orange ...
+          Else If (t^.flags And (MF_FLOAT Or MF_MISSILE)) <> 0 Then
+            col := 216
+              // [crispy] ... show other shootable items in dark gold ...
+          Else If (t^.flags And MF_SHOOTABLE) <> 0 Then
+            col := 164
+              // [crispy] ... corpses in gray ...
+          Else If (t^.flags And MF_CORPSE) <> 0 Then
+            col := GRAYS
+              // [crispy] ... and countable items in yellow
+          Else If (t^.flags And MF_COUNTITEM) <> 0 Then
+            col := YELLOWS
+          Else
+            col := colors + lightlev;
+
+          AM_drawLineCharacter
+            (@thintriangle_guy[0], length(thintriangle_guy),
+            // [crispy] triangle size represents actual thing size
+            t^.radius Shr FRACTOMAPBITS, t^.angle,
+            col,
+            pt.x, pt.y);
+        End;
+      End
+      Else Begin
+        AM_drawLineCharacter
+          (@thintriangle_guy[0], length(thintriangle_guy),
+          16 Shl MAPBITS, t^.angle, colors + lightlev, pt.x, pt.y);
+      End;
+      t := t^.snext;
+    End;
+  End;
+End;
+
 Procedure AM_Drawer();
 Begin
   If (Not automapactive) Then exit;
@@ -1843,10 +1977,10 @@ Begin
     AM_clearFB(BACKGROUND);
     pspr_interp := false; // interpolate weapon bobbing
   End;
-  If (grid) Then AM_drawGrid(GRIDCOLORS);
+  If (grid <> 0) Then AM_drawGrid(GRIDCOLORS);
   AM_drawWalls();
   AM_drawPlayers();
-  //  If (cheating = 2) Then AM_drawThings(THINGCOLORS, THINGRANGE);
+  If (cheating = 2) Then AM_drawThings(THINGCOLORS, THINGRANGE);
   //  AM_drawCrosshair(XHAIRCOLORS, false);
 
   //  AM_drawMarks();

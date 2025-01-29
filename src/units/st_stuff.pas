@@ -23,7 +23,7 @@ Procedure ST_Start();
 
 Procedure ST_Drawer(fullscreen, refresh: boolean);
 
-Function cht_CheckCheatSP(var cht: cheatseq_t; key: char): int;
+Function cht_CheckCheatSP(Var cht: cheatseq_t; key: char): int;
 
 Function ST_Responder(Const ev: Pevent_t): boolean;
 
