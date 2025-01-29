@@ -83,7 +83,7 @@ Const
 
   // how much the automap moves window per tic in frame-buffer coordinates
   // moves 140 pixels in 1 second
-  F_PANINC = 4;
+  DEFINE_F_PANINC = 4;
   // [crispy] pan faster by holding run button
   F2_PANINC = 12;
 
@@ -192,6 +192,9 @@ Const
   LINE_NEVERSEE = ML_DONTDRAW;
 
 Var
+  f_paninc: int;
+  m_zoomin_kbd: int;
+  m_zoomout_kbd: int;
   WALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
   FDWALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
   CDWALLCOLORS: int; // Wird in AM_Start gesetzt, ist eigentlich const
@@ -801,7 +804,6 @@ Begin
 
   // [crispy] accumulate automap panning by keyboard and mouse
   If (crispy.uncapped <> 0) And (leveltime > oldleveltime) Then Begin
-
     incx := FixedMul(m_paninc_target.x, fractionaltic);
     incy := FixedMul(m_paninc_target.y, fractionaltic);
   End
@@ -810,7 +812,7 @@ Begin
     incy := m_paninc_target.y;
   End;
   If (crispy.automaprotate <> 0) Then Begin
-    AM_rotate(@incx, @incy, -mapangle);
+    AM_rotate(@incx, @incy, angle_t(-mapangle));
   End;
   m_x := prev_m_x + incx;
   m_y := prev_m_y + incy;
@@ -1061,6 +1063,19 @@ Begin
   // AM_updateLightLev();
 End;
 
+// how much zoom-in per tic
+// goes to 2x in 1 second
+
+Function M_ZOOMIN(): int;
+Begin
+  result := (trunc(1.02 * FRACUNIT));
+End;
+
+Function M_ZOOMOUT(): int;
+Begin
+  result := (trunc(FRACUNIT / 1.02))
+End;
+
 Function AM_Responder(Const ev: Pevent_t): boolean;
 Var
   rc: boolean;
@@ -1082,9 +1097,9 @@ Begin
   //    }
   //    else
   //    {
-  //        f_paninc = F_PANINC;
-  //        m_zoomin_kbd = M_ZOOMIN;
-  //        m_zoomout_kbd = M_ZOOMOUT;
+  f_paninc := DEFINE_F_PANINC;
+  m_zoomin_kbd := M_ZOOMIN();
+  m_zoomout_kbd := M_ZOOMOUT();
   //        m_zoomin_mouse = M2_ZOOMIN;
   //        m_zoomout_mouse = M2_ZOOMOUT;
   //    }
@@ -1208,16 +1223,14 @@ Begin
       //                m_paninc.y = -FTOM(f_paninc << crispy->hires);
       //            else rc = false;
       //        }
-      //        else if (key == key_map_zoomout)  // zoom out
-      //        {
-      //            mtof_zoommul = m_zoomout_kbd;
-      //            ftom_zoommul = m_zoomin_kbd;
-      //        }
-      //        else if (key == key_map_zoomin)   // zoom in
-      //        {
-      //            mtof_zoommul = m_zoomin_kbd;
-      //            ftom_zoommul = m_zoomout_kbd;
-      //        }
+    Else If (key = key_map_zoomout) Then Begin // zoom out
+      mtof_zoommul := m_zoomout_kbd;
+      ftom_zoommul := m_zoomin_kbd;
+    End
+    Else If (key = key_map_zoomin) Then Begin // zoom in
+      mtof_zoommul := m_zoomin_kbd;
+      ftom_zoommul := m_zoomout_kbd;
+    End
     Else If (key = key_map_toggle) Then Begin
       bigstate := 0;
       viewactive := true;
@@ -1257,25 +1270,25 @@ Begin
       AM_clearMarks();
       plr^.message := AMSTR_MARKSCLEARED;
     End
-      //        else if (key == key_map_overlay)
-      //        {
-      //            // [crispy] force redraw status bar
-      //            inhelpscreens = true;
-      //
-      //            crispy->automapoverlay = !crispy->automapoverlay;
-      //            if (crispy->automapoverlay)
-      //                plr->message = DEH_String(AMSTR_OVERLAYON);
-      //            else
-      //                plr->message = DEH_String(AMSTR_OVERLAYOFF);
-      //        }
-      //        else if (key == key_map_rotate)
-      //        {
-      //            crispy->automaprotate = !crispy->automaprotate;
-      //            if (crispy->automaprotate)
-      //                plr->message = DEH_String(AMSTR_ROTATEON);
-      //            else
-      //                plr->message = DEH_String(AMSTR_ROTATEOFF);
-      //        }
+    Else If (key = key_map_overlay) Then Begin
+
+      // [crispy] force redraw status bar
+      inhelpscreens := true;
+
+      crispy.automapoverlay := 1 - crispy.automapoverlay;
+      If (crispy.automapoverlay <> 0) Then
+        plr^.message := AMSTR_OVERLAYON
+      Else
+        plr^.message := AMSTR_OVERLAYOFF;
+    End
+    Else If (key = key_map_rotate) Then Begin
+
+      crispy.automaprotate := 1 - crispy.automaprotate;
+      If (crispy.automaprotate <> 0) Then
+        plr^.message := AMSTR_ROTATEON
+      Else
+        plr^.message := AMSTR_ROTATEOFF;
+    End
     Else Begin
       rc := false;
     End;
@@ -1287,9 +1300,9 @@ Begin
   End
   Else If (ev^._type = ev_keyup) Then Begin
 
-    //        rc = false;
-    //        key = ev->data1;
-    //
+    rc := false;
+    key := ev^.data1;
+
     //        if (key == key_map_east)
     //        {
     //            if (!followplayer) m_paninc.x = 0;
@@ -1306,11 +1319,11 @@ Begin
     //        {
     //            if (!followplayer) m_paninc.y = 0;
     //        }
-    //        else if (key == key_map_zoomout || key == key_map_zoomin)
-    //        {
-    //            mtof_zoommul = FRACUNIT;
-    //            ftom_zoommul = FRACUNIT;
-    //        }
+    //        else
+    If (key = key_map_zoomout) Or (key = key_map_zoomin) Then Begin
+      mtof_zoommul := FRACUNIT;
+      ftom_zoommul := FRACUNIT;
+    End;
   End;
 
   result := rc;
@@ -1413,14 +1426,12 @@ Begin
       tmp.y := 0;
     End
     Else If (outside And BOTTOM) <> 0 Then Begin
-
       dy := fl^.a.y - fl^.b.y;
       dx := fl^.b.x - fl^.a.x;
       tmp.x := fl^.a.x + fixed_t(((int64_t(dx * (fl^.a.y - (f_y + f_h)))) Div dy));
       tmp.y := f_h - 1;
     End
     Else If (outside And RIGHT) <> 0 Then Begin
-
       dy := fl^.b.y - fl^.a.y;
       dx := fl^.b.x - fl^.a.x;
       tmp.y := fl^.a.y + fixed_t(((int64_t(dy * (f_x + f_w - 1 - fl^.a.x))) Div dx));
@@ -1480,7 +1491,7 @@ Var
   l: mline_t;
 Begin
   If (crispy.automaprotate <> 0) Then Begin
-    angle := angle + mapangle;
+    angle := angle_t(angle + mapangle);
   End;
 
   For i := 0 To lineguylines - 1 Do Begin
@@ -1617,18 +1628,9 @@ Begin
   result := no_key;
   If (crispy.extautomap <> 0) Then Begin
     Case _Type Of
-      26,
-        32,
-        99,
-        133: result := blue_key;
-      27,
-        34,
-        136,
-        137: result := yellow_key;
-      28,
-        33,
-        134,
-        135: result := red_key;
+      26, 32, 99, 133: result := blue_key;
+      27, 34, 136, 137: result := yellow_key;
+      28, 33, 134, 135: result := red_key;
     End;
   End;
 End;
@@ -1728,7 +1730,6 @@ Begin
           End;
         End
         Else If (lines[i].flags And ML_SECRET) <> 0 Then Begin // secret door
-
           // [crispy] NB: Choco has this check, but (SECRETWALLCOLORS == WALLCOLORS)
           // Boom/PrBoom+ does not have this check at all
           If (false) And (cheating <> 0) Then
@@ -1768,7 +1769,6 @@ Begin
     End;
   End;
 End;
-
 
 //
 // Draws flat (floor/ceiling tile) aligned grid lines.
@@ -1858,9 +1858,7 @@ Var
   key: keycolor_t;
   pt: mpoint_t;
 Begin
-
   For i := 0 To numsectors - 1 Do Begin
-
     t := sectors[i].thinglist;
     While assigned(t) Do Begin
 
@@ -2010,7 +2008,7 @@ Begin
     // [crispy] keep the map static in overlay mode
     // if not following the player
     If (Not ((followplayer = 0) And (crispy.automapoverlay = 0))) Then
-      mapangle := ANG90 - plr^.mo^.angle;
+      mapangle := angle_t(ANG90 - plr^.mo^.angle);
   End;
 
   If (crispy.automapoverlay = 0) Then Begin

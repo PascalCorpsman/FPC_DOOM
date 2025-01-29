@@ -95,16 +95,16 @@ Var
   //extern int key_map_south;
   key_map_east: int;
   key_map_west: int;
-  //extern int key_map_zoomin;
-  //extern int key_map_zoomout;
+  key_map_zoomin: int;
+  key_map_zoomout: int;
   key_map_toggle: int;
   //extern int key_map_maxzoom;
   //extern int key_map_follow;
   //extern int key_map_grid;
   key_map_mark: int;
   key_map_clearmark: int;
-  //extern int key_map_overlay;
-  //extern int key_map_rotate;
+  key_map_overlay: int;
+  key_map_rotate: int;
 
   // menu keys:
   key_menu_activate: int;
@@ -235,16 +235,16 @@ Begin
 // key_map_south     := KEY_DOWNARROW;
   key_map_east := KEY_RIGHTARROW;
   key_map_west := KEY_LEFTARROW;
-  // key_map_zoomin    := '=';
-  // key_map_zoomout   := '-';
+  key_map_zoomin := VK_ADD;
+  key_map_zoomout := VK_SUBTRACT;
   key_map_toggle := KEY_TAB;
   // key_map_maxzoom   := '0';
   // key_map_follow    := 'f';
   // key_map_grid      := 'g';
   key_map_mark := VK_M;
   key_map_clearmark := VK_C;
-  // key_map_overlay   := 'o'; // [crispy]
-  // key_map_rotate    := 'r'; // [crispy]
+  key_map_overlay := VK_O; // [crispy]
+  key_map_rotate := VK_R; // [crispy]
 
 
   key_speed := KEY_RSHIFT;

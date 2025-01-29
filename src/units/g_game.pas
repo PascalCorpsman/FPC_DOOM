@@ -667,9 +667,9 @@ Begin
   Case (gamestate) Of
     GS_LEVEL: Begin
         P_Ticker();
-        //	ST_Ticker ();
-        //	AM_Ticker ();
-        //	HU_Ticker ();
+        ST_Ticker();
+        AM_Ticker();
+        HU_Ticker();
       End;
 
     GS_INTERMISSION: Begin

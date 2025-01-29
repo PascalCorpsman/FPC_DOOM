@@ -20,6 +20,7 @@ Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
 
 Procedure ST_Start();
+Procedure ST_Ticker();
 
 Procedure ST_Drawer(fullscreen, refresh: boolean);
 
@@ -316,6 +317,16 @@ Begin
   ST_initData();
   ST_createWidgets();
   st_stopped := false;
+End;
+
+Procedure ST_Ticker();
+Begin
+  //  st_randomnumber = M_Random();
+  //    ST_updateWidgets();
+  //    st_oldhealth = plyr->health;
+  //
+  //    // Do red-/gold-shifts from damage/items
+  //    ST_doPaletteStuff();
 End;
 
 Procedure ST_refreshBackground(force: boolean);

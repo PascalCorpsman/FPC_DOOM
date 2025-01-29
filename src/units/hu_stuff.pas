@@ -20,6 +20,7 @@ Var
 Procedure HU_Init();
 Procedure HU_Start();
 Procedure HU_Erase();
+Procedure HU_Ticker();
 
 Implementation
 
@@ -300,6 +301,237 @@ Begin
   //    HUlib_eraseTextLine(&w_coordy);
   //    HUlib_eraseTextLine(&w_coorda);
   //    HUlib_eraseTextLine(&w_fps);
+End;
+
+Procedure HU_Ticker();
+Begin
+  //    int i, rc;
+  //    char c;
+  //    char str[32], *s;
+  //
+  //    // tick down message counter if message is up
+  //    if (message_counter && !--message_counter)
+  //    {
+  //	message_on = false;
+  //	message_nottobefuckedwith = false;
+  //	crispy->screenshotmsg >>= 1;
+  //    }
+  //
+  //    if (secret_counter && !--secret_counter)
+  //    {
+  //	secret_on = false;
+  //    }
+  //
+  //    if (showMessages || message_dontfuckwithme)
+  //    {
+  //
+  //	// [crispy] display centered message
+  //	if (plr->centermessage)
+  //	{
+  //	    extern int M_StringWidth(const char *string);
+  //	    w_secret.l[0].x = ORIGWIDTH/2 - M_StringWidth(plr->centermessage)/2;
+  //
+  //	    HUlib_addMessageToSText(&w_secret, 0, plr->centermessage);
+  //	    plr->centermessage = 0;
+  //	    secret_on = true;
+  //	    secret_counter = 5*TICRATE/2; // [crispy] 2.5 seconds
+  //	}
+  //
+  //	// display message if necessary
+  //	if ((plr->message && !message_nottobefuckedwith)
+  //	    || (plr->message && message_dontfuckwithme))
+  //	{
+  //	    HUlib_addMessageToSText(&w_message, 0, plr->message);
+  //	    plr->message = 0;
+  //	    message_on = true;
+  //	    message_counter = HU_MSGTIMEOUT;
+  //	    message_nottobefuckedwith = message_dontfuckwithme;
+  //	    message_dontfuckwithme = 0;
+  //	    crispy->screenshotmsg >>= 1;
+  //	}
+  //
+  //    } // else message_on = false;
+  //
+  //    w_kills.y = HU_MSGY + 1 * 8;
+  //
+  //    // check for incoming chat characters
+  //    if (netgame)
+  //    {
+  //	for (i=0 ; i<MAXPLAYERS; i++)
+  //	{
+  //	    if (!playeringame[i])
+  //		continue;
+  //	    if (i != consoleplayer
+  //		&& (c = players[i].cmd.chatchar))
+  //	    {
+  //		if (c <= HU_BROADCAST)
+  //		    chat_dest[i] = c;
+  //		else
+  //		{
+  //		    rc = HUlib_keyInIText(&w_inputbuffer[i], c);
+  //		    if (rc && c == KEY_ENTER)
+  //		    {
+  //			if (w_inputbuffer[i].l.len
+  //			    && (chat_dest[i] == consoleplayer+1
+  //				|| chat_dest[i] == HU_BROADCAST))
+  //			{
+  //			    HUlib_addMessageToSText(&w_message,
+  //						    DEH_String(player_names[i]),
+  //						    w_inputbuffer[i].l.l);
+  //
+  //			    message_nottobefuckedwith = true;
+  //			    message_on = true;
+  //			    message_counter = HU_MSGTIMEOUT;
+  //			    if ( gamemode == commercial )
+  //			      S_StartSound(0, sfx_radio);
+  //			    else if (gameversion > exe_doom_1_2)
+  //			      S_StartSound(0, sfx_tink);
+  //			}
+  //			HUlib_resetIText(&w_inputbuffer[i]);
+  //		    }
+  //		}
+  //		players[i].cmd.chatchar = 0;
+  //	    }
+  //	}
+  //    // [crispy] shift widgets one line down so chat typing line may appear
+  //    if (crispy->automapstats != WIDGETS_STBAR)
+  //    {
+  //        const int chat_line = chat_on ? 8 : 0;
+  //
+  //        w_kills.y = HU_MSGY + 1 * 8 + chat_line;
+  //        w_items.y = HU_MSGY + 2 * 8 + chat_line;
+  //        w_scrts.y = HU_MSGY + 3 * 8 + chat_line;
+  //        // [crispy] do not shift level time widget if no stats widget is used
+  //        w_ltime.y = HU_MSGY + 4 * 8 + (crispy->automapstats ? chat_line : 0);
+  //        w_coordx.y = HU_MSGY + 1 * 8 + chat_line;
+  //        w_coordy.y = HU_MSGY + 2 * 8 + chat_line;
+  //        w_coorda.y = HU_MSGY + 3 * 8 + chat_line;
+  //    }
+  //    }
+  //
+  //    if (automapactive)
+  //    {
+  //	// [crispy] move map title to the bottom
+  //	if (crispy->automapoverlay && screenblocks >= CRISPY_HUD - 1)
+  //	    w_title.y = HU_TITLEY + ST_HEIGHT;
+  //	else
+  //	    w_title.y = HU_TITLEY;
+  //    }
+  //
+  //    if (crispy->automapstats == WIDGETS_STBAR && (!automapactive || w_title.y != HU_TITLEY))
+  //    {
+  //	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
+  //
+  //	w_kills.x = - ST_WIDESCREENDELTA;
+  //
+  //	w_kills.y = HU_TITLEY;
+  //
+  //	crispy_statsline(str, sizeof(str), "K ", plr->killcount, totalkills, extrakills);
+  //	HUlib_clearTextLine(&w_kills);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_kills, *(s++));
+  //
+  //	crispy_statsline(str, sizeof(str), "I ", plr->itemcount, totalitems, 0);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_kills, *(s++));
+  //
+  //	crispy_statsline(str, sizeof(str), "S ", plr->secretcount, totalsecret, 0);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_kills, *(s++));
+  //    }
+  //    else
+  //    if ((crispy->automapstats & WIDGETS_ALWAYS) || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
+  //    {
+  //
+  //	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
+  //
+  //	w_kills.x = HU_TITLEX; // to handle switching from Status bar to Always and Automap kills line options
+  //
+  //	crispy_statsline(str, sizeof(str), kills, plr->killcount, totalkills, extrakills);
+  //	HUlib_clearTextLine(&w_kills);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_kills, *(s++));
+  //
+  //	crispy_statsline(str, sizeof(str), "I\t", plr->itemcount, totalitems, 0);
+  //	HUlib_clearTextLine(&w_items);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_items, *(s++));
+  //
+  //	crispy_statsline(str, sizeof(str), "S\t", plr->secretcount, totalsecret, 0);
+  //	HUlib_clearTextLine(&w_scrts);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_scrts, *(s++));
+  //    }
+  //
+  //    if (crispy->leveltime == WIDGETS_ALWAYS || (automapactive && crispy->leveltime == WIDGETS_AUTOMAP))
+  //    {
+  //	const int time = leveltime / TICRATE;
+  //
+  //	if (time >= 3600)
+  //	    M_snprintf(str, sizeof(str), "%s%02d:%02d:%02d", crstr[CR_GRAY],
+  //	            time/3600, (time%3600)/60, time%60);
+  //	else
+  //	    M_snprintf(str, sizeof(str), "%s%02d:%02d", crstr[CR_GRAY],
+  //	            time/60, time%60);
+  //	HUlib_clearTextLine(&w_ltime);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_ltime, *(s++));
+  //    }
+  //
+  //    // [crispy] "use" button timer overrides the level time widget
+  //    if (crispy->btusetimer && plr->btuse_tics)
+  //    {
+  //	const int mins = plr->btuse / (60 * TICRATE);
+  //	const float secs = (float)(plr->btuse % (60 * TICRATE)) / TICRATE;
+  //
+  //	plr->btuse_tics--;
+  //
+  //	M_snprintf(str, sizeof(str), "%sU\t%02i:%05.02f", crstr[CR_GRAY], mins, secs);
+  //	HUlib_clearTextLine(&w_ltime);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_ltime, *(s++));
+  //    }
+  //
+  //    if (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP))
+  //    {
+  //	M_snprintf(str, sizeof(str), "%sX\t%s%-5d", cr_stat2, crstr[CR_GRAY],
+  //	        (plr->mo->x)>>FRACBITS);
+  //	HUlib_clearTextLine(&w_coordx);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_coordx, *(s++));
+  //
+  //	M_snprintf(str, sizeof(str), "%sY\t%s%-5d", cr_stat2, crstr[CR_GRAY],
+  //	        (plr->mo->y)>>FRACBITS);
+  //	HUlib_clearTextLine(&w_coordy);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_coordy, *(s++));
+  //
+  //	M_snprintf(str, sizeof(str), "%sA\t%s%-5d", cr_stat2, crstr[CR_GRAY],
+  //	        (plr->mo->angle)/ANG1);
+  //	HUlib_clearTextLine(&w_coorda);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_coorda, *(s++));
+  //    }
+  //
+  //    if (plr->powers[pw_showfps])
+  //    {
+  //	M_snprintf(str, sizeof(str), "%s%-4d %sFPS", crstr[CR_GRAY], crispy->fps, cr_stat2);
+  //	HUlib_clearTextLine(&w_fps);
+  //	s = str;
+  //	while (*s)
+  //	    HUlib_addCharToTextLine(&w_fps, *(s++));
+  //    }
 End;
 
 End.
