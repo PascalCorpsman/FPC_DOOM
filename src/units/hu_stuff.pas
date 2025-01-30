@@ -6,6 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
+  , d_event
   , hu_lib
   , i_timer
   , v_patch
@@ -29,6 +30,7 @@ Procedure HU_Start();
 Procedure HU_Erase();
 Procedure HU_Ticker();
 Procedure HU_Drawer();
+Function HU_Responder(Const ev: Pevent_t): boolean;
 
 Implementation
 
@@ -963,6 +965,139 @@ Begin
   //    {
   //	HU_DemoProgressBar();
   //    }
+End;
+
+Function HU_Responder(Const ev: Pevent_t): boolean;
+//   static char		lastmessage[HU_MAXLINELENGTH+1];
+//    static int		num_nobrainers = 0;
+//    static boolean	altdown = false;
+
+//    const char		*macromessage;
+//    unsigned char 	c;
+//    int			i;
+//    int			numplayers;
+
+Var
+  eatkey: boolean;
+
+Begin
+  eatkey := false;
+
+  //    numplayers = 0;
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //	numplayers += playeringame[i];
+  //
+  //    if (ev->data1 == KEY_RSHIFT)
+  //    {
+  //	return false;
+  //    }
+  //    else if (ev->data1 == KEY_RALT || ev->data1 == KEY_LALT)
+  //    {
+  //	altdown = ev->type == ev_keydown;
+  //	return false;
+  //    }
+  //
+  //    if (ev->type != ev_keydown)
+  //	return false;
+  //
+  //    if (!chat_on)
+  //    {
+  //	if (ev->data1 == key_message_refresh)
+  //	{
+  //	    message_on = true;
+  //	    message_counter = HU_MSGTIMEOUT;
+  //	    eatkey = true;
+  //	}
+  //	else if (netgame && !demoplayback && ev->data2 == key_multi_msg)
+  //	{
+  //	    eatkey = true;
+  //            StartChatInput(HU_BROADCAST);
+  //	}
+  //	else if (netgame && !demoplayback && numplayers > 2)
+  //	{
+  //	    for (i=0; i<MAXPLAYERS ; i++)
+  //	    {
+  //		if (ev->data2 == key_multi_msgplayer[i])
+  //		{
+  //		    if (playeringame[i] && i!=consoleplayer)
+  //		    {
+  //			eatkey = true;
+  //                        StartChatInput(i + 1);
+  //			break;
+  //		    }
+  //		    else if (i == consoleplayer)
+  //		    {
+  //			num_nobrainers++;
+  //			if (num_nobrainers < 3)
+  //			    plr->message = DEH_String(HUSTR_TALKTOSELF1);
+  //			else if (num_nobrainers < 6)
+  //			    plr->message = DEH_String(HUSTR_TALKTOSELF2);
+  //			else if (num_nobrainers < 9)
+  //			    plr->message = DEH_String(HUSTR_TALKTOSELF3);
+  //			else if (num_nobrainers < 32)
+  //			    plr->message = DEH_String(HUSTR_TALKTOSELF4);
+  //			else
+  //			    plr->message = DEH_String(HUSTR_TALKTOSELF5);
+  //		    }
+  //		}
+  //	    }
+  //	}
+  //    }
+  //    else
+  //    {
+  //	// send a macro
+  //	if (altdown)
+  //	{
+  //	    c = ev->data1 - '0';
+  //	    if (c > 9)
+  //		return false;
+  //	    // fprintf(stderr, "got here\n");
+  //	    macromessage = chat_macros[c];
+  //
+  //	    // kill last message with a '\n'
+  //	    HU_queueChatChar(KEY_ENTER); // DEBUG!!!
+  //
+  //	    // send the macro message
+  //	    while (*macromessage)
+  //		HU_queueChatChar(*macromessage++);
+  //	    HU_queueChatChar(KEY_ENTER);
+  //
+  //            // leave chat mode and notify that it was sent
+  //            StopChatInput();
+  //            M_StringCopy(lastmessage, chat_macros[c], sizeof(lastmessage));
+  //            plr->message = lastmessage;
+  //            eatkey = true;
+  //	}
+  //	else
+  //	{
+  //            c = ev->data3;
+  //
+  //	    eatkey = HUlib_keyInIText(&w_chat, c);
+  //	    if (eatkey)
+  //	    {
+  //		// static unsigned char buf[20]; // DEBUG
+  //		HU_queueChatChar(c);
+  //
+  //		// M_snprintf(buf, sizeof(buf), "KEY: %d => %d", ev->data1, c);
+  //		//        plr->message = buf;
+  //	    }
+  //	    if (c == KEY_ENTER)
+  //	    {
+  //		StopChatInput();
+  //                if (w_chat.l.len)
+  //                {
+  //                    M_StringCopy(lastmessage, w_chat.l.l, sizeof(lastmessage));
+  //                    plr->message = lastmessage;
+  //                }
+  //	    }
+  //	    else if (c == KEY_ESCAPE)
+  //	    {
+  //                StopChatInput();
+  //            }
+  //	}
+  //    }
+
+  result := eatkey;
 End;
 
 End.

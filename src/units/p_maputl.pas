@@ -18,12 +18,13 @@ Var
   lowfloor: fixed_t;
   trace: divline_t;
 
-Procedure P_SetThingPosition(thing: pmobj_t);
 
 Function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: int; trav: traverser_t): boolean;
 
 Procedure P_LineOpening(linedef: Pline_t);
 Function P_PointOnLineSide(x, y: fixed_t; line: Pline_t): int;
+Procedure P_UnsetThingPosition(thing: Pmobj_t);
+Procedure P_SetThingPosition(thing: pmobj_t);
 
 Implementation
 
@@ -46,7 +47,7 @@ Var
 
   // [crispy] remove INTERCEPTS limit
   // taken from PrBoom+/src/p_maputl.c:422-433
-// Sorgt dafür, dass noch mindestens 1 Element in Intercepts genutzt werden kann ;)
+  // Sorgt dafür, dass noch mindestens 1 Element in Intercepts genutzt werden kann ;)
 
 Procedure check_intercept();
 Begin
@@ -284,6 +285,49 @@ Begin
 End;
 
 //
+// P_UnsetThingPosition
+// Unlinks a thing from block map and sectors.
+// On each position change, BLOCKMAP and other
+// lookups maintaining lists of things inside
+// these structures need to be updated.
+//
+
+Procedure P_UnsetThingPosition(thing: Pmobj_t);
+Var
+  blockx, blocky: int;
+Begin
+  If ((thing^.flags And MF_NOSECTOR) = 0) Then Begin
+    // inert things don't need to be in blockmap?
+    // unlink from subsector
+    If assigned(thing^.snext) Then
+      thing^.snext^.sprev := thing^.sprev;
+
+    If assigned(thing^.sprev) Then
+      thing^.sprev^.snext := thing^.snext
+    Else
+      thing^.subsector^.sector^.thinglist := thing^.snext;
+  End;
+
+  If ((thing^.flags And MF_NOBLOCKMAP) = 0) Then Begin
+    // inert things don't need to be in blockmap
+    // unlink from block map
+    If assigned(thing^.bnext) Then
+      thing^.bnext^.bprev := thing^.bprev;
+
+    If assigned(thing^.bprev) Then
+      thing^.bprev^.bnext := thing^.bnext
+    Else Begin
+      blockx := SarLongint(thing^.x - bmaporgx, MAPBLOCKSHIFT);
+      blocky := SarLongint(thing^.y - bmaporgy, MAPBLOCKSHIFT);
+      If (blockx >= 0) And (blockx < bmapwidth)
+        And (blocky >= 0) And (blocky < bmapheight) Then Begin
+        blocklinks[blocky * bmapwidth + blockx] := thing^.bnext;
+      End;
+    End;
+  End;
+End;
+
+//
 // P_MakeDivline
 //
 
@@ -324,7 +368,7 @@ Begin
 
   frac := FixedDiv(num, den);
 
-  result := frac;  
+  result := frac;
 End;
 
 //
@@ -529,8 +573,8 @@ End;
 // Sets linetaget and aimslope when a target is aimed at.
 //
 
-Function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: int;
-  trav: traverser_t): boolean;
+Function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: int; trav: traverser_t
+  ): boolean;
 Var
   xt1,
     yt1,

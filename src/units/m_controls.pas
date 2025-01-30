@@ -11,10 +11,10 @@ Var
   key_right: int;
   key_left: int;
   //extern int key_reverse;
-  //
-  //extern int key_up;
+
+  key_up: int;
   //extern int key_alt_up;
-  //extern int key_down;
+  key_down: int;
   //extern int key_alt_down;
   //extern int key_strafeleft;
   //extern int key_alt_strafeleft;
@@ -250,6 +250,8 @@ Begin
   key_speed := KEY_RSHIFT;
   key_right := KEY_RIGHTARROW;
   key_left := KEY_LEFTARROW;
+  key_up := KEY_UPARROW;
+  key_down := KEY_DOWNARROW;
 
   key_strafe := KEY_RALT;
 

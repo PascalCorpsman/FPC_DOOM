@@ -131,6 +131,8 @@ Procedure FreeAllocations();
 
 Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
 
+Function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
+
 Implementation
 
 Uses
@@ -139,19 +141,22 @@ Uses
   , g_game
   , hu_stuff
   , i_system
-  , m_random
-  , p_setup, p_maputl, p_pspr, p_tick
-  , r_things, r_data
+  , m_random, m_bbox
+  , p_setup, p_maputl, p_pspr, p_tick, p_map, p_spec
+  , r_things, r_data, r_sky, r_main
   , st_stuff
   , v_patch
   , w_wad
   , z_zone
   ;
 
+Const
+  STOPSPEED = $1000;
+  FRICTION = $E800;
+
 Var
   StateNull: statenum_t = S_NULL; // Der Code braucht einen "Global" Verfügbaren Pointer der immer auf S_NULL zeigt, und hier ist er ;)
 
-Var
   GlobalAllocs: Array Of Pmobj_t = Nil;
   GlobalAllocCounter: integer = 0;
 
@@ -211,6 +216,29 @@ Begin
   //
   //    // free block
   //    P_RemoveThinker ((thinker_t*)mobj);
+End;
+
+//
+// P_ExplodeMissile
+//
+
+Procedure P_ExplodeMissileSafe(mo: Pmobj_t; safe: boolean);
+Begin
+  //    mo->momx = mo->momy = mo->momz = 0;
+  //
+  //    P_SetMobjState (mo, safe ? P_LatestSafeState(mobjinfo[mo->type].deathstate) : mobjinfo[mo->type].deathstate);
+  //
+  //    mo->tics -= safe ? Crispy_Random()&3 : P_Random()&3;
+  //
+  //    if (mo->tics < 1)
+  //	mo->tics = 1;
+  //
+  //    mo->flags &= ~MF_MISSILE;
+  //    // [crispy] missile explosions are translucent
+  //    mo->flags |= MF_TRANSLUCENT;
+  //
+  //    if (mo->info->deathsound)
+  //	S_StartSound (mo, mo->info->deathsound);
 End;
 
 
@@ -505,6 +533,592 @@ Begin
   //    return lastsafestate = safestate;
 End;
 
+
+//
+// MOVEMENT CLIPPING
+//
+
+//
+// P_CheckPosition
+// This is purely informative, nothing is modified
+// (except things picked up).
+//
+// in:
+//  a mobj_t (can be valid or invalid)
+//  a position to be checked
+//   (doesn't need to be related to the mobj_t->x,y)
+//
+// during:
+//  special things are touched if MF_PICKUP
+//  early out on solid lines?
+//
+// out:
+//  newsubsec
+//  floorz
+//  ceilingz
+//  tmdropoffz
+//   the lowest point contacted
+//   (monsters won't move to a dropoff)
+//  speciallines[]
+//  numspeciallines
+//
+
+Function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
+Var
+  xl, xh, yl, yh, bx, by: int;
+  newsubsec: Psubsector_t;
+Begin
+
+  tmthing := thing;
+  tmflags := thing^.flags;
+
+  tmx := x;
+  tmy := y;
+
+  tmbbox[BOXTOP] := y + tmthing^.radius;
+  tmbbox[BOXBOTTOM] := y - tmthing^.radius;
+  tmbbox[BOXRIGHT] := x + tmthing^.radius;
+  tmbbox[BOXLEFT] := x - tmthing^.radius;
+
+  newsubsec := R_PointInSubsector(x, y);
+  ceilingline := Nil;
+
+  // The base floor / ceiling is from the subsector
+  // that contains the point.
+  // Any contacted lines the step closer together
+  // will adjust them.
+  tmfloorz := newsubsec^.sector^.floorheight;
+  tmdropoffz := newsubsec^.sector^.floorheight;
+  tmceilingz := newsubsec^.sector^.ceilingheight;
+
+  validcount := validcount + 1;
+  numspechit := 0;
+
+  If (tmflags And MF_NOCLIP) <> 0 Then Begin
+    result := true;
+    exit;
+  End;
+
+  // Check things first, possibly picking things up.
+  // The bounding box is extended by MAXRADIUS
+  // because mobj_ts are grouped into mapblocks
+  // based on their origin point, and can overlap
+  // into adjacent blocks by up to MAXRADIUS units.
+  xl := SarLongint(tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS, MAPBLOCKSHIFT);
+  xh := SarLongint(tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS, MAPBLOCKSHIFT);
+  yl := SarLongint(tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS, MAPBLOCKSHIFT);
+  yh := SarLongint(tmbbox[BOXTOP] - bmaporgy + MAXRADIUS, MAPBLOCKSHIFT);
+
+  //    for (bx=xl ; bx<=xh ; bx++)
+  //	for (by=yl ; by<=yh ; by++)
+  //	    if (!P_BlockThingsIterator(bx,by,PIT_CheckThing))
+  //		return false;
+
+  //    // check lines
+  //    xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
+  //    xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
+  //    yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
+  //    yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+
+  //    for (bx=xl ; bx<=xh ; bx++)
+  //	for (by=yl ; by<=yh ; by++)
+  //	    if (!P_BlockLinesIterator (bx,by,PIT_CheckLine))
+  //		return false;
+
+  result := true;
+End;
+
+//
+// P_TryMove
+// Attempt to move to a new position,
+// crossing special lines unless MF_TELEPORT is set.
+//
+
+Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
+Var
+  oldx, oldy: fixed_t;
+  side, oldside: int;
+  ld: Pline_t;
+Begin
+  result := false;
+
+  floatok := false;
+  If (Not P_CheckPosition(thing, x, y)) Then exit; // solid wall or thing
+
+  If ((thing^.flags And MF_NOCLIP) = 0) Then Begin
+
+    If (tmceilingz - tmfloorz < thing^.height) Then exit; // doesn't fit
+
+    floatok := true;
+
+    If ((thing^.flags And MF_TELEPORT) = 0)
+      And (tmceilingz - thing^.z < thing^.height) Then
+      exit; // mobj must lower itself to fit
+
+    If ((thing^.flags And MF_TELEPORT) = 0)
+      And (tmfloorz - thing^.z > 24 * FRACUNIT) Then
+      exit; // too big a step up
+
+    If ((thing^.flags And (MF_DROPOFF Or MF_FLOAT)) = 0)
+      And (tmfloorz - tmdropoffz > 24 * FRACUNIT) Then
+      exit; // don't stand over a dropoff
+  End;
+
+  // the move is ok,
+  // so link the thing into its new position
+  P_UnsetThingPosition(thing);
+
+  oldx := thing^.x;
+  oldy := thing^.y;
+  thing^.floorz := tmfloorz;
+  thing^.ceilingz := tmceilingz;
+  thing^.x := x;
+  thing^.y := y;
+
+  P_SetThingPosition(thing);
+
+  // if any special lines were hit, do the effect
+  If ((thing^.flags And (MF_TELEPORT Or MF_NOCLIP)) = 0) Then Begin
+
+    While (numspechit <> 0) Do Begin
+
+      // see if the line was crossed
+      ld := spechit[numspechit];
+      side := P_PointOnLineSide(thing^.x, thing^.y, ld);
+      oldside := P_PointOnLineSide(oldx, oldy, ld);
+      If (side <> oldside) Then Begin
+        If (ld^.special <> 0) Then Begin
+          P_CrossSpecialLine(ld - @lines[0], oldside, thing);
+        End;
+      End;
+      numspechit := numspechit - 1
+    End;
+  End;
+
+  result := true;
+End;
+
+
+//
+// P_SlideMove
+// The momx / momy move is bad, so try to slide
+// along a wall.
+// Find the first line hit, move flush to it,
+// and slide along it
+//
+// This is a kludgy mess.
+//
+
+Procedure P_SlideMove(mo: Pmobj_t);
+Begin
+  //    fixed_t		leadx;
+  //    fixed_t		leady;
+  //    fixed_t		trailx;
+  //    fixed_t		traily;
+  //    fixed_t		newx;
+  //    fixed_t		newy;
+  //    int			hitcount;
+  //
+  //    slidemo = mo;
+  //    hitcount = 0;
+  //
+  //  retry:
+  //    if (++hitcount == 3)
+  //	goto stairstep;		// don't loop forever
+  //
+  //
+  //    // trace along the three leading corners
+  //    if (mo->momx > 0)
+  //    {
+  //	leadx = mo->x + mo->radius;
+  //	trailx = mo->x - mo->radius;
+  //    }
+  //    else
+  //    {
+  //	leadx = mo->x - mo->radius;
+  //	trailx = mo->x + mo->radius;
+  //    }
+  //
+  //    if (mo->momy > 0)
+  //    {
+  //	leady = mo->y + mo->radius;
+  //	traily = mo->y - mo->radius;
+  //    }
+  //    else
+  //    {
+  //	leady = mo->y - mo->radius;
+  //	traily = mo->y + mo->radius;
+  //    }
+  //
+  //    bestslidefrac = FRACUNIT+1;
+  //
+  //    P_PathTraverse ( leadx, leady, leadx+mo->momx, leady+mo->momy,
+  //		     PT_ADDLINES, PTR_SlideTraverse );
+  //    P_PathTraverse ( trailx, leady, trailx+mo->momx, leady+mo->momy,
+  //		     PT_ADDLINES, PTR_SlideTraverse );
+  //    P_PathTraverse ( leadx, traily, leadx+mo->momx, traily+mo->momy,
+  //		     PT_ADDLINES, PTR_SlideTraverse );
+  //
+  //    // move up to the wall
+  //    if (bestslidefrac == FRACUNIT+1)
+  //    {
+  //	// the move most have hit the middle, so stairstep
+  //      stairstep:
+  //	if (!P_TryMove (mo, mo->x, mo->y + mo->momy))
+  //	    P_TryMove (mo, mo->x + mo->momx, mo->y);
+  //	return;
+  //    }
+  //
+  //    // fudge a bit to make sure it doesn't hit
+  //    bestslidefrac -= 0x800;
+  //    if (bestslidefrac > 0)
+  //    {
+  //	newx = FixedMul (mo->momx, bestslidefrac);
+  //	newy = FixedMul (mo->momy, bestslidefrac);
+  //
+  //	if (!P_TryMove (mo, mo->x+newx, mo->y+newy))
+  //	    goto stairstep;
+  //    }
+  //
+  //    // Now continue along the wall.
+  //    // First calculate remainder.
+  //    bestslidefrac = FRACUNIT-(bestslidefrac+0x800);
+  //
+  //    if (bestslidefrac > FRACUNIT)
+  //	bestslidefrac = FRACUNIT;
+  //
+  //    if (bestslidefrac <= 0)
+  //	return;
+  //
+  //    tmxmove = FixedMul (mo->momx, bestslidefrac);
+  //    tmymove = FixedMul (mo->momy, bestslidefrac);
+  //
+  //    P_HitSlideLine (bestslideline);	// clip the moves
+  //
+  //    mo->momx = tmxmove;
+  //    mo->momy = tmymove;
+  //
+  //    if (!P_TryMove (mo, mo->x+tmxmove, mo->y+tmymove))
+  //    {
+  //	goto retry;
+  //    }
+End;
+
+//
+// P_XYMovement
+//
+
+Procedure P_XYMovement(mo: Pmobj_t);
+Var
+  ptryx: fixed_t;
+  ptryy: fixed_t;
+  player: ^player_t;
+  xmove: fixed_t;
+  ymove: fixed_t;
+  safe: Boolean;
+Begin
+  If (mo^.momx = 0) And (mo^.momy = 0) Then Begin
+    If (mo^.flags And MF_SKULLFLY) <> 0 Then Begin
+      // the skull slammed into something
+      mo^.flags := mo^.flags And Not MF_SKULLFLY;
+      mo^.momx := 0;
+      mo^.momy := 0;
+      mo^.momz := 0;
+
+      P_SetMobjState(mo, mo^.info^.spawnstate);
+    End;
+    exit;
+  End;
+
+  player := mo^.player;
+
+  If (mo^.momx > MAXMOVE) Then
+    mo^.momx := MAXMOVE
+  Else If (mo^.momx < -MAXMOVE) Then
+    mo^.momx := -MAXMOVE;
+
+  If (mo^.momy > MAXMOVE) Then
+    mo^.momy := MAXMOVE
+  Else If (mo^.momy < -MAXMOVE) Then
+    mo^.momy := -MAXMOVE;
+
+  xmove := mo^.momx;
+  ymove := mo^.momy;
+
+  Repeat
+    If (xmove > MAXMOVE Div 2) Or (ymove > MAXMOVE Div 2) Then Begin
+      ptryx := mo^.x + xmove Div 2;
+      ptryy := mo^.y + ymove Div 2;
+      xmove := xmove Shr 1;
+      ymove := ymove Shr 1;
+    End
+    Else Begin
+      ptryx := mo^.x + xmove;
+      ptryy := mo^.y + ymove;
+      xmove := 0;
+      ymove := 0;
+    End;
+
+    If (Not P_TryMove(mo, ptryx, ptryy)) Then Begin
+
+      // blocked move
+      If assigned(mo^.player) Then Begin
+        // try to slide along it
+        P_SlideMove(mo);
+      End
+      Else If (mo^.flags And MF_MISSILE) <> 0 Then Begin
+
+        safe := false;
+        // explode a missile
+        If assigned(ceilingline) And
+          assigned(ceilingline^.backsector) And
+          (ceilingline^.backsector^.ceilingpic = skyflatnum) Then Begin
+          If (mo^.z > ceilingline^.backsector^.ceilingheight) Then Begin
+            // Hack to prevent missiles exploding
+            // against the sky.
+            // Does not handle sky floors.
+            P_RemoveMobj(mo);
+            exit;
+          End
+          Else Begin
+            safe := true;
+          End;
+        End;
+        P_ExplodeMissileSafe(mo, safe);
+      End
+      Else Begin
+        mo^.momx := 0;
+        mo^.momy := 0;
+      End;
+    End;
+  Until (xmove = 0) And (ymove = 0); //    } while (xmove || ymove);
+
+  // slow down
+  If assigned(player) And ((player^.cheats And integer(CF_NOMOMENTUM)) <> 0) Then Begin
+    // debug option for no sliding at all
+    mo^.momx := 0;
+    mo^.momy := 0;
+    exit;
+  End;
+
+  If (mo^.flags And (MF_MISSILE Or MF_SKULLFLY)) <> 0 Then
+    exit; // no friction for missiles ever
+
+  // [crispy] fix mid-air speed boost when using noclip cheat
+  //  if (!player || !(player^.mo^.flags & MF_NOCLIP))
+  //  {
+  //    if (mo^.z > mo^.floorz)
+  //	return;		// no friction when airborne
+  //  }
+
+  //    if (mo^.flags & MF_CORPSE)
+  //    {
+  //	// do not stop sliding
+  //	//  if halfway off a step with some momentum
+  //	if (mo^.momx > FRACUNIT/4
+  //	    || mo^.momx < -FRACUNIT/4
+  //	    || mo^.momy > FRACUNIT/4
+  //	    || mo^.momy < -FRACUNIT/4)
+  //	{
+  //	    if (mo^.floorz != mo^.subsector^.sector^.floorheight)
+  //		return;
+  //	}
+  //    }
+
+  If (mo^.momx > -STOPSPEED)
+    And (mo^.momx < STOPSPEED)
+    And (mo^.momy > -STOPSPEED)
+    And (mo^.momy < STOPSPEED)
+    And (Not assigned(player) Or ((player^.cmd.forwardmove = 0) And (player^.cmd.sidemove = 0)))
+    Then Begin
+    // if in a walking frame, stop moving
+    If assigned(player) And (((player^.mo^.state - @states[0]) - integer(S_PLAY_RUN1)) < 4) Then
+      P_SetMobjState(player^.mo, S_PLAY);
+    mo^.momx := 0;
+    mo^.momy := 0;
+  End
+  Else Begin
+    mo^.momx := FixedMul(mo^.momx, FRICTION);
+    mo^.momy := FixedMul(mo^.momy, FRICTION);
+  End;
+End;
+
+//
+// P_ZMovement
+//
+
+Procedure P_ZMovement(mo: Pmobj_t);
+Var
+  dist, delta: fixed_t;
+Begin
+
+  //    // check for smooth step up
+  //    if (mo->player && mo->z < mo->floorz)
+  //    {
+  //	mo->player->viewheight -= mo->floorz-mo->z;
+  //
+  //	mo->player->deltaviewheight
+  //	    = (DEFINE_VIEWHEIGHT - mo->player->viewheight)>>3;
+  //    }
+  //
+  //    // adjust height
+  //    mo->z += mo->momz;
+  //
+  //    if ( mo->flags & MF_FLOAT
+  //	 && mo->target)
+  //    {
+  //	// float down towards target if too close
+  //	if ( !(mo->flags & MF_SKULLFLY)
+  //	     && !(mo->flags & MF_INFLOAT) )
+  //	{
+  //	    dist = P_AproxDistance (mo->x - mo->target->x,
+  //				    mo->y - mo->target->y);
+  //
+  //	    delta =(mo->target->z + (mo->height>>1)) - mo->z;
+  //
+  //	    if (delta<0 && dist < -(delta*3) )
+  //		mo->z -= FLOATSPEED;
+  //	    else if (delta>0 && dist < (delta*3) )
+  //		mo->z += FLOATSPEED;
+  //	}
+  //
+  //    }
+  //
+  //    // clip movement
+  //    if (mo->z <= mo->floorz)
+  //    {
+  //	// hit the floor
+  //
+  //	// Note (id):
+  //	//  somebody left this after the setting momz to 0,
+  //	//  kinda useless there.
+  //	//
+  //	// cph - This was the a bug in the linuxdoom-1.10 source which
+  //	//  caused it not to sync Doom 2 v1.9 demos. Someone
+  //	//  added the above comment and moved up the following code. So
+  //	//  demos would desync in close lost soul fights.
+  //	// Note that this only applies to original Doom 1 or Doom2 demos - not
+  //	//  Final Doom and Ultimate Doom.  So we test demo_compatibility *and*
+  //	//  gamemission. (Note we assume that Doom1 is always Ult Doom, which
+  //	//  seems to hold for most published demos.)
+  //        //
+  //        //  fraggle - cph got the logic here slightly wrong.  There are three
+  //        //  versions of Doom 1.9:
+  //        //
+  //        //  * The version used in registered doom 1.9 + doom2 - no bounce
+  //        //  * The version used in ultimate doom - has bounce
+  //        //  * The version used in final doom - has bounce
+  //        //
+  //        // So we need to check that this is either retail or commercial
+  //        // (but not doom2)
+  //
+  //	int correct_lost_soul_bounce = gameversion >= exe_ultimate;
+  //
+  //	if (correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
+  //	{
+  //	    // the skull slammed into something
+  //	    mo->momz = -mo->momz;
+  //	}
+  //
+  //	if (mo->momz < 0)
+  //	{
+  //	    // [crispy] delay next jump
+  //	    if (mo->player)
+  //		mo->player->jumpTics = 7;
+  //	    if (mo->player
+  //		&& mo->momz < -GRAVITY*8)
+  //	    {
+  //		// Squat down.
+  //		// Decrease viewheight for a moment
+  //		// after hitting the ground (hard),
+  //		// and utter appropriate sound.
+  //		mo->player->deltaviewheight = mo->momz>>3;
+  //		// [crispy] center view if not using permanent mouselook
+  //		if (!crispy->mouselook)
+  //		    mo->player->centering = true;
+  //		// [crispy] dead men don't say "oof"
+  //		if (mo->health > 0 || !crispy->soundfix)
+  //		{
+  //		// [NS] Landing sound for longer falls. (Hexen's calculation.)
+  //		if (mo->momz < -GRAVITY * 12)
+  //		{
+  //		    S_StartSoundOptional(mo, sfx_plland, sfx_oof);
+  //		}
+  //		else
+  //		S_StartSound (mo, sfx_oof);
+  //		}
+  //	    }
+  //	    // [NS] Beta projectile bouncing.
+  //	    if ( (mo->flags & MF_MISSILE) && (mo->flags & MF_BOUNCES) )
+  //	    {
+  //		mo->momz = -mo->momz;
+  //	    }
+  //	    else
+  //	    {
+  //	    mo->momz = 0;
+  //	    }
+  //	}
+  //	mo->z = mo->floorz;
+  //
+  //
+  //	// cph 2001/05/26 -
+  //	// See lost soul bouncing comment above. We need this here for bug
+  //	// compatibility with original Doom2 v1.9 - if a soul is charging and
+  //	// hit by a raising floor this incorrectly reverses its Y momentum.
+  //	//
+  //
+  //        if (!correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
+  //            mo->momz = -mo->momz;
+  //
+  //	if ( (mo->flags & MF_MISSILE)
+  //	     // [NS] Beta projectile bouncing.
+  //	     && !(mo->flags & MF_NOCLIP) && !(mo->flags & MF_BOUNCES) )
+  //	{
+  //	    P_ExplodeMissile (mo);
+  //	    return;
+  //	}
+  //    }
+  //    else if (! (mo->flags & MF_NOGRAVITY) )
+  //    {
+  //	if (mo->momz == 0)
+  //	    mo->momz = -GRAVITY*2;
+  //	else
+  //	    mo->momz -= GRAVITY;
+  //    }
+  //
+  //    if (mo->z + mo->height > mo->ceilingz)
+  //    {
+  //	// hit the ceiling
+  //	if (mo->momz > 0)
+  //	{
+  //	// [NS] Beta projectile bouncing.
+  //	    if ( (mo->flags & MF_MISSILE) && (mo->flags & MF_BOUNCES) )
+  //	    {
+  //		mo->momz = -mo->momz;
+  //	    }
+  //	    else
+  //	    {
+  //	    mo->momz = 0;
+  //	    }
+  //	}
+  //	{
+  //	    mo->z = mo->ceilingz - mo->height;
+  //	}
+  //
+  //	if (mo->flags & MF_SKULLFLY)
+  //	{	// the skull slammed into something
+  //	    mo->momz = -mo->momz;
+  //	}
+  //
+  //	if ( (mo->flags & MF_MISSILE)
+  //	     && !(mo->flags & MF_NOCLIP) && !(mo->flags & MF_BOUNCES) )
+  //	{
+  //	    P_ExplodeMissile (mo);
+  //	    return;
+  //	}
+  //    }
+End;
+
 Procedure P_MobjThinker(mobj: Pmobj_t);
 Begin
   // [crispy] support MUSINFO lump (dynamic music changing)
@@ -538,24 +1152,18 @@ Begin
     Or (mobj^.momy <> 0)
     Or ((mobj^.flags And MF_SKULLFLY) <> 0) Then Begin
 
-    //	P_XYMovement (mobj);
-    //	// FIXME: decent NOP/NULL/Nil function pointer please.
-    //	if (mobj^.thinker.function.acv == (actionf_v) (-1))
-    //	    return;		// mobj was removed
+    P_XYMovement(mobj);
+    // FIXME: decent NOP/NULL/Nil function pointer please.
+    If (mobj^.thinker._function.acv = Nil) Then exit; // mobj was removed
   End;
-  //    if ( (mobj^.z != mobj^.floorz)
-  //	 || mobj^.momz )
-  //    {
-  //	P_ZMovement (mobj);
-  //
-  //	// FIXME: decent NOP/NULL/Nil function pointer please.
-  //	if (mobj^.thinker.function.acv == (actionf_v) (-1))
-  //	    return;		// mobj was removed
-  //    }
+  If ((mobj^.z <> mobj^.floorz)) Or (mobj^.momz <> 0) Then Begin
+    P_ZMovement(mobj);
+    // FIXME: decent NOP/NULL/Nil function pointer please.
+    If (mobj^.thinker._function.acv = Nil) Then exit; // mobj was removed
+  End;
 
-
-      // cycle through states,
-      // calling action functions at transitions
+  // cycle through states,
+  // calling action functions at transitions
   If (mobj^.tics <> -1) Then Begin
 
     mobj^.tics := mobj^.tics - 1;
@@ -709,7 +1317,7 @@ End;
 
 Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
 Begin
-  raise exception.create('P_SpawnPuffSafe');
+  Raise exception.create('P_SpawnPuffSafe');
   //    mobj_t*	th;
   //
   //    z += safe ? (Crispy_SubRandom() << 10) : (P_SubRandom() << 10);

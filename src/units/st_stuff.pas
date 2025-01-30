@@ -575,6 +575,7 @@ Function ST_Responder(Const ev: Pevent_t): boolean;
 Var
   i: int;
 Begin
+  result := false;
   // Filter automap on/off.
   If (ev^._type = ev_keyup)
     And ((ev^.data1 And $FFFF0000) = AM_MSGHEADER) Then Begin
@@ -1209,7 +1210,6 @@ Begin
     //	return isdigit(buf[0]);
     //    }
   End;
-  result := false;
 End;
 
 End.

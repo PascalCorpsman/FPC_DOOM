@@ -16,17 +16,20 @@ Procedure P_CalcHeight(player: Pplayer_t);
 Implementation
 
 Uses
-  tables, doomdef
-  , d_player, d_ticcmd
+  a11y_weapon_pspr, tables, doomdef, info
+  , d_player, d_ticcmd, d_event
+  , i_timer
   , g_game
   , m_fixed
-  , p_local, p_tick, p_mobj, p_spec, p_pspr
+  , p_local, p_tick, p_mobj, p_spec, p_pspr, p_map
   , r_main
   ;
 
 Const
   // 16 pixels of bob
   MAXBOB = $100000;
+  // Index of the special effects (INVUL inverse) map.
+  INVERSECOLORMAP = 32;
 
   // [crispy] variable player view bob
   crispy_bobfactor: Array[0..2] Of fixed_t = (4, 3, 0);
@@ -35,10 +38,22 @@ Var
   onground: boolean;
 
   //
-  // P_DeathThink
-  // Fall on your face when dying.
-  // Decrease POV height to floor height.
+  // P_Thrust
+  // Moves the given origin along a given angle.
   //
+
+Procedure P_Thrust(player: Pplayer_t; angle: angle_t; move: fixed_t);
+Begin
+  angle := angle Shr ANGLETOFINESHIFT;
+  player^.mo^.momx := player^.mo^.momx + FixedMul(move, finecosine[angle]);
+  player^.mo^.momy := player^.mo^.momy + FixedMul(move, finesine[angle]);
+End;
+
+//
+// P_DeathThink
+// Fall on your face when dying.
+// Decrease POV height to floor height.
+//
 
 Procedure P_DeathThink(player: Pplayer_t);
 Begin
@@ -108,34 +123,32 @@ Begin
   // [crispy] give full control in no-clipping mode
   onground := onground Or ((player^.mo^.flags And MF_NOCLIP) <> 0);
 
-  //    // [crispy] fast polling
+  // [crispy] fast polling
   //    if (player == &players[consoleplayer])
   //    {
   //        localview.ticangle += localview.ticangleturn << 16;
   //        localview.ticangleturn = 0;
   //    }
-  //
-  //    if (cmd^.forwardmove && onground)
-  //	P_Thrust (player, player^.mo^.angle, cmd^.forwardmove*2048);
-  //    else
-  //    // [crispy] in-air movement is only possible with jumping enabled
-  //    if (cmd^.forwardmove && critical^.jump)
-  //        P_Thrust (player, player^.mo^.angle, FRACUNIT >> 8);
-  //
+
+  If (cmd^.forwardmove <> 0) And (onground) Then
+    P_Thrust(player, player^.mo^.angle, cmd^.forwardmove * 2048)
+      // [crispy] in-air movement is only possible with jumping enabled
+  Else If (cmd^.forwardmove <> 0) And (critical^.jump <> 0) Then
+    P_Thrust(player, player^.mo^.angle, FRACUNIT Shr 8);
+
   //    if (cmd^.sidemove && onground)
   //	P_Thrust (player, player^.mo^.angle-ANG90, cmd^.sidemove*2048);
   //    else
   //    // [crispy] in-air movement is only possible with jumping enabled
   //    if (cmd^.sidemove && critical^.jump)
   //            P_Thrust(player, player^.mo^.angle, FRACUNIT >> 8);
-  //
-  //    if ( (cmd^.forwardmove || cmd^.sidemove)
-  //	 && player^.mo^.state == &states[S_PLAY] )
-  //    {
-  //	P_SetMobjState (player^.mo, S_PLAY_RUN1);
-  //    }
-  //
-  //    // [crispy] apply lookdir delta
+
+  If (((cmd^.forwardmove <> 0) Or (cmd^.sidemove <> 0))
+    And (player^.mo^.state = @states[integer(S_PLAY)])) Then Begin
+    P_SetMobjState(player^.mo, S_PLAY_RUN1);
+  End;
+
+  // [crispy] apply lookdir delta
   //    look = cmd^.lookfly & 15;
   //    if (look > 7)
   //    {
@@ -206,35 +219,30 @@ Begin
     player^.mo^.flags := player^.mo^.flags And (Not MF_JUSTATTACKED);
   End;
 
-
   // [crispy] center view
   // e.g. after teleporting, dying, jumping and on demand
   If (player^.centering) Then Begin
-    //        if (player^.lookdir > 0)
-    //        {
-    //            player^.lookdir -= 8 * MLOOKUNIT;
-    //        }
-    //        else if (player^.lookdir < 0)
-    //        {
-    //            player^.lookdir += 8 * MLOOKUNIT;
-    //        }
-    //        if (abs(player^.lookdir) < 8 * MLOOKUNIT)
-    //        {
-    //            player^.lookdir = 0;
-    //            player^.centering = false;
-    //        }
+    If (player^.lookdir > 0) Then Begin
+      player^.lookdir := player^.lookdir - 8 * MLOOKUNIT;
+    End
+    Else If (player^.lookdir < 0) Then Begin
+      player^.lookdir := player^.lookdir + 8 * MLOOKUNIT;
+    End;
+    If (abs(player^.lookdir) < 8 * MLOOKUNIT) Then Begin
+      player^.lookdir := 0;
+      player^.centering := false;
+    End;
   End;
 
   // [crispy] weapon recoil pitch
   If (player^.recoilpitch <> 0) Then Begin
-    //        if (player^.recoilpitch > 0)
-    //        {
-    //            player^.recoilpitch -= 1;
-    //        }
-    //        else if (player^.recoilpitch < 0)
-    //        {
-    //            player^.recoilpitch += 1;
-    //        }
+    If (player^.recoilpitch > 0) Then Begin
+
+      player^.recoilpitch := player^.recoilpitch - 1;
+    End
+    Else If (player^.recoilpitch < 0) Then Begin
+      player^.recoilpitch := player^.recoilpitch + 1;
+    End;
   End;
 
   If (player^.playerstate = PST_DEAD) Then Begin
@@ -281,12 +289,12 @@ Begin
 //        }
 //    }
 
-    // Check for weapon change.
-//
+// Check for weapon change.
+
 //    // A special event has no other buttons.
 //    if (cmd^.buttons & BT_SPECIAL)
 //	cmd^.buttons = 0;
-//
+
 //    if (cmd^.buttons & BT_CHANGE)
 //    {
 //	// The actual changing of the weapon is done
@@ -301,7 +309,7 @@ Begin
 //	{
 //	    newweapon = wp_chainsaw;
 //	}
-//
+
 //	if ( (crispy^.havessg)
 //	    && newweapon == wp_shotgun
 //	    && player^.weaponowned[wp_supershotgun]
@@ -309,8 +317,7 @@ Begin
 //	{
 //	    newweapon = wp_supershotgun;
 //	}
-//
-//
+
 //	if (player^.weaponowned[newweapon]
 //	    && newweapon != player^.readyweapon)
 //	{
@@ -324,86 +331,87 @@ Begin
 //	    }
 //	}
 //    }
-//
-//    // check for use
-//    if (cmd^.buttons & BT_USE)
-//    {
-//	if (!player^.usedown)
-//	{
-//	    P_UseLines (player);
-//	    player^.usedown = true;
-//	    // [crispy] "use" button timer
-//	    if (crispy^.btusetimer)
-//	    {
-//		player^.btuse = leveltime;
-//		player^.btuse_tics = 5*TICRATE/2; // [crispy] 2.5 seconds
-//	    }
-//	}
-//    }
-//    else
-//	player^.usedown = false;
 
-    // cycle psprites
+// check for use
+  If (cmd^.buttons And BT_USE) <> 0 Then Begin
+    If (Not player^.usedown) Then Begin
+      P_UseLines(player);
+      player^.usedown := true;
+      // [crispy] "use" button timer
+      If (crispy.btusetimer <> 0) Then Begin
+        player^.btuse := leveltime;
+        player^.btuse_tics := 5 * TICRATE Div 2; // [crispy] 2.5 seconds
+      End;
+    End;
+  End
+  Else
+    player^.usedown := false;
+
+  // cycle psprites
   P_MovePsprites(player);
 
-  //    // Counters, time dependend power ups.
-  //
-  //    // Strength counts up to diminish fade.
-  //    if (player^.powers[pw_strength])
-  //	player^.powers[pw_strength]++;
-  //
-  //    if (player^.powers[pw_invulnerability])
-  //	player^.powers[pw_invulnerability]--;
-  //
-  //    if (player^.powers[pw_invisibility])
-  //	if (! --player^.powers[pw_invisibility] )
-  //	    player^.mo^.flags &= ~MF_SHADOW;
-  //
-  //    if (player^.powers[pw_infrared])
-  //	player^.powers[pw_infrared]--;
-  //
-  //    if (player^.powers[pw_ironfeet])
-  //	player^.powers[pw_ironfeet]--;
-  //
-  //    if (player^.damagecount)
-  //	player^.damagecount--;
-  //
-  //    if (player^.bonuscount)
-  //	player^.bonuscount--;
-  //
-  //
-  //    // [crispy] A11Y
-  //    if (!a11y_invul_colormap)
-  //    {
-  //	if (player^.powers[pw_invulnerability] || player^.powers[pw_infrared])
-  //	    player^.fixedcolormap = 1;
-  //	else
-  //	    player^.fixedcolormap = 0;
-  //    }
-  //    else
-  //    // Handling colormaps.
-  //    if (player^.powers[pw_invulnerability])
-  //    {
-  //	if (player^.powers[pw_invulnerability] > 4*32
-  //	    || (player^.powers[pw_invulnerability]&8) )
-  //	    player^.fixedcolormap = INVERSECOLORMAP;
-  //	else
-  //	    // [crispy] Visor effect when Invulnerability is fading out
-  //	    player^.fixedcolormap = player^.powers[pw_infrared] ? 1 : 0;
-  //    }
-  //    else if (player^.powers[pw_infrared])
-  //    {
-  //	if (player^.powers[pw_infrared] > 4*32
-  //	    || (player^.powers[pw_infrared]&8) )
-  //	{
-  //	    // almost full bright
-  //	    player^.fixedcolormap = 1;
-  //	}
-  //	else
-  //	    player^.fixedcolormap = 0;
-  //    }
-  //    else
-  //	player^.fixedcolormap = 0;
+  // Counters, time dependend power ups.
+
+  // Strength counts up to diminish fade.
+  If (player^.powers[integer(pw_strength)] <> 0) Then
+    player^.powers[integer(pw_strength)] := player^.powers[integer(pw_strength)] + 1;
+
+  If (player^.powers[integer(pw_invulnerability)] <> 0) Then
+    player^.powers[integer(pw_invulnerability)] := player^.powers[integer(pw_invulnerability)] - 1;
+
+  If (player^.powers[integer(pw_invisibility)] <> 0) Then Begin
+    player^.powers[integer(pw_invisibility)] := player^.powers[integer(pw_invisibility)] - 1;
+    If (player^.powers[integer(pw_invisibility)] = 0) Then
+      player^.mo^.flags := player^.mo^.flags And Not MF_SHADOW;
+  End;
+
+  If (player^.powers[integer(pw_infrared)] <> 0) Then
+    player^.powers[integer(pw_infrared)] := player^.powers[integer(pw_infrared)] - 1;
+
+  If (player^.powers[integer(pw_ironfeet)] <> 0) Then
+    player^.powers[integer(pw_ironfeet)] := player^.powers[integer(pw_ironfeet)] - 1;
+
+  If (player^.damagecount <> 0) Then
+    player^.damagecount := player^.damagecount - 1;
+
+  If (player^.bonuscount <> 0) Then
+    player^.bonuscount := player^.bonuscount - 1;
+
+  // [crispy] A11Y
+  If (a11y_invul_colormap = 0) Then Begin
+
+    If (player^.powers[integer(pw_invulnerability)] <> 0) Or (player^.powers[integer(pw_infrared)] <> 0) Then
+      player^.fixedcolormap := 1
+    Else
+      player^.fixedcolormap := 0;
+  End
+    // Handling colormaps.
+  Else If (player^.powers[integer(pw_invulnerability)] <> 0) Then Begin
+
+    If (player^.powers[integer(pw_invulnerability)] > 4 * 32)
+    Or ((player^.powers[integer(pw_invulnerability)] And 8) <> 0) Then
+      player^.fixedcolormap := INVERSECOLORMAP
+        // [crispy] Visor effect when Invulnerability is fading out
+    Else Begin
+      If player^.powers[integer(pw_infrared)] <> 0 Then Begin
+        player^.fixedcolormap := 1;
+      End
+      Else Begin
+        player^.fixedcolormap := 0;
+      End;
+    End;
+  End
+  Else If (player^.powers[integer(pw_infrared)] <> 0) Then Begin
+    If (player^.powers[integer(pw_infrared)] > 4 * 32)
+    Or ((player^.powers[integer(pw_infrared)] And 8) <> 0) Then Begin
+      // almost full bright
+      player^.fixedcolormap := 1;
+    End
+    Else
+      player^.fixedcolormap := 0;
+  End
+  Else
+    player^.fixedcolormap := 0;
 End;
 
 Procedure P_CalcHeight(player: Pplayer_t);
@@ -411,7 +419,6 @@ Var
   angle: int;
   bob: fixed_t;
 Begin
-
   // Regular movement bobbing
   // (needs to be calculated for gun swing
   // even if not on ground)
@@ -445,31 +452,28 @@ Begin
   bob := FixedMul(player^.bob2 Div 2, finesine[angle]); // [crispy] variable player view bob
 
 
-  //    // move viewheight
-  //    if (player->playerstate == PST_LIVE)
-  //    {
-  //	player->viewheight += player->deltaviewheight;
-  //
-  //	if (player->viewheight > DEFINE_VIEWHEIGHT)
-  //	{
-  //	    player->viewheight = DEFINE_VIEWHEIGHT;
-  //	    player->deltaviewheight = 0;
-  //	}
-  //
-  //	if (player->viewheight < DEFINE_VIEWHEIGHT/2)
-  //	{
-  //	    player->viewheight = DEFINE_VIEWHEIGHT/2;
-  //	    if (player->deltaviewheight <= 0)
-  //		player->deltaviewheight = 1;
-  //	}
-  //
-  //	if (player->deltaviewheight)
-  //	{
-  //	    player->deltaviewheight += FRACUNIT/4;
-  //	    if (!player->deltaviewheight)
-  //		player->deltaviewheight = 1;
-  //	}
-  //    }
+  // move viewheight
+  If (player^.playerstate = PST_LIVE) Then Begin
+
+    player^.viewheight := player^.viewheight + player^.deltaviewheight;
+
+    If (player^.viewheight > DEFINE_VIEWHEIGHT) Then Begin
+      player^.viewheight := DEFINE_VIEWHEIGHT;
+      player^.deltaviewheight := 0;
+    End;
+
+    If (player^.viewheight < DEFINE_VIEWHEIGHT Div 2) Then Begin
+      player^.viewheight := DEFINE_VIEWHEIGHT Div 2;
+      If (player^.deltaviewheight <= 0) Then
+        player^.deltaviewheight := 1;
+    End;
+
+    If (player^.deltaviewheight <> 0) Then Begin
+      player^.deltaviewheight := player^.deltaviewheight + FRACUNIT Div 4;
+      If (player^.deltaviewheight = 0) Then
+        player^.deltaviewheight := 1;
+    End;
+  End;
   player^.viewz := player^.mo^.z + player^.viewheight + bob;
 
   If (player^.viewz > player^.mo^.ceilingz - 4 * FRACUNIT) Then

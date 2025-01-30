@@ -13,6 +13,30 @@ Uses
 Var
   linetarget: Pmobj_t; // who got hit (or NULL)
 
+  tmbbox: Array[0..3] Of fixed_t; // WTF: gibt es für die BoundingBox nicht einen eigenen Datentyp ?
+  tmthing: Pmobj_t;
+  tmflags: int;
+  tmx: fixed_t;
+  tmy: fixed_t;
+
+  // If "floatok" true, move would be ok
+  // if within "tmfloorz - tmceilingz".
+  floatok: boolean;
+
+  tmfloorz: fixed_t;
+  tmceilingz: fixed_t;
+  tmdropoffz: fixed_t;
+
+  // keep track of the line that lowers the ceiling,
+  // so missiles don't explode against sky hack walls
+  ceilingline: Pline_t;
+
+  // keep track of special lines as they are hit,
+  // but don't process them until the move is proven valid
+  spechit: Array Of Pline_t; // [crispy] remove SPECHIT limit
+  numspechit: int;
+  //static int spechit_max; // [crispy] remove SPECHIT limit
+
 Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
 
 // [crispy] update laser spot position
@@ -21,6 +45,8 @@ Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
 Procedure P_LineLaser(t1: pmobj_t; angle: angle_t; distance: fixed_t; slope: fixed_t);
 
 Procedure P_LineAttack(t1: pmobj_t; angle: angle_t; distance: fixed_t; slope: fixed_t; damage: int);
+
+Procedure P_UseLines(player: Pplayer_t);
 
 Implementation
 
@@ -516,6 +542,32 @@ Begin
     x2, y2,
     PT_ADDLINES Or PT_ADDTHINGS,
     @PTR_ShootTraverse);
+End;
+
+//
+// P_UseLines
+// Looks for special lines in front of the player to activate.
+//
+
+Procedure P_UseLines(player: Pplayer_t);
+Begin
+  //   int		angle;
+  //    fixed_t	x1;
+  //    fixed_t	y1;
+  //    fixed_t	x2;
+  //    fixed_t	y2;
+  //
+  //    usething = player->mo;
+  //
+  //    angle = player->mo->angle >> ANGLETOFINESHIFT;
+  //
+  //    x1 = player->mo->x;
+  //    y1 = player->mo->y;
+  //    x2 = x1 + (USERANGE>>FRACBITS)*finecosine[angle];
+  //    y2 = y1 + (USERANGE>>FRACBITS)*finesine[angle];
+  //
+  //    P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse );
+
 End;
 
 End.

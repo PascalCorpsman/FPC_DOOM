@@ -75,12 +75,76 @@ Begin
   //     T_MusInfo();
 End;
 
+//
+// P_RespawnSpecials
+//
+
+Procedure P_RespawnSpecials();
+//    fixed_t		x;
+//    fixed_t		y;
+//    fixed_t		z;
+//
+//    subsector_t*	ss;
+//    mobj_t*		mo;
+//    mapthing_t*		mthing;
+//
+//    int			i;
+Begin
+  // only respawn items in deathmatch
+  // AX: deathmatch 3 is a Crispy-specific change
+  If (deathmatch <> 2) And (deathmatch <> 3) Then exit;
+
+
+  // nothing left to respawn?
+  //    if (iquehead == iquetail)
+  //	return;
+  //
+  //    // wait at least 30 seconds
+  //    if (leveltime - itemrespawntime[iquetail] < 30*TICRATE)
+  //	return;
+  //
+  //    mthing = &itemrespawnque[iquetail];
+  //
+  //    x = mthing->x << FRACBITS;
+  //    y = mthing->y << FRACBITS;
+  //
+  //    // spawn a teleport fog at the new spot
+  //    ss = R_PointInSubsector (x,y);
+  //    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_IFOG);
+  //    S_StartSound (mo, sfx_itmbk);
+  //
+  //    // find which type to spawn
+  //    for (i=0 ; i< NUMMOBJTYPES ; i++)
+  //    {
+  //	if (mthing->type == mobjinfo[i].doomednum)
+  //	    break;
+  //    }
+  //
+  //    if (i >= NUMMOBJTYPES)
+  //    {
+  //        I_Error("P_RespawnSpecials: Failed to find mobj type with doomednum "
+  //                "%d when respawning thing. This would cause a buffer overrun "
+  //                "in vanilla Doom", mthing->type);
+  //    }
+  //
+  //    // spawn it
+  //    if (mobjinfo[i].flags & MF_SPAWNCEILING)
+  //	z = ONCEILINGZ;
+  //    else
+  //	z = ONFLOORZ;
+  //
+  //    mo = P_SpawnMobj (x,y,z, i);
+  //    mo->spawnpoint = *mthing;
+  //    mo->angle = ANG45 * (mthing->angle/45);
+  //
+  //    // pull it from the que
+  //    iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+End;
 
 Procedure P_Ticker();
 Var
   i: int;
 Begin
-
   // run the tic
   If (paused <> 0) Then exit;
 
@@ -100,7 +164,7 @@ Begin
 
   P_RunThinkers();
   P_UpdateSpecials();
-  //    P_RespawnSpecials ();
+  P_RespawnSpecials();
 
   // for par times
   leveltime := leveltime + 1;

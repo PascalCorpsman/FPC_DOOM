@@ -75,7 +75,7 @@ Type
     //    	int automapstats;
     bobfactor: int; // 0,1,2
     brightmaps: int;
-    //    	int btusetimer;
+    btusetimer: int; // ?
     centerweapon: int;
     coloredblood: int;
     coloredhud: int; // COLOREDHUD_OFF .. COLOREDHUD_BOTH
@@ -95,7 +95,7 @@ Type
     //    	int freelook_hh;
     //    	int gamma;
     hires: Int; // 0, 1, 2 Alles über 2 macht eigentlich keinen Sinn mehr, Bei werten > 2 muss MAXWIDTH und MAXHEIGHT aus i_video.pas angepasst werden, sonst knallts beim start !
-    //    	int jump;
+    jump: int; // 0, 1
     //    	int leveltime;
     mouselook: int; // ?
     //    	int neghealth;
@@ -218,6 +218,7 @@ Initialization
   Crispy.automaprotate := 0;
   Crispy.bobfactor := 0;
   Crispy.brightmaps := 0;
+  Crispy.btusetimer := 0;
   Crispy.centerweapon := 0;
   Crispy.coloredblood := 0;
   Crispy.coloredhud := COLOREDHUD_OFF;
@@ -231,6 +232,7 @@ Initialization
   Crispy.freelook := 0;
 
   Crispy.hires := 1;
+  Crispy.jump := 0;
   Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;

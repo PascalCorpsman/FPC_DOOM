@@ -105,6 +105,8 @@ Const
   SLOWTURNTICS = 6;
 
   forwardmove: Array[0..1] Of fixed_t = ($19, $32);
+  MAXPLMOVE: fixed_t = $32; //forwardmove[1];
+
   sidemove: Array[0..1] Of fixed_t = ($18, $28);
   angleturn: Array[0..2] Of fixed_t = (640, 1280, 320); // + slow turn
 
@@ -718,7 +720,7 @@ Begin
   //        return true;
   //    }
 
-      // allow spy mode changes even during the demo
+  // allow spy mode changes even during the demo
   If (gamestate = GS_LEVEL) And (ev^._type = ev_keydown)
     And (ev^.data1 = key_spy) And ((singledemo Or (deathmatch = 0))) Then Begin
 
@@ -733,7 +735,7 @@ Begin
     ST_Start();
     HU_Start();
     //S_UpdateSounds(players[displayplayer].mo);
-    //	// [crispy] re-init automap variables for correct player arrow angle
+    // [crispy] re-init automap variables for correct player arrow angle
     If (automapactive) Then
       AM_initVariables();
     result := true;
@@ -760,10 +762,14 @@ Begin
   End;
 
   If (gamestate = GS_LEVEL) Then Begin
-    //	if (HU_Responder (ev))
-    //	    return true;	// chat ate the event
-    //	if (ST_Responder (ev))
-    //	    return true;	// status window ate it
+    If (HU_Responder(ev)) Then Begin
+      result := true; // chat ate the event
+      exit;
+    End;
+    If (ST_Responder(ev)) Then Begin
+      result := true; // status window ate it
+      exit;
+    End;
     If (AM_Responder(ev)) Then Begin
       result := true; // automap ate it
       exit;
@@ -796,8 +802,7 @@ Begin
   //    {
   //        next_weapon = 1;
   //    }
-  //
-  //    switch (ev->type)
+
   Case ev^._type Of
     ev_keydown: Begin
         If (ev^.data1 = key_pause) Then Begin
@@ -831,7 +836,6 @@ Begin
     //      default:
     //	break;
   End;
-
 End;
 
 // [crispy] holding down the "Run" key may trigger special behavior,
@@ -1223,14 +1227,14 @@ Begin
 
   strafe := gamekeydown[key_strafe]
     // Or mousebuttons[mousebstrafe]
-//  	|| joybuttons[joybstrafe]
+//  	Or joybuttons[joybstrafe]
   ;
-  //
-  //    // fraggle: support the old "joyb_speed = 31" hack which
-  //    // allowed an autorun effect
-  //
-  //    // [crispy] when "always run" is active,
-  //    // pressing the "run" key will result in walking
+
+  // fraggle: support the old "joyb_speed = 31" hack which
+  // allowed an autorun effect
+
+  // [crispy] when "always run" is active,
+  // pressing the "run" key will result in walking
   speed := ord(key_speed >= NUMKEYS
     //         || joybspeed >= MAX_JOY_BUTTONS
     );
@@ -1277,16 +1281,16 @@ Begin
   //    {
   //        lspeed = 2;
   //    }
-  //
-  //    // [crispy] add quick 180° reverse
+
+      // [crispy] add quick 180° reverse
   //    if (gamekeydown[key_reverse] || mousebuttons[mousebreverse])
   //    {
   //        angle += ANG180 >> FRACBITS;
   //        gamekeydown[key_reverse] = false;
   //        mousebuttons[mousebreverse] = false;
   //    }
-  //
-  //    // [crispy] toggle "always run"
+
+      // [crispy] toggle "always run"
   //    if (gamekeydown[key_toggleautorun])
   //    {
   //        static int joybspeed_old = 2;
@@ -1309,8 +1313,8 @@ Begin
   //
   //        gamekeydown[key_toggleautorun] = false;
   //    }
-  //
-  //    // [crispy] Toggle vertical mouse movement
+
+  // [crispy] Toggle vertical mouse movement
   //    if (gamekeydown[key_togglenovert])
   //    {
   //        novert = !novert;
@@ -1324,8 +1328,8 @@ Begin
   //
   //        gamekeydown[key_togglenovert] = false;
   //    }
-  //
-  //    // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
+
+  // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
   //    if (player->powers[pw_mapcoords])
   //    {
   //        M_snprintf(playermessage, sizeof(playermessage),
@@ -1346,32 +1350,31 @@ Begin
 
   // let movement keys cancel each other out
   If (strafe) Then Begin
-    //        if (!cmd->angleturn)
-    //        {
-    //            if (gamekeydown[key_right] || mousebuttons[mousebturnright])
-    //            {
-    //                // fprintf(stderr, "strafe right\n");
-    //                side += sidemove[speed];
-    //            }
-    //            if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
-    //            {
-    //                //	fprintf(stderr, "strafe left\n");
-    //                side -= sidemove[speed];
-    //            }
-    //            if (use_analog && joyxmove)
-    //            {
-    //                joyxmove = joyxmove * joystick_move_sensitivity / 10;
-    //                joyxmove = BETWEEN(-FRACUNIT, FRACUNIT, joyxmove);
-    //                side += FixedMul(sidemove[speed], joyxmove);
-    //            }
-    //            else if (joystick_move_sensitivity)
-    //            {
-    //                if (joyxmove > 0)
-    //                    side += sidemove[speed];
-    //                if (joyxmove < 0)
-    //                    side -= sidemove[speed];
-    //            }
-    //        }
+    If (cmd.angleturn = 0) Then Begin
+      //            if (gamekeydown[key_right] || mousebuttons[mousebturnright])
+      //            {
+      //                // fprintf(stderr, "strafe right\n");
+      //                side += sidemove[speed];
+      //            }
+      //            if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
+      //            {
+      //                //	fprintf(stderr, "strafe left\n");
+      //                side -= sidemove[speed];
+      //            }
+      //            if (use_analog && joyxmove)
+      //            {
+      //                joyxmove = joyxmove * joystick_move_sensitivity / 10;
+      //                joyxmove = BETWEEN(-FRACUNIT, FRACUNIT, joyxmove);
+      //                side += FixedMul(sidemove[speed], joyxmove);
+      //            }
+      //            else if (joystick_move_sensitivity)
+      //            {
+      //                if (joyxmove > 0)
+      //                    side += sidemove[speed];
+      //                if (joyxmove < 0)
+      //                    side -= sidemove[speed];
+      //            }
+    End;
   End
   Else Begin
     If (gamekeydown[key_right] {|| mousebuttons[mousebturnright]}) Then
@@ -1395,17 +1398,15 @@ Begin
     //        }
   End;
 
-  //    if (gamekeydown[key_up] || gamekeydown[key_alt_up]) // [crispy] add key_alt_*
-  //    {
-  //	// fprintf(stderr, "up\n");
-  //	forward += forwardmove[speed];
-  //    }
-  //    if (gamekeydown[key_down] || gamekeydown[key_alt_down]) // [crispy] add key_alt_*
-  //    {
-  //	// fprintf(stderr, "down\n");
-  //	forward -= forwardmove[speed];
-  //    }
-  //
+  If (gamekeydown[key_up] {or gamekeydown[key_alt_up]}) Then Begin // [crispy] add key_alt_*
+    // fprintf(stderr, "up\n");
+    forward := forward + forwardmove[speed];
+  End;
+  If (gamekeydown[key_down] {or gamekeydown[key_alt_down]}) Then Begin // [crispy] add key_alt_*
+    // fprintf(stderr, "down\n");
+    forward := forward - forwardmove[speed];
+  End;
+
   //    if (use_analog && joyymove)
   //    {
   //        joyymove = joyymove * joystick_move_sensitivity / 10;
@@ -1522,10 +1523,10 @@ Begin
   //	dclicks = 0;
   //    }
 
-  //    // If the previous or next weapon button is pressed, the
-  //    // next_weapon variable is set to change weapons when
-  //    // we generate a ticcmd.  Choose a new weapon.
-  //
+  // If the previous or next weapon button is pressed, the
+  // next_weapon variable is set to change weapons when
+  // we generate a ticcmd.  Choose a new weapon.
+
   //    if (gamestate == GS_LEVEL && next_weapon != 0)
   //    {
   //        i = G_NextWeapon(next_weapon);
@@ -1551,7 +1552,7 @@ Begin
 
   next_weapon := 0;
 
-  //    // mouse
+  // mouse
   //    if (mousebuttons[mousebforward])
   //    {
   //	forward += forwardmove[speed];
@@ -1560,7 +1561,7 @@ Begin
   //    {
   //        forward -= forwardmove[speed];
   //    }
-  //
+
   //    if (dclick_use)
   //    {
   //        // forward double click
@@ -1614,8 +1615,8 @@ Begin
   //            }
   //        }
   //    }
-  //
-  //    // [crispy] mouse look
+
+  // [crispy] mouse look
   //    if ((crispy->freelook && mousebuttons[mousebmouselook]) ||
   //         crispy->mouselook)
   //    {
@@ -1627,8 +1628,8 @@ Begin
   //    {
   //    forward += CarryMouseVert(CalcMouseVert(mousey));
   //    }
-  //
-  //    // [crispy] single click on mouse look button centers view
+
+  // [crispy] single click on mouse look button centers view
   //    if (crispy->freelook)
   //    {
   //        static unsigned int mbmlookctrl = 0;
@@ -1649,7 +1650,7 @@ Begin
   //            mbmlookctrl = 0;
   //        }
   //    }
-  //
+
   //    if (strafe && !cmd->angleturn)
   //	side += CarryMouseSide(CalcMouseSide(mousex));
   //
@@ -1672,24 +1673,24 @@ Begin
 
   //    mousex = mousey = 0;
 
-  //    if (forward > MAXPLMOVE)
-  //	forward = MAXPLMOVE;
-  //    else if (forward < -MAXPLMOVE)
-  //	forward = -MAXPLMOVE;
-  //    if (side > MAXPLMOVE)
-  //	side = MAXPLMOVE;
-  //    else if (side < -MAXPLMOVE)
-  //	side = -MAXPLMOVE;
+  If (forward > MAXPLMOVE) Then
+    forward := MAXPLMOVE
+  Else If (forward < -MAXPLMOVE) Then
+    forward := -MAXPLMOVE;
+  If (side > MAXPLMOVE) Then
+    side := MAXPLMOVE
+  Else If (side < -MAXPLMOVE) Then
+    side := -MAXPLMOVE;
 
-  //    cmd->forwardmove += forward;
-  //    cmd->sidemove += side;
+  cmd.forwardmove := cmd.forwardmove + forward;
+  cmd.sidemove := cmd.sidemove + side;
 
-      // [crispy]
+  // [crispy]
   localview.angle := 0;
   localview.rawangle := 0.0;
-  //    prevcarry = carry;
+  prevcarry := carry;
 
-      // [crispy] lookdir delta is stored in the lower 4 bits of the lookfly variable
+  // [crispy] lookdir delta is stored in the lower 4 bits of the lookfly variable
   If (player^.playerstate = PST_LIVE) Then Begin
     If (look < 0) Then Begin
       look := look + 16;
@@ -1708,45 +1709,45 @@ Begin
   //	cmd->buttons = BT_SPECIAL | BTS_PAUSE;
   //	}
   //    }
-  //
+
   //    if (sendsave)
   //    {
   //	sendsave = false;
   //	cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot<<BTS_SAVESHIFT);
   //    }
-  //
+
   //    if (crispy->fliplevels)
   //    {
   //	mousex_angleturn = -mousex_angleturn;
   //	cmd->angleturn = -cmd->angleturn;
   //	cmd->sidemove = -cmd->sidemove;
   //    }
-  //
-  //    // low-res turning
-  //
-  //    if (lowres_turn)
-  //    {
-  //        signed short desired_angleturn;
-  //
-  //        desired_angleturn = cmd->angleturn;
-  //
-  //        // round angleturn to the nearest 256 unit boundary
-  //        // for recording demos with single byte values for turn
-  //
-  //        cmd->angleturn = (desired_angleturn + 128) & 0xff00;
-  //
-  //        if (angle)
-  //        {
-  //            localview.ticangleturn = cmd->angleturn - mousex_angleturn;
-  //        }
-  //
-  //        // Carry forward the error from the reduced resolution to the
-  //        // next tic, so that successive small movements can accumulate.
-  //
-  //        prevcarry.angle += crispy->fliplevels ?
-  //                            cmd->angleturn - desired_angleturn :
-  //                            desired_angleturn - cmd->angleturn;
-  //    }
+
+  // low-res turning
+
+  If (lowres_turn) Then Begin
+
+    //        signed short desired_angleturn;
+    //
+    //        desired_angleturn = cmd->angleturn;
+    //
+    //        // round angleturn to the nearest 256 unit boundary
+    //        // for recording demos with single byte values for turn
+    //
+    //        cmd->angleturn = (desired_angleturn + 128) & 0xff00;
+    //
+    //        if (angle)
+    //        {
+    //            localview.ticangleturn = cmd->angleturn - mousex_angleturn;
+    //        }
+    //
+    //        // Carry forward the error from the reduced resolution to the
+    //        // next tic, so that successive small movements can accumulate.
+    //
+    //        prevcarry.angle += crispy->fliplevels ?
+    //                            cmd->angleturn - desired_angleturn :
+    //                            desired_angleturn - cmd->angleturn;
+  End;
 End;
 
 (*
