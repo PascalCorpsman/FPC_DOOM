@@ -26,6 +26,8 @@ Function P_PointOnLineSide(x, y: fixed_t; line: Pline_t): int;
 Procedure P_UnsetThingPosition(thing: Pmobj_t);
 Procedure P_SetThingPosition(thing: pmobj_t);
 
+Function P_AproxDistance(dx, dy: fixed_t): fixed_t;
+
 Implementation
 
 Uses
@@ -112,6 +114,23 @@ Begin
       thing^.bnext := Nil;
       thing^.bprev := Nil;
     End;
+  End;
+End;
+
+//
+// P_AproxDistance
+// Gives an estimation of distance (not exact)
+//
+
+Function P_AproxDistance(dx, dy: fixed_t): fixed_t;
+Begin
+  dx := abs(dx);
+  dy := abs(dy);
+  If (dx < dy) Then Begin
+    result := dx + dy - (dx Shr 1);
+  End
+  Else Begin
+    result := dx + dy - (dy Shr 1);
   End;
 End;
 

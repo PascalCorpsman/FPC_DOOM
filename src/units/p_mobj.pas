@@ -136,7 +136,7 @@ Function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 Implementation
 
 Uses
-  info
+  info, doomstat, sounds
   , d_mode, d_main
   , g_game
   , hu_stuff
@@ -144,7 +144,7 @@ Uses
   , m_random, m_bbox
   , p_setup, p_maputl, p_pspr, p_tick, p_map, p_spec
   , r_things, r_data, r_sky, r_main
-  , st_stuff
+  , s_sound, st_stuff
   , v_patch
   , w_wad
   , z_zone
@@ -241,6 +241,10 @@ Begin
   //	S_StartSound (mo, mo->info->deathsound);
 End;
 
+Procedure P_ExplodeMissile(mo: Pmobj_t);
+Begin
+  P_ExplodeMissileSafe(mo, false);
+End;
 
 // Use a heuristic approach to detect infinite state cycles: Count the number
 // of times the loop in P_SetMobjState() executes and exit with an error once
@@ -950,173 +954,158 @@ End;
 Procedure P_ZMovement(mo: Pmobj_t);
 Var
   dist, delta: fixed_t;
+  correct_lost_soul_bounce: int;
 Begin
+  // check for smooth step up
+  If assigned(mo^.player) And (mo^.z < mo^.floorz) Then Begin
+    mo^.player^.viewheight := mo^.player^.viewheight - mo^.floorz - mo^.z;
+    mo^.player^.deltaviewheight := SarLongint(DEFINE_VIEWHEIGHT - mo^.player^.viewheight, 3);
+  End;
 
-  //    // check for smooth step up
-  //    if (mo->player && mo->z < mo->floorz)
-  //    {
-  //	mo->player->viewheight -= mo->floorz-mo->z;
-  //
-  //	mo->player->deltaviewheight
-  //	    = (DEFINE_VIEWHEIGHT - mo->player->viewheight)>>3;
-  //    }
-  //
-  //    // adjust height
-  //    mo->z += mo->momz;
-  //
-  //    if ( mo->flags & MF_FLOAT
-  //	 && mo->target)
-  //    {
-  //	// float down towards target if too close
-  //	if ( !(mo->flags & MF_SKULLFLY)
-  //	     && !(mo->flags & MF_INFLOAT) )
-  //	{
-  //	    dist = P_AproxDistance (mo->x - mo->target->x,
-  //				    mo->y - mo->target->y);
-  //
-  //	    delta =(mo->target->z + (mo->height>>1)) - mo->z;
-  //
-  //	    if (delta<0 && dist < -(delta*3) )
-  //		mo->z -= FLOATSPEED;
-  //	    else if (delta>0 && dist < (delta*3) )
-  //		mo->z += FLOATSPEED;
-  //	}
-  //
-  //    }
-  //
-  //    // clip movement
-  //    if (mo->z <= mo->floorz)
-  //    {
-  //	// hit the floor
-  //
-  //	// Note (id):
-  //	//  somebody left this after the setting momz to 0,
-  //	//  kinda useless there.
-  //	//
-  //	// cph - This was the a bug in the linuxdoom-1.10 source which
-  //	//  caused it not to sync Doom 2 v1.9 demos. Someone
-  //	//  added the above comment and moved up the following code. So
-  //	//  demos would desync in close lost soul fights.
-  //	// Note that this only applies to original Doom 1 or Doom2 demos - not
-  //	//  Final Doom and Ultimate Doom.  So we test demo_compatibility *and*
-  //	//  gamemission. (Note we assume that Doom1 is always Ult Doom, which
-  //	//  seems to hold for most published demos.)
-  //        //
-  //        //  fraggle - cph got the logic here slightly wrong.  There are three
-  //        //  versions of Doom 1.9:
-  //        //
-  //        //  * The version used in registered doom 1.9 + doom2 - no bounce
-  //        //  * The version used in ultimate doom - has bounce
-  //        //  * The version used in final doom - has bounce
-  //        //
-  //        // So we need to check that this is either retail or commercial
-  //        // (but not doom2)
-  //
-  //	int correct_lost_soul_bounce = gameversion >= exe_ultimate;
-  //
-  //	if (correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
-  //	{
-  //	    // the skull slammed into something
-  //	    mo->momz = -mo->momz;
-  //	}
-  //
-  //	if (mo->momz < 0)
-  //	{
-  //	    // [crispy] delay next jump
-  //	    if (mo->player)
-  //		mo->player->jumpTics = 7;
-  //	    if (mo->player
-  //		&& mo->momz < -GRAVITY*8)
-  //	    {
-  //		// Squat down.
-  //		// Decrease viewheight for a moment
-  //		// after hitting the ground (hard),
-  //		// and utter appropriate sound.
-  //		mo->player->deltaviewheight = mo->momz>>3;
-  //		// [crispy] center view if not using permanent mouselook
-  //		if (!crispy->mouselook)
-  //		    mo->player->centering = true;
-  //		// [crispy] dead men don't say "oof"
-  //		if (mo->health > 0 || !crispy->soundfix)
-  //		{
-  //		// [NS] Landing sound for longer falls. (Hexen's calculation.)
-  //		if (mo->momz < -GRAVITY * 12)
-  //		{
-  //		    S_StartSoundOptional(mo, sfx_plland, sfx_oof);
-  //		}
-  //		else
-  //		S_StartSound (mo, sfx_oof);
-  //		}
-  //	    }
-  //	    // [NS] Beta projectile bouncing.
-  //	    if ( (mo->flags & MF_MISSILE) && (mo->flags & MF_BOUNCES) )
-  //	    {
-  //		mo->momz = -mo->momz;
-  //	    }
-  //	    else
-  //	    {
-  //	    mo->momz = 0;
-  //	    }
-  //	}
-  //	mo->z = mo->floorz;
-  //
-  //
-  //	// cph 2001/05/26 -
-  //	// See lost soul bouncing comment above. We need this here for bug
-  //	// compatibility with original Doom2 v1.9 - if a soul is charging and
-  //	// hit by a raising floor this incorrectly reverses its Y momentum.
-  //	//
-  //
-  //        if (!correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
-  //            mo->momz = -mo->momz;
-  //
-  //	if ( (mo->flags & MF_MISSILE)
-  //	     // [NS] Beta projectile bouncing.
-  //	     && !(mo->flags & MF_NOCLIP) && !(mo->flags & MF_BOUNCES) )
-  //	{
-  //	    P_ExplodeMissile (mo);
-  //	    return;
-  //	}
-  //    }
-  //    else if (! (mo->flags & MF_NOGRAVITY) )
-  //    {
-  //	if (mo->momz == 0)
-  //	    mo->momz = -GRAVITY*2;
-  //	else
-  //	    mo->momz -= GRAVITY;
-  //    }
-  //
-  //    if (mo->z + mo->height > mo->ceilingz)
-  //    {
-  //	// hit the ceiling
-  //	if (mo->momz > 0)
-  //	{
-  //	// [NS] Beta projectile bouncing.
-  //	    if ( (mo->flags & MF_MISSILE) && (mo->flags & MF_BOUNCES) )
-  //	    {
-  //		mo->momz = -mo->momz;
-  //	    }
-  //	    else
-  //	    {
-  //	    mo->momz = 0;
-  //	    }
-  //	}
-  //	{
-  //	    mo->z = mo->ceilingz - mo->height;
-  //	}
-  //
-  //	if (mo->flags & MF_SKULLFLY)
-  //	{	// the skull slammed into something
-  //	    mo->momz = -mo->momz;
-  //	}
-  //
-  //	if ( (mo->flags & MF_MISSILE)
-  //	     && !(mo->flags & MF_NOCLIP) && !(mo->flags & MF_BOUNCES) )
-  //	{
-  //	    P_ExplodeMissile (mo);
-  //	    return;
-  //	}
-  //    }
+  // adjust height
+  mo^.z := mo^.z + mo^.momz;
+
+  If ((mo^.flags And MF_FLOAT) <> 0)
+    And assigned(mo^.target) Then Begin
+
+    // float down towards target if too close
+    If ((mo^.flags And MF_SKULLFLY) = 0)
+      And ((mo^.flags And MF_INFLOAT) = 0) Then Begin
+
+      dist := P_AproxDistance(mo^.x - mo^.target^.x, mo^.y - mo^.target^.y);
+
+      delta := (mo^.target^.z + (mo^.height Shr 1)) - mo^.z;
+
+      If (delta < 0) And (dist < -(delta * 3)) Then
+        mo^.z := mo^.z - FLOATSPEED
+      Else If (delta > 0) And (dist < (delta * 3)) Then
+        mo^.z := mo^.z + FLOATSPEED;
+    End;
+  End;
+
+  // clip movement
+  If (mo^.z <= mo^.floorz) Then Begin
+
+    // hit the floor
+
+    // Note (id):
+    //  somebody left this after the setting momz to 0,
+    //  kinda useless there.
+    //
+    // cph - This was the a bug in the linuxdoom-1.10 source which
+    //  caused it not to sync Doom 2 v1.9 demos. Someone
+    //  added the above comment and moved up the following code. So
+    //  demos would desync in close lost soul fights.
+    // Note that this only applies to original Doom 1 or Doom2 demos - not
+    //  Final Doom and Ultimate Doom.  So we test demo_compatibility *and*
+    //  gamemission. (Note we assume that Doom1 is always Ult Doom, which
+    //  seems to hold for most published demos.)
+    //
+    //  fraggle - cph got the logic here slightly wrong.  There are three
+    //  versions of Doom 1.9:
+    //
+    //  * The version used in registered doom 1.9 + doom2 - no bounce
+    //  * The version used in ultimate doom - has bounce
+    //  * The version used in final doom - has bounce
+    //
+    // So we need to check that this is either retail or commercial
+    // (but not doom2)
+
+    correct_lost_soul_bounce := ord(gameversion >= exe_ultimate);
+
+    If (correct_lost_soul_bounce <> 0) And ((mo^.flags And MF_SKULLFLY) <> 0)
+      Then Begin
+      // the skull slammed into something
+      mo^.momz := -mo^.momz;
+    End;
+
+    If (mo^.momz < 0) Then Begin
+
+      // [crispy] delay next jump
+      If assigned(mo^.player) Then
+        mo^.player^.jumpTics := 7;
+      If assigned(mo^.player) And (mo^.momz < -GRAVITY * 8) Then Begin
+        // Squat down.
+        // Decrease viewheight for a moment
+        // after hitting the ground (hard),
+        // and utter appropriate sound.
+        mo^.player^.deltaviewheight := mo^.momz Shr 3;
+        // [crispy] center view if not using permanent mouselook
+        If (crispy.mouselook = 0) Then
+          mo^.player^.centering := true;
+        // [crispy] dead men don't say "oof"
+        If (mo^.health > 0) Or (crispy.soundfix = 0) Then Begin
+
+          // [NS] Landing sound for longer falls. (Hexen's calculation.)
+          If (mo^.momz < -GRAVITY * 12) Then Begin
+            S_StartSoundOptional(mo, sfx_plland, sfx_oof);
+          End
+          Else
+            S_StartSound(mo, sfx_oof);
+        End;
+      End;
+      // [NS] Beta projectile bouncing.
+      If (((mo^.flags And MF_MISSILE) <> 0) And ((mo^.flags And MF_BOUNCES) <> 0)) Then Begin
+        mo^.momz := -mo^.momz;
+      End
+      Else Begin
+        mo^.momz := 0;
+      End;
+    End;
+    mo^.z := mo^.floorz;
+
+    // cph 2001/05/26 -
+    // See lost soul bouncing comment above. We need this here for bug
+    // compatibility with original Doom2 v1.9 - if a soul is charging and
+    // hit by a raising floor this incorrectly reverses its Y momentum.
+    //
+
+    If (correct_lost_soul_bounce = 0) And ((mo^.flags And MF_SKULLFLY) <> 0) Then
+      mo^.momz := -mo^.momz;
+
+    If ((mo^.flags And MF_MISSILE) <> 0)
+      // [NS] Beta projectile bouncing.
+    And ((mo^.flags And MF_NOCLIP) = 0) And ((mo^.flags And MF_BOUNCES) = 0) Then Begin
+      P_ExplodeMissile(mo);
+      exit;
+    End;
+  End
+  Else If ((mo^.flags And MF_NOGRAVITY) = 0) Then Begin
+    If (mo^.momz = 0) Then
+      mo^.momz := -GRAVITY * 2
+    Else
+      mo^.momz := mo^.momz - GRAVITY;
+  End;
+
+  If (mo^.z + mo^.height > mo^.ceilingz) Then Begin
+
+    // hit the ceiling
+    If (mo^.momz > 0) Then Begin
+      // [NS] Beta projectile bouncing.
+      If ((mo^.flags And MF_MISSILE) <> 0) And ((mo^.flags And MF_BOUNCES) <> 0) Then Begin
+        mo^.momz := -mo^.momz;
+      End
+      Else Begin
+        mo^.momz := 0;
+      End;
+    End;
+    //	{
+    mo^.z := mo^.ceilingz - mo^.height;
+    //	}
+
+    If (mo^.flags And MF_SKULLFLY) <> 0 Then Begin
+      // the skull slammed into something
+      mo^.momz := -mo^.momz;
+    End;
+
+    If ((mo^.flags And MF_MISSILE) <> 0)
+      And ((mo^.flags And MF_NOCLIP) = 0)
+      And ((mo^.flags And MF_BOUNCES) = 0) Then Begin
+
+      P_ExplodeMissile(mo);
+      exit;
+    End;
+  End;
 End;
 
 Procedure P_MobjThinker(mobj: Pmobj_t);
