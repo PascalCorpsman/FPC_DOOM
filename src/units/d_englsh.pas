@@ -143,210 +143,212 @@ Const
   //  //	HU_stuff.C
   //  //
   //  #define HUSTR_MSGU	"[Message unsent]"
-  //
-  //  #define HUSTR_E1M1	"E1M1: Hangar"
-  //  #define HUSTR_E1M2	"E1M2: Nuclear Plant"
-  //  #define HUSTR_E1M3	"E1M3: Toxin Refinery"
-  //  #define HUSTR_E1M4	"E1M4: Command Control"
-  //  #define HUSTR_E1M5	"E1M5: Phobos Lab"
-  //  #define HUSTR_E1M6	"E1M6: Central Processing"
-  //  #define HUSTR_E1M7	"E1M7: Computer Station"
-  //  #define HUSTR_E1M8	"E1M8: Phobos Anomaly"
-  //  #define HUSTR_E1M9	"E1M9: Military Base"
-  //  #define HUSTR_E1M10	"E1M10: Sewers"
-  //  #define HUSTR_E1M4B	"E1M4B: Phobos Mission Control"
-  //  #define HUSTR_E1M8B	"E1M8B: Tech Gone Bad"
-  //
-  //  #define HUSTR_E2M1	"E2M1: Deimos Anomaly"
-  //  #define HUSTR_E2M2	"E2M2: Containment Area"
-  //  #define HUSTR_E2M3	"E2M3: Refinery"
-  //  #define HUSTR_E2M4	"E2M4: Deimos Lab"
-  //  #define HUSTR_E2M5	"E2M5: Command Center"
-  //  #define HUSTR_E2M6	"E2M6: Halls of the Damned"
-  //  #define HUSTR_E2M7	"E2M7: Spawning Vats"
-  //  #define HUSTR_E2M8	"E2M8: Tower of Babel"
-  //  #define HUSTR_E2M9	"E2M9: Fortress of Mystery"
-  //
-  //  #define HUSTR_E3M1	"E3M1: Hell Keep"
-  //  #define HUSTR_E3M2	"E3M2: Slough of Despair"
-  //  #define HUSTR_E3M3	"E3M3: Pandemonium"
-  //  #define HUSTR_E3M4	"E3M4: House of Pain"
-  //  #define HUSTR_E3M5	"E3M5: Unholy Cathedral"
-  //  #define HUSTR_E3M6	"E3M6: Mt. Erebus"
-  //  #define HUSTR_E3M7	"E3M7: Limbo"
-  //  #define HUSTR_E3M8	"E3M8: Dis"
-  //  #define HUSTR_E3M9	"E3M9: Warrens"
-  //
-  //  #define HUSTR_E4M1	"E4M1: Hell Beneath"
-  //  #define HUSTR_E4M2	"E4M2: Perfect Hatred"
-  //  #define HUSTR_E4M3	"E4M3: Sever The Wicked"
-  //  #define HUSTR_E4M4	"E4M4: Unruly Evil"
-  //  #define HUSTR_E4M5	"E4M5: They Will Repent"
-  //  #define HUSTR_E4M6	"E4M6: Against Thee Wickedly"
-  //  #define HUSTR_E4M7	"E4M7: And Hell Followed"
-  //  #define HUSTR_E4M8	"E4M8: Unto The Cruel"
-  //  #define HUSTR_E4M9	"E4M9: Fear"
-  //
-  //  #define HUSTR_E5M1	"E5M1: Baphomet's Demesne"
-  //  #define HUSTR_E5M2	"E5M2: Sheol"
-  //  #define HUSTR_E5M3	"E5M3: Cages of the Damned"
-  //  #define HUSTR_E5M4	"E5M4: Paths of Wretchedness"
-  //  #define HUSTR_E5M5	"E5M5: Abaddon's Void"
-  //  #define HUSTR_E5M6	"E5M6: Unspeakable Persecution"
-  //  #define HUSTR_E5M7	"E5M7: Nightmare Underworld"
-  //  #define HUSTR_E5M8	"E5M8: Halls of Perdition"
-  //  #define HUSTR_E5M9	"E5M9: Realm of Iblis"
-  //
-  //  #define HUSTR_E6M1	"E6M1: Cursed Darkness"
-  //  #define HUSTR_E6M2	"E6M2: Violent Hatred"
-  //  #define HUSTR_E6M3	"E6M3: Twilight Desolation"
-  //  #define HUSTR_E6M4	"E6M4: Fragments of Sanity"
-  //  #define HUSTR_E6M5	"E6M5: Wrathful Reckoning"
-  //  #define HUSTR_E6M6	"E6M6: Vengeance Unleashed"
-  //  #define HUSTR_E6M7	"E6M7: Descent Into Terror"
-  //  #define HUSTR_E6M8	"E6M8: Abyss of Despair"
-  //  #define HUSTR_E6M9	"E6M9: Shattered Homecoming"
-  //
-  //  #define HUSTR_1	"level 1: entryway"
-  //  #define HUSTR_2	"level 2: underhalls"
-  //  #define HUSTR_3	"level 3: the gantlet"
-  //  #define HUSTR_4	"level 4: the focus"
-  //  #define HUSTR_5	"level 5: the waste tunnels"
-  //  #define HUSTR_6	"level 6: the crusher"
-  //  #define HUSTR_7	"level 7: dead simple"
-  //  #define HUSTR_8	"level 8: tricks and traps"
-  //  #define HUSTR_9	"level 9: the pit"
-  //  #define HUSTR_10	"level 10: refueling base"
-  //  #define HUSTR_11	"level 11: 'o' of destruction!"
-  //
-  //  #define HUSTR_12	"level 12: the factory"
-  //  #define HUSTR_13	"level 13: downtown"
-  //  #define HUSTR_14	"level 14: the inmost dens"
-  //  #define HUSTR_15	"level 15: industrial zone"
-  //  #define HUSTR_16	"level 16: suburbs"
-  //  #define HUSTR_17	"level 17: tenements"
-  //  #define HUSTR_18	"level 18: the courtyard"
-  //  #define HUSTR_19	"level 19: the citadel"
-  //  #define HUSTR_20	"level 20: gotcha!"
-  //
-  //  #define HUSTR_21	"level 21: nirvana"
-  //  #define HUSTR_22	"level 22: the catacombs"
-  //  #define HUSTR_23	"level 23: barrels o' fun"
-  //  #define HUSTR_24	"level 24: the chasm"
-  //  #define HUSTR_25	"level 25: bloodfalls"
-  //  #define HUSTR_26	"level 26: the abandoned mines"
-  //  #define HUSTR_27	"level 27: monster condo"
-  //  #define HUSTR_28	"level 28: the spirit world"
-  //  #define HUSTR_29	"level 29: the living end"
-  //  #define HUSTR_30	"level 30: icon of sin"
-  //
-  //  #define HUSTR_31	"level 31: wolfenstein"
-  //  #define HUSTR_32	"level 32: grosse"
-  //
-  //  #define PHUSTR_1	"level 1: congo"
-  //  #define PHUSTR_2	"level 2: well of souls"
-  //  #define PHUSTR_3	"level 3: aztec"
-  //  #define PHUSTR_4	"level 4: caged"
-  //  #define PHUSTR_5	"level 5: ghost town"
-  //  #define PHUSTR_6	"level 6: baron's lair"
-  //  #define PHUSTR_7	"level 7: caughtyard"
-  //  #define PHUSTR_8	"level 8: realm"
-  //  #define PHUSTR_9	"level 9: abattoire"
-  //  #define PHUSTR_10	"level 10: onslaught"
-  //  #define PHUSTR_11	"level 11: hunted"
-  //
-  //  #define PHUSTR_12	"level 12: speed"
-  //  #define PHUSTR_13	"level 13: the crypt"
-  //  #define PHUSTR_14	"level 14: genesis"
-  //  #define PHUSTR_15	"level 15: the twilight"
-  //  #define PHUSTR_16	"level 16: the omen"
-  //  #define PHUSTR_17	"level 17: compound"
-  //  #define PHUSTR_18	"level 18: neurosphere"
-  //  #define PHUSTR_19	"level 19: nme"
-  //  #define PHUSTR_20	"level 20: the death domain"
-  //
-  //  #define PHUSTR_21	"level 21: slayer"
-  //  #define PHUSTR_22	"level 22: impossible mission"
-  //  #define PHUSTR_23	"level 23: tombstone"
-  //  #define PHUSTR_24	"level 24: the final frontier"
-  //  #define PHUSTR_25	"level 25: the temple of darkness"
-  //  #define PHUSTR_26	"level 26: bunker"
-  //  #define PHUSTR_27	"level 27: anti-christ"
-  //  #define PHUSTR_28	"level 28: the sewers"
-  //  #define PHUSTR_29	"level 29: odyssey of noises"
-  //  #define PHUSTR_30	"level 30: the gateway of hell"
-  //
-  //  #define PHUSTR_31	"level 31: cyberden"
-  //  #define PHUSTR_32	"level 32: go 2 it"
-  //
-  //  #define THUSTR_1	"level 1: system control"
-  //  #define THUSTR_2	"level 2: human bbq"
-  //  #define THUSTR_3	"level 3: power control"
-  //  #define THUSTR_4	"level 4: wormhole"
-  //  #define THUSTR_5	"level 5: hanger"
-  //  #define THUSTR_6	"level 6: open season"
-  //  #define THUSTR_7	"level 7: prison"
-  //  #define THUSTR_8	"level 8: metal"
-  //  #define THUSTR_9	"level 9: stronghold"
-  //  #define THUSTR_10	"level 10: redemption"
-  //  #define THUSTR_11	"level 11: storage facility"
-  //
-  //  #define THUSTR_12	"level 12: crater"
-  //  #define THUSTR_13	"level 13: nukage processing"
-  //  #define THUSTR_14	"level 14: steel works"
-  //  #define THUSTR_15	"level 15: dead zone"
-  //  #define THUSTR_16	"level 16: deepest reaches"
-  //  #define THUSTR_17	"level 17: processing area"
-  //  #define THUSTR_18	"level 18: mill"
-  //  #define THUSTR_19	"level 19: shipping/respawning"
-  //  #define THUSTR_20	"level 20: central processing"
-  //
-  //  #define THUSTR_21	"level 21: administration center"
-  //  #define THUSTR_22	"level 22: habitat"
-  //  #define THUSTR_23	"level 23: lunar mining project"
-  //  #define THUSTR_24	"level 24: quarry"
-  //  #define THUSTR_25	"level 25: baron's den"
-  //  #define THUSTR_26	"level 26: ballistyx"
-  //  #define THUSTR_27	"level 27: mount pain"
-  //  #define THUSTR_28	"level 28: heck"
-  //  #define THUSTR_29	"level 29: river styx"
-  //  #define THUSTR_30	"level 30: last call"
-  //
-  //  #define THUSTR_31	"level 31: pharaoh"
-  //  #define THUSTR_32	"level 32: caribbean"
-  //
-  //  #define NHUSTR_1	"level 1: The Earth Base"
-  //  #define NHUSTR_2	"level 2: The Pain Labs"
-  //  #define NHUSTR_3	"level 3: Canyon of the Dead"
-  //  #define NHUSTR_4	"level 4: Hell Mountain"
-  //  #define NHUSTR_5	"level 5: Vivisection"
-  //  #define NHUSTR_6	"level 6: Inferno of Blood"
-  //  #define NHUSTR_7	"level 7: Baron's Banquet"
-  //  #define NHUSTR_8	"level 8: Tomb of Malevolence"
-  //  #define NHUSTR_9	"level 9: March of the Demons"
-  //
-  //  #define MHUSTR_1	"level 1: Attack"
-  //  #define MHUSTR_2	"level 2: Canyon"
-  //  #define MHUSTR_3	"level 3: The Catwalk"
-  //  #define MHUSTR_4	"level 4: The Combine"
-  //  #define MHUSTR_5	"level 5: The Fistula"
-  //  #define MHUSTR_6	"level 6: The Garrison"
-  //  #define MHUSTR_7	"level 7: Titan Manor"
-  //  #define MHUSTR_8	"level 8: Paradox"
-  //  #define MHUSTR_9	"level 9: Subspace"
-  //  #define MHUSTR_10	"level 10: Subterra"
-  //  #define MHUSTR_11	"level 11: Trapped On Titan"
-  //  #define MHUSTR_12	"level 12: Virgil's Lead"
-  //  #define MHUSTR_13	"level 13: Minos' Judgement"
-  //  #define MHUSTR_14	"level 14: Bloodsea Keep"
-  //  #define MHUSTR_15	"level 15: Mephisto's Maosoleum"
-  //  #define MHUSTR_16	"level 16: Nessus"
-  //  #define MHUSTR_17	"level 17: Geryon"
-  //  #define MHUSTR_18	"level 18: Vesperas"
-  //  #define MHUSTR_19	"level 19: Black Tower"
-  //  #define MHUSTR_20	"level 20: The Express Elevator To Hell"
-  //  #define MHUSTR_21	"level 21: Bad Dream"
-  //
+
+  HUSTR_E1M1 = 'E1M1: Hangar';
+  HUSTR_E1M2 = 'E1M2: Nuclear Plant';
+  HUSTR_E1M3 = 'E1M3: Toxin Refinery';
+  HUSTR_E1M4 = 'E1M4: Command Control';
+  HUSTR_E1M5 = 'E1M5: Phobos Lab';
+  HUSTR_E1M6 = 'E1M6: Central Processing';
+  HUSTR_E1M7 = 'E1M7: Computer Station';
+  HUSTR_E1M8 = 'E1M8: Phobos Anomaly';
+  HUSTR_E1M9 = 'E1M9: Military Base';
+  HUSTR_E1M10 = 'E1M10: Sewers';
+  HUSTR_E1M4B = 'E1M4B: Phobos Mission Control';
+  HUSTR_E1M8B = 'E1M8B: Tech Gone Bad';
+
+  HUSTR_E2M1 = 'E2M1: Deimos Anomaly';
+  HUSTR_E2M2 = 'E2M2: Containment Area';
+  HUSTR_E2M3 = 'E2M3: Refinery';
+  HUSTR_E2M4 = 'E2M4: Deimos Lab';
+  HUSTR_E2M5 = 'E2M5: Command Center';
+  HUSTR_E2M6 = 'E2M6: Halls of the Damned';
+  HUSTR_E2M7 = 'E2M7: Spawning Vats';
+  HUSTR_E2M8 = 'E2M8: Tower of Babel';
+  HUSTR_E2M9 = 'E2M9: Fortress of Mystery';
+
+  HUSTR_E3M1 = 'E3M1: Hell Keep';
+  HUSTR_E3M2 = 'E3M2: Slough of Despair';
+  HUSTR_E3M3 = 'E3M3: Pandemonium';
+  HUSTR_E3M4 = 'E3M4: House of Pain';
+  HUSTR_E3M5 = 'E3M5: Unholy Cathedral';
+  HUSTR_E3M6 = 'E3M6: Mt. Erebus';
+  HUSTR_E3M7 = 'E3M7: Limbo';
+  HUSTR_E3M8 = 'E3M8: Dis';
+  HUSTR_E3M9 = 'E3M9: Warrens';
+
+  HUSTR_E4M1 = 'E4M1: Hell Beneath';
+  HUSTR_E4M2 = 'E4M2: Perfect Hatred';
+  HUSTR_E4M3 = 'E4M3: Sever The Wicked';
+  HUSTR_E4M4 = 'E4M4: Unruly Evil';
+  HUSTR_E4M5 = 'E4M5: They Will Repent';
+  HUSTR_E4M6 = 'E4M6: Against Thee Wickedly';
+  HUSTR_E4M7 = 'E4M7: And Hell Followed';
+  HUSTR_E4M8 = 'E4M8: Unto The Cruel';
+  HUSTR_E4M9 = 'E4M9: Fear';
+
+  HUSTR_E5M1 = 'E5M1: Baphomet''s Demesne';
+  HUSTR_E5M2 = 'E5M2: Sheol';
+  HUSTR_E5M3 = 'E5M3: Cages of the Damned';
+  HUSTR_E5M4 = 'E5M4: Paths of Wretchedness';
+  HUSTR_E5M5 = 'E5M5: Abaddon''s Void';
+  HUSTR_E5M6 = 'E5M6: Unspeakable Persecution';
+  HUSTR_E5M7 = 'E5M7: Nightmare Underworld';
+  HUSTR_E5M8 = 'E5M8: Halls of Perdition';
+  HUSTR_E5M9 = 'E5M9: Realm of Iblis';
+
+  HUSTR_E6M1 = 'E6M1: Cursed Darkness';
+  HUSTR_E6M2 = 'E6M2: Violent Hatred';
+  HUSTR_E6M3 = 'E6M3: Twilight Desolation';
+  HUSTR_E6M4 = 'E6M4: Fragments of Sanity';
+  HUSTR_E6M5 = 'E6M5: Wrathful Reckoning';
+  HUSTR_E6M6 = 'E6M6: Vengeance Unleashed';
+  HUSTR_E6M7 = 'E6M7: Descent Into Terror';
+  HUSTR_E6M8 = 'E6M8: Abyss of Despair';
+  HUSTR_E6M9 = 'E6M9: Shattered Homecoming';
+
+  HUSTR_1 = 'level 1: entryway';
+  HUSTR_2 = 'level 2: underhalls';
+  HUSTR_3 = 'level 3: the gantlet';
+  HUSTR_4 = 'level 4: the focus';
+  HUSTR_5 = 'level 5: the waste tunnels';
+  HUSTR_6 = 'level 6: the crusher';
+  HUSTR_7 = 'level 7: dead simple';
+  HUSTR_8 = 'level 8: tricks and traps';
+  HUSTR_9 = 'level 9: the pit';
+  HUSTR_10 = 'level 10: refueling base';
+  HUSTR_11 = 'level 11: ''o'' of destruction!';
+
+  HUSTR_12 = 'level 12: the factory';
+  HUSTR_13 = 'level 13: downtown';
+  HUSTR_14 = 'level 14: the inmost dens';
+  HUSTR_15 = 'level 15: industrial zone';
+  HUSTR_16 = 'level 16: suburbs';
+  HUSTR_17 = 'level 17: tenements';
+  HUSTR_18 = 'level 18: the courtyard';
+  HUSTR_19 = 'level 19: the citadel';
+  HUSTR_20 = 'level 20: gotcha!';
+
+  HUSTR_21 = 'level 21: nirvana';
+  HUSTR_22 = 'level 22: the catacombs';
+  HUSTR_23 = 'level 23: barrels o'' fun';
+  HUSTR_24 = 'level 24: the chasm';
+  HUSTR_25 = 'level 25: bloodfalls';
+  HUSTR_26 = 'level 26: the abandoned mines';
+  HUSTR_27 = 'level 27: monster condo';
+  HUSTR_28 = 'level 28: the spirit world';
+  HUSTR_29 = 'level 29: the living end';
+  HUSTR_30 = 'level 30: icon of sin';
+
+  HUSTR_31 = 'level 31: wolfenstein';
+  HUSTR_32 = 'level 32: grosse';
+
+  PHUSTR_1 = 'level 1: congo';
+  PHUSTR_2 = 'level 2: well of souls';
+  PHUSTR_3 = 'level 3: aztec';
+  PHUSTR_4 = 'level 4: caged';
+  PHUSTR_5 = 'level 5: ghost town';
+  PHUSTR_6 = 'level 6: baron''s lair';
+  PHUSTR_7 = 'level 7: caughtyard';
+  PHUSTR_8 = 'level 8: realm';
+  PHUSTR_9 = 'level 9: abattoire';
+  PHUSTR_10 = 'level 10: onslaught';
+
+  PHUSTR_11 = 'level 11: hunted';
+  PHUSTR_12 = 'level 12: speed';
+  PHUSTR_13 = 'level 13: the crypt';
+  PHUSTR_14 = 'level 14: genesis';
+  PHUSTR_15 = 'level 15: the twilight';
+  PHUSTR_16 = 'level 16: the omen';
+  PHUSTR_17 = 'level 17: compound';
+  PHUSTR_18 = 'level 18: neurosphere';
+  PHUSTR_19 = 'level 19: nme';
+  PHUSTR_20 = 'level 20: the death domain';
+
+  PHUSTR_21 = 'level 21: slayer';
+  PHUSTR_22 = 'level 22: impossible mission';
+  PHUSTR_23 = 'level 23: tombstone';
+  PHUSTR_24 = 'level 24: the final frontier';
+  PHUSTR_25 = 'level 25: the temple of darkness';
+  PHUSTR_26 = 'level 26: bunker';
+  PHUSTR_27 = 'level 27: anti-christ';
+  PHUSTR_28 = 'level 28: the sewers';
+  PHUSTR_29 = 'level 29: odyssey of noises';
+  PHUSTR_30 = 'level 30: the gateway of hell';
+
+  PHUSTR_31 = 'level 31: cyberden';
+  PHUSTR_32 = 'level 32: go 2 it';
+
+  THUSTR_1 = 'level 1: system control';
+  THUSTR_2 = 'level 2: human bbq';
+  THUSTR_3 = 'level 3: power control';
+  THUSTR_4 = 'level 4: wormhole';
+  THUSTR_5 = 'level 5: hanger';
+  THUSTR_6 = 'level 6: open season';
+  THUSTR_7 = 'level 7: prison';
+  THUSTR_8 = 'level 8: metal';
+  THUSTR_9 = 'level 9: stronghold';
+  THUSTR_10 = 'level 10: redemption';
+
+  THUSTR_11 = 'level 11: storage facility';
+  THUSTR_12 = 'level 12: crater';
+  THUSTR_13 = 'level 13: nukage processing';
+  THUSTR_14 = 'level 14: steel works';
+  THUSTR_15 = 'level 15: dead zone';
+  THUSTR_16 = 'level 16: deepest reaches';
+  THUSTR_17 = 'level 17: processing area';
+  THUSTR_18 = 'level 18: mill';
+  THUSTR_19 = 'level 19: shipping/respawning';
+  THUSTR_20 = 'level 20: central processing';
+
+  THUSTR_21 = 'level 21: administration center';
+  THUSTR_22 = 'level 22: habitat';
+  THUSTR_23 = 'level 23: lunar mining project';
+  THUSTR_24 = 'level 24: quarry';
+  THUSTR_25 = 'level 25: baron''s den';
+  THUSTR_26 = 'level 26: ballistyx';
+  THUSTR_27 = 'level 27: mount pain';
+  THUSTR_28 = 'level 28: heck';
+  THUSTR_29 = 'level 29: river styx';
+  THUSTR_30 = 'level 30: last call';
+
+  THUSTR_31 = 'level 31: pharaoh';
+  THUSTR_32 = 'level 32: caribbean';
+
+  NHUSTR_1 = 'level 1: The Earth Base';
+  NHUSTR_2 = 'level 2: The Pain Labs';
+  NHUSTR_3 = 'level 3: Canyon of the Dead';
+  NHUSTR_4 = 'level 4: Hell Mountain';
+  NHUSTR_5 = 'level 5: Vivisection';
+  NHUSTR_6 = 'level 6: Inferno of Blood';
+  NHUSTR_7 = 'level 7: Baron''s Banquet';
+  NHUSTR_8 = 'level 8: Tomb of Malevolence';
+  NHUSTR_9 = 'level 9: March of the Demons';
+
+  MHUSTR_1 = 'level 1: Attack';
+  MHUSTR_2 = 'level 2: Canyon';
+  MHUSTR_3 = 'level 3: The Catwalk';
+  MHUSTR_4 = 'level 4: The Combine';
+  MHUSTR_5 = 'level 5: The Fistula';
+  MHUSTR_6 = 'level 6: The Garrison';
+  MHUSTR_7 = 'level 7: Titan Manor';
+  MHUSTR_8 = 'level 8: Paradox';
+  MHUSTR_9 = 'level 9: Subspace';
+  MHUSTR_10 = 'level 10: Subterra';
+
+  MHUSTR_11 = 'level 11: Trapped On Titan';
+  MHUSTR_12 = 'level 12: Virgil''s Lead';
+  MHUSTR_13 = 'level 13: Minos'' Judgement';
+  MHUSTR_14 = 'level 14: Bloodsea Keep';
+  MHUSTR_15 = 'level 15: Mephisto''s Maosoleum';
+  MHUSTR_16 = 'level 16: Nessus';
+  MHUSTR_17 = 'level 17: Geryon';
+  MHUSTR_18 = 'level 18: Vesperas';
+  MHUSTR_19 = 'level 19: Black Tower';
+  MHUSTR_20 = 'level 20: The Express Elevator To Hell';
+
+  MHUSTR_21 = 'level 21: Bad Dream';
+
   //  #define HUSTR_CHATMACRO1	"I'm ready to kick butt!"
   //  #define HUSTR_CHATMACRO2	"I'm OK."
   //  #define HUSTR_CHATMACRO3	"I'm not looking too good!"

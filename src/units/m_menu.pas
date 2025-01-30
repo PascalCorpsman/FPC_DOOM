@@ -42,7 +42,6 @@ Procedure M_StartControlPanel();
 //extern int screenblocks;
 //
 //extern boolean inhelpscreens;
-//extern int showMessages;
 //
 //// [crispy] Numeric entry
 //extern boolean numeric_enter;
@@ -51,6 +50,7 @@ Procedure M_StartControlPanel();
 Var
   menuactive: Boolean;
   inhelpscreens: boolean;
+  showMessages: int = 1;
 
   // Blocky mode, has default, 0 = high, 1 = normal
   detailLevel: int = 0;

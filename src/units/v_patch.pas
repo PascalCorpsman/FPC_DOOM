@@ -24,6 +24,7 @@ Type
     // the [0] is &columnofs[width]
   End;
   Ppatch_t = ^patch_t;
+  PPpatch_t = ^Ppatch_t; // Das ist eigentlich ein Array of Ppatch_t
   patch_tArray = Packed Array[0..$FFFF] Of patch_t;
   Ppatch_tArray = ^patch_tArray;
   patch_tPArray = Packed Array[0..$FFFF] Of Ppatch_t;

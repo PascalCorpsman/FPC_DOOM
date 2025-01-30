@@ -57,6 +57,8 @@ Type
 Var
   automapactive: boolean = false;
 
+Procedure AM_initVariables();
+
 Procedure AM_Ticker();
 
 Function AM_Responder(Const ev: Pevent_t): boolean;

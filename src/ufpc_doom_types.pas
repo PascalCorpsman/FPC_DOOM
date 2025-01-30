@@ -36,6 +36,12 @@ Const
   FREEAIM_BOTH = 2;
   NUM_FREEAIMS = 3;
 
+  COLOREDHUD_OFF = 0;
+  COLOREDHUD_BAR = 1;
+  COLOREDHUD_TEXT = 2;
+  COLOREDHUD_BOTH = 3;
+  NUM_COLOREDHUD = 4;
+
 Type
   TProcedure = Procedure();
 
@@ -72,7 +78,7 @@ Type
     //    	int btusetimer;
     centerweapon: int;
     coloredblood: int;
-    //    	int coloredhud;
+    coloredhud: int; // COLOREDHUD_OFF .. COLOREDHUD_BOTH
     crosshair: int;
     crosshairhealth: int;
     crosshairtarget: int;
@@ -113,7 +119,7 @@ Type
     //    	int widescreen;
 
     //    	// [crispy] in-game switches and variables
-    //    	int screenshotmsg;
+    screenshotmsg: int;
     //    	int snowflakes;
     cleanscreenshot: int;
     //    	int demowarp;
@@ -214,6 +220,7 @@ Initialization
   Crispy.brightmaps := 0;
   Crispy.centerweapon := 0;
   Crispy.coloredblood := 0;
+  Crispy.coloredhud := COLOREDHUD_OFF;
   Crispy.crosshair := CROSSHAIR_OFF; // TODO: der CROSSHAIR_PROJECTED erzeugt noch an ettlichen stellen einen Bug, obwohl er eigentlich gehen sollte :/
   Crispy.crosshairhealth := 0;
   Crispy.crosshairtarget := 0;
@@ -241,6 +248,7 @@ Initialization
   //  Crispy.vsync := 1;
   //  Crispy.widescreen := 1; // match screen by default
   Crispy.cleanscreenshot := 0;
+  Crispy.screenshotmsg := 0;
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;

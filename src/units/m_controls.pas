@@ -87,7 +87,7 @@ Var
   //extern int key_arti_invulnerability;
   //
   //extern int key_demo_quit;
-  //extern int key_spy;
+  key_spy: int;
   //extern int key_prevweapon;
   //extern int key_nextweapon;
   //
@@ -263,6 +263,8 @@ Begin
   key_menu_forward := KEY_ENTER;
   key_menu_confirm := VK_Y; // Y oder Z je nach Land..
   key_menu_abort := VK_N;
+
+  key_spy := VK_F12;
 
   //    M_BindIntVariable("key_menu_help",      &key_menu_help);
   //    M_BindIntVariable("key_menu_save",      &key_menu_save);

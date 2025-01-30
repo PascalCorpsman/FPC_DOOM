@@ -46,7 +46,7 @@ Uses
   , p_setup
   , r_main, r_draw
   , s_sound, st_stuff
-  , v_video, v_patch
+  , v_video
   , w_wad, w_main
   , z_zone
   ;
@@ -781,7 +781,7 @@ Begin
   // [crispy] in automap overlay mode,
   // the HUD is drawn on top of everything else
   If (gamestate = GS_LEVEL) And (gametic <> 0) And (Not (automapactive And (crispy.automapoverlay <> 0))) Then Begin
-    //    HU_Drawer();
+    HU_Drawer();
   End;
 
   // clean up border stuff
@@ -830,9 +830,9 @@ Begin
   // draw the automap and HUD on top of everything else
   If (automapactive) And (crispy.automapoverlay <> 0) Then Begin
     AM_Drawer();
-    //	HU_Drawer ();
+    HU_Drawer();
 
-     // [crispy] force redraw of status bar and border
+    // [crispy] force redraw of status bar and border
     viewactivestate := false;
     inhelpscreensstate := true;
   End;

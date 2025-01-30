@@ -10,6 +10,7 @@ Uses
   , d_mode
   , m_fixed
   , r_defs
+  , w_wad
   ;
 
 Const
@@ -70,6 +71,9 @@ Var
   numlines: int;
   lines: Array Of line_t;
 
+  // pointer to the current map lump info struct
+  maplumpinfo: ^lumpinfo_t;
+
 Function P_GetNumForMap(episode, map: int; critical: boolean): int;
 
 Procedure P_SetupLevel(episode, map, playermask: int; skill: skill_t);
@@ -87,7 +91,6 @@ Uses
   , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter, p_switch, p_spec
   , r_data, r_main, r_things
   , s_musinfo, s_sound
-  , w_wad
   , z_zone
   ;
 
@@ -103,9 +106,6 @@ Const
     );
 
 Var
-  // pointer to the current map lump info struct
-  maplumpinfo: ^lumpinfo_t;
-
   totallines: int;
 
   // REJECT

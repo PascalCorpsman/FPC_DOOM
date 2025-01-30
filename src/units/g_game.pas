@@ -718,28 +718,29 @@ Begin
   //        return true;
   //    }
 
-  //    // allow spy mode changes even during the demo
-  //    if (gamestate == GS_LEVEL && ev->type == ev_keydown
-  //     && ev->data1 == key_spy && (singledemo || !deathmatch) )
-  //    {
-  //	// spy mode
-  //	do
-  //	{
-  //	    displayplayer++;
-  //	    if (displayplayer == MAXPLAYERS)
-  //		displayplayer = 0;
-  //	} while (!playeringame[displayplayer] && displayplayer != consoleplayer);
-  //	// [crispy] killough 3/7/98: switch status bar views too
-  //	ST_Start();
-  //	HU_Start();
-  //	S_UpdateSounds(players[displayplayer].mo);
-  //	// [crispy] re-init automap variables for correct player arrow angle
-  //	if (automapactive)
-  //	AM_initVariables();
-  //	return true;
-  //    }
+      // allow spy mode changes even during the demo
+  If (gamestate = GS_LEVEL) And (ev^._type = ev_keydown)
+    And (ev^.data1 = key_spy) And ((singledemo Or (deathmatch = 0))) Then Begin
 
-      // any other key pops up menu if in demos
+    //	// spy mode
+    //	do
+    //	{
+    //	    displayplayer++;
+    //	    if (displayplayer == MAXPLAYERS)
+    //		displayplayer = 0;
+    //	} while (!playeringame[displayplayer] && displayplayer != consoleplayer);
+     // [crispy] killough 3/7/98: switch status bar views too
+    ST_Start();
+    HU_Start();
+    //S_UpdateSounds(players[displayplayer].mo);
+    //	// [crispy] re-init automap variables for correct player arrow angle
+    If (automapactive) Then
+      AM_initVariables();
+    result := true;
+    exit;
+  End;
+
+  // any other key pops up menu if in demos
   If (gameaction = ga_nothing) And (Not singledemo) And
     (demoplayback Or (gamestate = GS_DEMOSCREEN)) Then Begin
     If ((ev^._type = ev_keydown) Or

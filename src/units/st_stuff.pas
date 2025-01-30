@@ -15,6 +15,7 @@ Uses
 Const
   // Das wirkt sich auf viewheight aus, und das dann wohl auf die Sprites ..
   ST_HEIGHT = 32;
+  CRISPY_HUD = 12;
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
@@ -55,7 +56,6 @@ Const
   ST_AMMOWIDTH = 3;
   ST_AMMOX = (44 {- ST_WIDESCREENDELTA});
   ST_AMMOY = 171;
-  CRISPY_HUD = 12;
 
 Var
   st_widescreendelta: int;
