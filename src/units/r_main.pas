@@ -113,6 +113,8 @@ Procedure R_SetGoobers(mode: boolean);
 
 Function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): int;
 
+Function R_PointToAngle2(x1, y1, x2, y2: fixed_t): angle_t;
+
 Implementation
 
 Uses
@@ -720,6 +722,15 @@ Begin
   End;
   // back side
   result := 1;
+End;
+
+Function R_PointToAngle2(x1, y1, x2, y2: fixed_t): angle_t;
+Begin
+  viewx := x1;
+  viewy := y1;
+
+  // [crispy] R_PointToAngle2() is never called during rendering
+  result := R_PointToAngleSlope(x2, y2, @SlopeDiv);
 End;
 
 Function R_PointInSubsector(x, y: fixed_t): Psubsector_t;

@@ -99,7 +99,7 @@ Type
     //    	int leveltime;
     mouselook: int; // ?
     //    	int neghealth;
-    //    	int overunder;
+    overunder: int; // ?
     pitch: int; // ?
     //    	int playercoords;
     secretmessage: int;
@@ -236,6 +236,7 @@ Initialization
   Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
+  Crispy.overunder := 0;
   Crispy.pitch := 0;
   Crispy.secretmessage := 0;
   Crispy.smoothmap := 0;

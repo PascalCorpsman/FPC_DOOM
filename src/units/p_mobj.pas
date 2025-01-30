@@ -130,6 +130,8 @@ Procedure P_MobjThinker(mobj: Pmobj_t);
 Procedure FreeAllocations();
 
 Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
+Procedure P_SpawnPuff(x, y, z: fixed_t);
+Procedure P_SpawnBlood(x, y, z: fixed_t; damage: int; target: Pmobj_t); // [crispy] pass thing type
 
 Function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 
@@ -140,9 +142,9 @@ Uses
   , d_mode, d_main
   , g_game
   , hu_stuff
-  , i_system
-  , m_random, m_bbox
-  , p_setup, p_maputl, p_pspr, p_tick, p_map, p_spec
+  , i_system, i_timer
+  , m_random
+  , p_setup, p_maputl, p_pspr, p_tick, p_map, p_spec, p_inter
   , r_things, r_data, r_sky, r_main
   , s_sound, st_stuff
   , v_patch
@@ -199,10 +201,10 @@ Begin
   //	if (iquehead == iquetail)
   //	    iquetail = (iquetail+1)&(ITEMQUESIZE-1);
   //    }
-  //
-  //    // unlink from sector and block lists
-  //    P_UnsetThingPosition (mobj);
-  //
+
+  // unlink from sector and block lists
+  P_UnsetThingPosition(mobj);
+
   //    // [crispy] removed map objects may finish their sounds
   //    if (crispy->soundfull)
   //    {
@@ -213,9 +215,9 @@ Begin
   //    // stop any playing sound
   //    S_StopSound (mobj);
   //    }
-  //
-  //    // free block
-  //    P_RemoveThinker ((thinker_t*)mobj);
+
+  // free block
+  P_RemoveThinker(Pthinker_t(mobj));
 End;
 
 //
@@ -537,276 +539,9 @@ Begin
   //    return lastsafestate = safestate;
 End;
 
-
 //
 // MOVEMENT CLIPPING
 //
-
-//
-// P_CheckPosition
-// This is purely informative, nothing is modified
-// (except things picked up).
-//
-// in:
-//  a mobj_t (can be valid or invalid)
-//  a position to be checked
-//   (doesn't need to be related to the mobj_t->x,y)
-//
-// during:
-//  special things are touched if MF_PICKUP
-//  early out on solid lines?
-//
-// out:
-//  newsubsec
-//  floorz
-//  ceilingz
-//  tmdropoffz
-//   the lowest point contacted
-//   (monsters won't move to a dropoff)
-//  speciallines[]
-//  numspeciallines
-//
-
-Function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
-Var
-  xl, xh, yl, yh, bx, by: int;
-  newsubsec: Psubsector_t;
-Begin
-
-  tmthing := thing;
-  tmflags := thing^.flags;
-
-  tmx := x;
-  tmy := y;
-
-  tmbbox[BOXTOP] := y + tmthing^.radius;
-  tmbbox[BOXBOTTOM] := y - tmthing^.radius;
-  tmbbox[BOXRIGHT] := x + tmthing^.radius;
-  tmbbox[BOXLEFT] := x - tmthing^.radius;
-
-  newsubsec := R_PointInSubsector(x, y);
-  ceilingline := Nil;
-
-  // The base floor / ceiling is from the subsector
-  // that contains the point.
-  // Any contacted lines the step closer together
-  // will adjust them.
-  tmfloorz := newsubsec^.sector^.floorheight;
-  tmdropoffz := newsubsec^.sector^.floorheight;
-  tmceilingz := newsubsec^.sector^.ceilingheight;
-
-  validcount := validcount + 1;
-  numspechit := 0;
-
-  If (tmflags And MF_NOCLIP) <> 0 Then Begin
-    result := true;
-    exit;
-  End;
-
-  // Check things first, possibly picking things up.
-  // The bounding box is extended by MAXRADIUS
-  // because mobj_ts are grouped into mapblocks
-  // based on their origin point, and can overlap
-  // into adjacent blocks by up to MAXRADIUS units.
-  xl := SarLongint(tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS, MAPBLOCKSHIFT);
-  xh := SarLongint(tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS, MAPBLOCKSHIFT);
-  yl := SarLongint(tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS, MAPBLOCKSHIFT);
-  yh := SarLongint(tmbbox[BOXTOP] - bmaporgy + MAXRADIUS, MAPBLOCKSHIFT);
-
-  //    for (bx=xl ; bx<=xh ; bx++)
-  //	for (by=yl ; by<=yh ; by++)
-  //	    if (!P_BlockThingsIterator(bx,by,PIT_CheckThing))
-  //		return false;
-
-  //    // check lines
-  //    xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
-  //    xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
-  //    yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
-  //    yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
-
-  //    for (bx=xl ; bx<=xh ; bx++)
-  //	for (by=yl ; by<=yh ; by++)
-  //	    if (!P_BlockLinesIterator (bx,by,PIT_CheckLine))
-  //		return false;
-
-  result := true;
-End;
-
-//
-// P_TryMove
-// Attempt to move to a new position,
-// crossing special lines unless MF_TELEPORT is set.
-//
-
-Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
-Var
-  oldx, oldy: fixed_t;
-  side, oldside: int;
-  ld: Pline_t;
-Begin
-  result := false;
-
-  floatok := false;
-  If (Not P_CheckPosition(thing, x, y)) Then exit; // solid wall or thing
-
-  If ((thing^.flags And MF_NOCLIP) = 0) Then Begin
-
-    If (tmceilingz - tmfloorz < thing^.height) Then exit; // doesn't fit
-
-    floatok := true;
-
-    If ((thing^.flags And MF_TELEPORT) = 0)
-      And (tmceilingz - thing^.z < thing^.height) Then
-      exit; // mobj must lower itself to fit
-
-    If ((thing^.flags And MF_TELEPORT) = 0)
-      And (tmfloorz - thing^.z > 24 * FRACUNIT) Then
-      exit; // too big a step up
-
-    If ((thing^.flags And (MF_DROPOFF Or MF_FLOAT)) = 0)
-      And (tmfloorz - tmdropoffz > 24 * FRACUNIT) Then
-      exit; // don't stand over a dropoff
-  End;
-
-  // the move is ok,
-  // so link the thing into its new position
-  P_UnsetThingPosition(thing);
-
-  oldx := thing^.x;
-  oldy := thing^.y;
-  thing^.floorz := tmfloorz;
-  thing^.ceilingz := tmceilingz;
-  thing^.x := x;
-  thing^.y := y;
-
-  P_SetThingPosition(thing);
-
-  // if any special lines were hit, do the effect
-  If ((thing^.flags And (MF_TELEPORT Or MF_NOCLIP)) = 0) Then Begin
-
-    While (numspechit <> 0) Do Begin
-
-      // see if the line was crossed
-      ld := spechit[numspechit];
-      side := P_PointOnLineSide(thing^.x, thing^.y, ld);
-      oldside := P_PointOnLineSide(oldx, oldy, ld);
-      If (side <> oldside) Then Begin
-        If (ld^.special <> 0) Then Begin
-          P_CrossSpecialLine(ld - @lines[0], oldside, thing);
-        End;
-      End;
-      numspechit := numspechit - 1
-    End;
-  End;
-
-  result := true;
-End;
-
-
-//
-// P_SlideMove
-// The momx / momy move is bad, so try to slide
-// along a wall.
-// Find the first line hit, move flush to it,
-// and slide along it
-//
-// This is a kludgy mess.
-//
-
-Procedure P_SlideMove(mo: Pmobj_t);
-Begin
-  //    fixed_t		leadx;
-  //    fixed_t		leady;
-  //    fixed_t		trailx;
-  //    fixed_t		traily;
-  //    fixed_t		newx;
-  //    fixed_t		newy;
-  //    int			hitcount;
-  //
-  //    slidemo = mo;
-  //    hitcount = 0;
-  //
-  //  retry:
-  //    if (++hitcount == 3)
-  //	goto stairstep;		// don't loop forever
-  //
-  //
-  //    // trace along the three leading corners
-  //    if (mo->momx > 0)
-  //    {
-  //	leadx = mo->x + mo->radius;
-  //	trailx = mo->x - mo->radius;
-  //    }
-  //    else
-  //    {
-  //	leadx = mo->x - mo->radius;
-  //	trailx = mo->x + mo->radius;
-  //    }
-  //
-  //    if (mo->momy > 0)
-  //    {
-  //	leady = mo->y + mo->radius;
-  //	traily = mo->y - mo->radius;
-  //    }
-  //    else
-  //    {
-  //	leady = mo->y - mo->radius;
-  //	traily = mo->y + mo->radius;
-  //    }
-  //
-  //    bestslidefrac = FRACUNIT+1;
-  //
-  //    P_PathTraverse ( leadx, leady, leadx+mo->momx, leady+mo->momy,
-  //		     PT_ADDLINES, PTR_SlideTraverse );
-  //    P_PathTraverse ( trailx, leady, trailx+mo->momx, leady+mo->momy,
-  //		     PT_ADDLINES, PTR_SlideTraverse );
-  //    P_PathTraverse ( leadx, traily, leadx+mo->momx, traily+mo->momy,
-  //		     PT_ADDLINES, PTR_SlideTraverse );
-  //
-  //    // move up to the wall
-  //    if (bestslidefrac == FRACUNIT+1)
-  //    {
-  //	// the move most have hit the middle, so stairstep
-  //      stairstep:
-  //	if (!P_TryMove (mo, mo->x, mo->y + mo->momy))
-  //	    P_TryMove (mo, mo->x + mo->momx, mo->y);
-  //	return;
-  //    }
-  //
-  //    // fudge a bit to make sure it doesn't hit
-  //    bestslidefrac -= 0x800;
-  //    if (bestslidefrac > 0)
-  //    {
-  //	newx = FixedMul (mo->momx, bestslidefrac);
-  //	newy = FixedMul (mo->momy, bestslidefrac);
-  //
-  //	if (!P_TryMove (mo, mo->x+newx, mo->y+newy))
-  //	    goto stairstep;
-  //    }
-  //
-  //    // Now continue along the wall.
-  //    // First calculate remainder.
-  //    bestslidefrac = FRACUNIT-(bestslidefrac+0x800);
-  //
-  //    if (bestslidefrac > FRACUNIT)
-  //	bestslidefrac = FRACUNIT;
-  //
-  //    if (bestslidefrac <= 0)
-  //	return;
-  //
-  //    tmxmove = FixedMul (mo->momx, bestslidefrac);
-  //    tmymove = FixedMul (mo->momy, bestslidefrac);
-  //
-  //    P_HitSlideLine (bestslideline);	// clip the moves
-  //
-  //    mo->momx = tmxmove;
-  //    mo->momy = tmymove;
-  //
-  //    if (!P_TryMove (mo, mo->x+tmxmove, mo->y+tmymove))
-  //    {
-  //	goto retry;
-  //    }
-End;
 
 //
 // P_XYMovement
@@ -863,6 +598,8 @@ Begin
       ymove := 0;
     End;
 
+    Irgendwo hier wird das Berühren der Wände nicht richtig erkannt -> Suchen
+
     If (Not P_TryMove(mo, ptryx, ptryy)) Then Begin
 
       // blocked move
@@ -895,7 +632,7 @@ Begin
         mo^.momy := 0;
       End;
     End;
-  Until (xmove = 0) And (ymove = 0); //    } while (xmove || ymove);
+  Until (xmove = 0) And (ymove = 0);
 
   // slow down
   If assigned(player) And ((player^.cheats And integer(CF_NOMOMENTUM)) <> 0) Then Begin
@@ -909,25 +646,23 @@ Begin
     exit; // no friction for missiles ever
 
   // [crispy] fix mid-air speed boost when using noclip cheat
-  //  if (!player || !(player^.mo^.flags & MF_NOCLIP))
-  //  {
-  //    if (mo^.z > mo^.floorz)
-  //	return;		// no friction when airborne
-  //  }
+  If (player = Nil) Or ((player^.mo^.flags And MF_NOCLIP) = 0) Then Begin
+    If (mo^.z > mo^.floorz) Then
+      exit; // no friction when airborne
+  End;
 
-  //    if (mo^.flags & MF_CORPSE)
-  //    {
-  //	// do not stop sliding
-  //	//  if halfway off a step with some momentum
-  //	if (mo^.momx > FRACUNIT/4
-  //	    || mo^.momx < -FRACUNIT/4
-  //	    || mo^.momy > FRACUNIT/4
-  //	    || mo^.momy < -FRACUNIT/4)
-  //	{
-  //	    if (mo^.floorz != mo^.subsector^.sector^.floorheight)
-  //		return;
-  //	}
-  //    }
+  If (mo^.flags And MF_CORPSE) <> 0 Then Begin
+    // do not stop sliding
+    //  if halfway off a step with some momentum
+    If (mo^.momx > FRACUNIT Div 4)
+      Or (mo^.momx < -FRACUNIT Div 4)
+      Or (mo^.momy > FRACUNIT Div 4)
+      Or (mo^.momy < -FRACUNIT Div 4)
+      Then Begin
+      If (mo^.floorz <> mo^.subsector^.sector^.floorheight) Then
+        exit;
+    End;
+  End;
 
   If (mo^.momx > -STOPSPEED)
     And (mo^.momx < STOPSPEED)
@@ -1108,6 +843,68 @@ Begin
   End;
 End;
 
+//
+// P_NightmareRespawn
+//
+
+Procedure P_NightmareRespawn(mobj: Pmobj_t);
+Begin
+  Raise exception.create('P_NightmareRespawn');
+  //    fixed_t		x;
+  //    fixed_t		y;
+  //    fixed_t		z;
+  //    subsector_t*	ss;
+  //    mobj_t*		mo;
+  //    mapthing_t*		mthing;
+  //
+  //    x = mobj->spawnpoint.x << FRACBITS;
+  //    y = mobj->spawnpoint.y << FRACBITS;
+  //
+  //    // somthing is occupying it's position?
+  //    if (!P_CheckPosition (mobj, x, y) )
+  //	return;	// no respwan
+  //
+  //    // spawn a teleport fog at old spot
+  //    // because of removal of the body?
+  //    mo = P_SpawnMobj (mobj->x,
+  //		      mobj->y,
+  //		      mobj->subsector->sector->floorheight , MT_TFOG);
+  //    // initiate teleport sound
+  //    S_StartSound (mo, sfx_telept);
+  //
+  //    // spawn a teleport fog at the new spot
+  //    ss = R_PointInSubsector (x,y);
+  //
+  //    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_TFOG);
+  //
+  //    S_StartSound (mo, sfx_telept);
+  //
+  //    // spawn the new monster
+  //    mthing = &mobj->spawnpoint;
+  //
+  //    // spawn it
+  //    if (mobj->info->flags & MF_SPAWNCEILING)
+  //	z = ONCEILINGZ;
+  //    else
+  //	z = ONFLOORZ;
+  //
+  //    // inherit attributes from deceased one
+  //    mo = P_SpawnMobj (x,y,z, mobj->type);
+  //    mo->spawnpoint = mobj->spawnpoint;
+  //    mo->angle = ANG45 * (mthing->angle/45);
+  //
+  //    // [crispy] count respawned monsters
+  //    extrakills++;
+  //
+  //    if (mthing->options & MTF_AMBUSH)
+  //	mo->flags |= MF_AMBUSH;
+  //
+  //    mo->reactiontime = 18;
+
+  // remove the old monster,
+  P_RemoveMobj(mobj);
+End;
+
 Procedure P_MobjThinker(mobj: Pmobj_t);
 Begin
   // [crispy] support MUSINFO lump (dynamic music changing)
@@ -1164,25 +961,22 @@ Begin
     End;
   End
   Else Begin
-    //	// check for nightmare respawn
-    //	if (! (mobj^.flags & MF_COUNTKILL) )
-    //	    return;
-    //
-    //	if (!respawnmonsters)
-    //	    return;
-    //
-    //	mobj^.movecount++;
-    //
-    //	if (mobj^.movecount < 12*TICRATE)
-    //	    return;
-    //
-    //	if ( leveltime&31 )
-    //	    return;
-    //
-    //	if (P_Random () > 4)
-    //	    return;
-    //
-    //	P_NightmareRespawn (mobj);
+    // check for nightmare respawn
+    If ((mobj^.flags And MF_COUNTKILL) = 0) Then
+      exit;
+
+    If (Not respawnmonsters) Then exit;
+
+
+    mobj^.movecount := mobj^.movecount + 1;
+
+    If (mobj^.movecount < 12 * TICRATE) Then exit;
+
+    If (leveltime And 31) <> 0 Then exit;
+
+    If (P_Random() > 4) Then exit;
+
+    P_NightmareRespawn(mobj);
   End;
 End;
 
@@ -1323,9 +1117,46 @@ Begin
   //	P_SetMobjState (th, safe ? P_LatestSafeState(S_PUFF3) : S_PUFF3);
 End;
 
+Procedure P_SpawnPuff(x, y, z: fixed_t);
+Begin
+  P_SpawnPuffSafe(x, y, z, false);
+End;
+
+//
+// P_SpawnBlood
+//
+
+Procedure P_SpawnBlood(x, y, z: fixed_t; damage: int; target: Pmobj_t); // [crispy] pass thing type
+Begin
+  Raise exception.create('P_SpawnBlood');
+  //    mobj_t*	th;
+  //
+  //    z += (P_SubRandom() << 10);
+  //    th = P_SpawnMobj (x,y,z, MT_BLOOD);
+  //    th->momz = FRACUNIT*2;
+  //    th->tics -= P_Random()&3;
+  //
+  //    if (th->tics < 1)
+  //	th->tics = 1;
+  //
+  //    if (damage <= 12 && damage >= 9)
+  //	P_SetMobjState (th,S_BLOOD2);
+  //    else if (damage < 9)
+  //	P_SetMobjState (th,S_BLOOD3);
+  //
+  //    // [crispy] connect blood object with the monster that bleeds it
+  //    th->target = target;
+  //
+  //    // [crispy] Spectres bleed spectre blood
+  //    if (crispy->coloredblood == COLOREDBLOOD_ALL)
+  //        th->flags |= (target->flags & MF_SHADOW);
+End;
+
 Finalization
 
   FreeAllocations();
 
 End.
+
+
 

@@ -35,7 +35,7 @@ Var
   // but don't process them until the move is proven valid
   spechit: Array Of Pline_t; // [crispy] remove SPECHIT limit
   numspechit: int;
-  //static int spechit_max; // [crispy] remove SPECHIT limit
+  spechit_max: int; // [crispy] remove SPECHIT limit
 
 Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
 
@@ -48,12 +48,20 @@ Procedure P_LineAttack(t1: pmobj_t; angle: angle_t; distance: fixed_t; slope: fi
 
 Procedure P_UseLines(player: Pplayer_t);
 
+Function PIT_CheckThing(thing: Pmobj_t): boolean;
+Function PIT_CheckLine(ld: Pline_t): boolean;
+
+Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
+Procedure P_SlideMove(mo: Pmobj_t);
+
 Implementation
 
 Uses
-  doomdata
-  , i_video
-  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup
+  math, doomdata
+  , deh_misc
+  , i_video, i_system
+  , m_random, m_bbox
+  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter
   , r_things, r_main, r_sky
   ;
 
@@ -66,6 +74,17 @@ Var
   la_damage: int;
   attackrange: fixed_t;
   aimslope: fixed_t;
+
+  bestslidefrac: fixed_t;
+  secondslidefrac: fixed_t;
+
+  bestslideline: Pline_t;
+  secondslideline: Pline_t;
+
+  slidemo: Pmobj_t;
+
+  tmxmove: fixed_t;
+  tmymove: fixed_t;
 
   // Certain functions assume that a mobj_t pointer is non-NULL,
   // causing a crash in some situations where it is NULL.  Vanilla
@@ -104,7 +123,6 @@ Var
   li: ^line_t;
   th: ^mobj_t;
   slope, thingtopslope, thingbottomslope, dist: fixed_t;
-
 Begin
   If (_in^.isaline) Then Begin
     li := _in^.d.line;
@@ -445,56 +463,68 @@ Begin
     exit;
   End;
 
-  //    if (!(th^.flags&MF_SHOOTABLE))
-  //	return true;		// corpse or something
-  //
-  //    // check angles to see if the thing can be aimed at
-  //    dist = FixedMul (attackrange, in^.frac);
-  //    // [crispy] mobj or actual sprite height
-  //    thingheight = (shootthing^.player && critical^.freeaim == FREEAIM_DIRECT) ?
-  //                  th^.info^.actualheight : th^.height;
-  //    thingtopslope = FixedDiv (th^.z+thingheight - shootz , dist);
-  //
-  //    if (thingtopslope < aimslope)
-  //	return true;		// shot over the thing
-  //
-  //    thingbottomslope = FixedDiv (th^.z - shootz, dist);
-  //
-  //    if (thingbottomslope > aimslope)
-  //	return true;		// shot under the thing
-  //
-  //
-  //    // hit thing
-  //    // position a bit closer
-  //    frac = in^.frac - FixedDiv (10*FRACUNIT,attackrange);
-  //
-  //    x = trace.x + FixedMul (trace.dx, frac);
-  //    y = trace.y + FixedMul (trace.dy, frac);
-  //    z = shootz + FixedMul (aimslope, FixedMul(frac, attackrange));
-  //
-  //    // [crispy] update laser spot position and return
-  //    if (la_damage == INT_MIN)
-  //    {
-  //	// [crispy] pass through Spectres
-  //	if (th^.flags & MF_SHADOW)
-  //	    return true;
-  //
-  //	laserspot^.thinker.function.acv = (actionf_v) (1);
-  //	laserspot^.x = th^.x;
-  //	laserspot^.y = th^.y;
-  //	laserspot^.z = z;
-  //	return false;
-  //    }
-  //
-  //    // Spawn bullet puffs or blod spots,
-  //    // depending on target type.
-  //    if (in^.d.thing^.flags & MF_NOBLOOD)
-  //	P_SpawnPuff (x,y,z);
-  //    else
-  //	P_SpawnBlood (x,y,z, la_damage, th); // [crispy] pass thing type
-  //
-  //    if (la_damage)
-  //	P_DamageMobj (th, shootthing, shootthing, la_damage);
+  If ((th^.flags And MF_SHOOTABLE) = 0) Then Begin
+    result := true; // corpse or something
+    exit;
+  End;
+
+  // check angles to see if the thing can be aimed at
+  dist := FixedMul(attackrange, _in^.frac);
+  // [crispy] mobj or actual sprite height
+  If assigned(shootthing^.player) And (critical^.freeaim = FREEAIM_DIRECT) Then Begin
+    thingheight := th^.info^.actualheight;
+  End
+  Else Begin
+    thingheight := th^.height;
+  End;
+  thingtopslope := FixedDiv(th^.z + thingheight - shootz, dist);
+
+  If (thingtopslope < aimslope) Then Begin
+    result := true; // shot over the thing
+    exit;
+  End;
+
+  thingbottomslope := FixedDiv(th^.z - shootz, dist);
+
+  If (thingbottomslope > aimslope) Then Begin
+    result := true; // shot under the thing
+    exit;
+  End;
+
+  // hit thing
+  // position a bit closer
+  frac := _in^.frac - FixedDiv(10 * FRACUNIT, attackrange);
+
+  x := trace.x + FixedMul(trace.dx, frac);
+  y := trace.y + FixedMul(trace.dy, frac);
+  z := shootz + FixedMul(aimslope, FixedMul(frac, attackrange));
+
+  // [crispy] update laser spot position and return
+  If (la_damage = INT_MIN) Then Begin
+
+    // [crispy] pass through Spectres
+    If (th^.flags And MF_SHADOW) <> 0 Then Begin
+      result := true;
+      exit;
+    End;
+
+    laserspot^.thinker._function.acv := @LaserThinkerDummyProcedure;
+    laserspot^.x := th^.x;
+    laserspot^.y := th^.y;
+    laserspot^.z := z;
+    result := false;
+    exit;
+  End;
+
+  // Spawn bullet puffs or blod spots,
+  // depending on target type.
+  If (_in^.d.thing^.flags And MF_NOBLOOD) <> 0 Then
+    P_SpawnPuff(x, y, z)
+  Else
+    P_SpawnBlood(x, y, z, la_damage, th); // [crispy] pass thing type
+
+  If (la_damage <> 0) Then
+    P_DamageMobj(th, shootthing, shootthing, la_damage);
 
   // don't go any farther
   result := false;
@@ -568,6 +598,649 @@ Begin
   //
   //    P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse );
 
+End;
+
+//
+// PIT_CheckLine
+// Adjusts tmfloorz and tmceilingz as lines are contacted
+//
+
+Function PIT_CheckLine(ld: Pline_t): boolean;
+Begin
+  result := false;
+  If (tmbbox[BOXRIGHT] <= ld^.bbox[BOXLEFT])
+    Or (tmbbox[BOXLEFT] >= ld^.bbox[BOXRIGHT])
+    Or (tmbbox[BOXTOP] <= ld^.bbox[BOXBOTTOM])
+    Or (tmbbox[BOXBOTTOM] >= ld^.bbox[BOXTOP]) Then Begin
+    result := true;
+    exit;
+  End;
+
+  If (P_BoxOnLineSide(tmbbox, ld) <> -1) Then Begin
+    result := true;
+    exit;
+  End;
+
+  // A line has been hit
+
+  // The moving thing's destination position will cross
+  // the given line.
+  // If this should not be allowed, return false.
+  // If the line is special, keep track of it
+  // to process later if the move is proven ok.
+  // NOTE: specials are NOT sorted by order,
+  // so two special lines that are only 8 pixels apart
+  // could be crossed in either order.
+
+  If (ld^.backsector = Nil) Then
+    exit; // one sided line
+
+  If ((tmthing^.flags And MF_MISSILE) = 0) Then Begin
+
+    If (ld^.flags And ML_BLOCKING) = 0 Then
+      exit; // explicitly blocking everything
+
+    If (tmthing^.player = Nil) And ((ld^.flags And ML_BLOCKMONSTERS) <> 0) Then
+      exit; // block monsters only
+  End;
+
+  // set openrange, opentop, openbottom
+  P_LineOpening(ld);
+
+  // adjust floor / ceiling heights
+  If (opentop < tmceilingz) Then Begin
+    tmceilingz := opentop;
+    ceilingline := ld;
+  End;
+
+  If (openbottom > tmfloorz) Then
+    tmfloorz := openbottom;
+
+  If (lowfloor < tmdropoffz) Then
+    tmdropoffz := lowfloor;
+
+  // if contacted a special line, add it to the list
+  If (ld^.special <> 0) Then Begin
+
+    // [crispy] remove SPECHIT limit
+    If (numspechit >= spechit_max) Then Begin
+      If spechit_max <> 0 Then Begin
+        spechit_max := spechit_max * 2;
+      End
+      Else Begin
+        spechit_max := MAXSPECIALCROSS;
+      End;
+      setlength(spechit, spechit_max);
+    End;
+    spechit[numspechit] := ld;
+    numspechit := numspechit + 1;
+
+    // fraggle: spechits overrun emulation code from prboom-plus
+    If (numspechit > MAXSPECIALCROSS_ORIGINAL) Then Begin
+
+      // [crispy] print a warning
+      If (numspechit = MAXSPECIALCROSS_ORIGINAL + 1) Then Begin
+        Writeln(stderr, 'PIT_CheckLine: Triggered SPECHITS overflow!');
+      End;
+      // SpechitOverrun(ld); // WTF: äh nee
+    End;
+  End;
+
+  result := true;
+End;
+
+//
+// PIT_CheckThing
+//
+
+Function PIT_CheckThing(thing: Pmobj_t): boolean;
+Var
+  blockdist: fixed_t;
+  solid: boolean;
+  unblocking: boolean;
+  damage: int;
+  thingheight: fixed_t;
+  step_up: fixed_t;
+  newdist: fixed_t;
+  olddist: fixed_t;
+Begin
+  result := false;
+  unblocking := false;
+
+  If ((thing^.flags And (MF_SOLID Or MF_SPECIAL Or MF_SHOOTABLE)) = 0) Then Begin
+    result := true;
+    exit;
+  End;
+  blockdist := thing^.radius + tmthing^.radius;
+
+  If (abs(thing^.x - tmx) >= blockdist)
+    Or (abs(thing^.y - tmy) >= blockdist) Then Begin
+
+    // didn't hit it
+    result := true;
+    exit;
+  End;
+
+  // don't clip against self
+  If (thing = tmthing) Then Begin
+    result := true;
+    exit;
+  End;
+
+  // check for skulls slamming into things
+  If (tmthing^.flags And MF_SKULLFLY) <> 0 Then Begin
+
+    // [crispy] check if attacking skull flies over player
+    If (critical^.overunder <> 0) And assigned(thing^.player) Then Begin
+
+      If (tmthing^.z > thing^.z + thing^.height) Then Begin
+        result := true;
+        exit;
+      End;
+    End;
+
+    damage := ((P_Random() Mod 8) + 1) * tmthing^.info^.damage;
+
+    P_DamageMobj(thing, tmthing, tmthing, damage);
+
+    tmthing^.flags := tmthing^.flags And Not MF_SKULLFLY;
+    tmthing^.momx := 0;
+    tmthing^.momy := 0;
+    tmthing^.momz := 0;
+
+    P_SetMobjState(tmthing, tmthing^.info^.spawnstate);
+
+    exit; // stop moving
+  End;
+
+  // missiles can hit other things
+  If (tmthing^.flags And MF_MISSILE) <> 0 Then Begin
+
+    // [crispy] mobj or actual sprite height
+    If assigned(tmthing^.target) And assigned(tmthing^.target^.player) And
+      (critical^.freeaim = FREEAIM_DIRECT) Then Begin
+      thingheight := thing^.info^.actualheight;
+    End
+    Else Begin
+      thingheight := thing^.height;
+    End;
+    // see if it went over / under
+    If (tmthing^.z > thing^.z + thingheight) Then Begin
+      result := true; // overhead
+      exit;
+    End;
+    If (tmthing^.z + tmthing^.height < thing^.z) Then Begin
+      result := true; // underneath
+      exit;
+    End;
+    If assigned(tmthing^.target) And
+      ((tmthing^.target^._type = thing^._type) Or
+      ((tmthing^.target^._type = MT_KNIGHT) And (thing^._type = MT_BRUISER)) Or
+      ((tmthing^.target^._type = MT_BRUISER) And (thing^._type = MT_KNIGHT)))
+      Then Begin
+      // Don't hit same species as originator.
+      If (thing = tmthing^.target) Then Begin
+        result := true;
+        exit;
+      End;
+
+      // sdh: Add deh_species_infighting here.  We can override the
+      // "monsters of the same species cant hurt each other" behavior
+      // through dehacked patches
+      If (thing^._type <> MT_PLAYER) And (deh_species_infighting = 0) Then Begin
+        // Explode, but do no damage.
+        // Let players missile other players.
+        exit;
+      End;
+    End;
+
+    If ((thing^.flags And MF_SHOOTABLE) = 0) Then Begin
+      // didn't do any damage
+      result := (thing^.flags And MF_SOLID) = 0;
+      exit;
+    End;
+
+    // damage / explode
+    damage := ((P_Random() Mod 8) + 1) * tmthing^.info^.damage;
+    P_DamageMobj(thing, tmthing, tmthing^.target, damage);
+    // don't traverse any more
+    exit;
+  End;
+
+  // check for special pickup
+  If (thing^.flags And MF_SPECIAL) = 0 Then Begin
+    solid := (thing^.flags And MF_SOLID) <> 0;
+    If (tmflags And MF_PICKUP) <> 0 Then Begin
+      // can remove thing
+      P_TouchSpecialThing(thing, tmthing);
+    End;
+    result := Not solid;
+  End;
+
+  If (critical^.overunder <> 0) Then Begin
+
+    // [crispy] a solid hanging body will allow sufficiently small things underneath it
+    If ((thing^.flags And MF_SOLID) <> 0) And ((thing^.flags And MF_SPAWNCEILING) <> 0) Then Begin
+      If (tmthing^.z + tmthing^.height <= thing^.z) Then Begin
+        If (thing^.z < tmceilingz) Then Begin
+          tmceilingz := thing^.z;
+        End;
+        result := true;
+        exit;
+      End;
+    End;
+
+    // [crispy] allow players to walk over/under shootable objects
+    If assigned(tmthing^.player) And ((thing^.flags And MF_SHOOTABLE) <> 0) Then Begin
+
+      // [crispy] allow the usual 24 units step-up even across monsters' heads,
+      // only if the current height has not been reached by "low" jumping
+      If tmthing^.player^.jumpTics > 7 Then Begin
+        step_up := 0;
+      End
+      Else Begin
+        step_up := 24 * FRACUNIT;
+      End;
+
+      If (tmthing^.z + step_up >= thing^.z + thing^.height) Then Begin
+        // player walks over object
+        tmfloorz := MAX(thing^.z + thing^.height, tmfloorz);
+        thing^.ceilingz := MIN(tmthing^.z, thing^.ceilingz);
+        result := true;
+        exit;
+      End
+      Else If (tmthing^.z + tmthing^.height <= thing^.z) Then Begin
+        // player walks underneath object
+        tmceilingz := MIN(thing^.z, tmceilingz);
+        thing^.floorz := MAX(tmthing^.z + tmthing^.height, thing^.floorz);
+        result := true;
+        exit;
+      End;
+
+      // [crispy] check if things are stuck and allow them to move further apart
+      // taken from doomretro/src/p_map.c:319-332
+      If (tmx = tmthing^.x) And (tmy = tmthing^.y) Then Begin
+
+        unblocking := true;
+      End
+      Else Begin
+        newdist := P_AproxDistance(thing^.x - tmx, thing^.y - tmy);
+        olddist := P_AproxDistance(thing^.x - tmthing^.x, thing^.y - tmthing^.y);
+
+        If (newdist > olddist) Then Begin
+          unblocking := (tmthing^.z < thing^.z + thing^.height)
+            And (tmthing^.z + tmthing^.height > thing^.z);
+        End;
+      End;
+    End;
+  End;
+
+  result := ((thing^.flags And MF_SOLID) = 0) Or unblocking;
+End;
+
+//
+// P_CheckPosition
+// This is purely informative, nothing is modified
+// (except things picked up).
+//
+// in:
+//  a mobj_t (can be valid or invalid)
+//  a position to be checked
+//   (doesn't need to be related to the mobj_t->x,y)
+//
+// during:
+//  special things are touched if MF_PICKUP
+//  early out on solid lines?
+//
+// out:
+//  newsubsec
+//  floorz
+//  ceilingz
+//  tmdropoffz
+//   the lowest point contacted
+//   (monsters won't move to a dropoff)
+//  speciallines[]
+//  numspeciallines
+//
+
+Function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
+Var
+  xl, xh, yl, yh, bx, by: int;
+  newsubsec: Psubsector_t;
+Begin
+  result := false;
+  tmthing := thing;
+  tmflags := thing^.flags;
+
+  tmx := x;
+  tmy := y;
+
+  tmbbox[BOXTOP] := y + tmthing^.radius;
+  tmbbox[BOXBOTTOM] := y - tmthing^.radius;
+  tmbbox[BOXRIGHT] := x + tmthing^.radius;
+  tmbbox[BOXLEFT] := x - tmthing^.radius;
+
+  newsubsec := R_PointInSubsector(x, y);
+  ceilingline := Nil;
+
+  // The base floor / ceiling is from the subsector
+  // that contains the point.
+  // Any contacted lines the step closer together
+  // will adjust them.
+  tmfloorz := newsubsec^.sector^.floorheight;
+  tmdropoffz := newsubsec^.sector^.floorheight;
+  tmceilingz := newsubsec^.sector^.ceilingheight;
+
+  validcount := validcount + 1;
+  numspechit := 0;
+
+  If (tmflags And MF_NOCLIP) <> 0 Then Begin
+    result := true;
+    exit;
+  End;
+
+  // Check things first, possibly picking things up.
+  // The bounding box is extended by MAXRADIUS
+  // because mobj_ts are grouped into mapblocks
+  // based on their origin point, and can overlap
+  // into adjacent blocks by up to MAXRADIUS units.
+  xl := SarLongint(tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS, MAPBLOCKSHIFT);
+  xh := SarLongint(tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS, MAPBLOCKSHIFT);
+  yl := SarLongint(tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS, MAPBLOCKSHIFT);
+  yh := SarLongint(tmbbox[BOXTOP] - bmaporgy + MAXRADIUS, MAPBLOCKSHIFT);
+
+  For bx := xl To xh Do Begin
+    For by := yl To yh Do Begin
+      If (Not P_BlockThingsIterator(bx, by, @PIT_CheckThing)) Then Begin
+        exit;
+      End;
+    End;
+  End;
+
+  // check lines
+  xl := SarLongint(tmbbox[BOXLEFT] - bmaporgx, MAPBLOCKSHIFT);
+  xh := SarLongint(tmbbox[BOXRIGHT] - bmaporgx, MAPBLOCKSHIFT);
+  yl := SarLongint(tmbbox[BOXBOTTOM] - bmaporgy, MAPBLOCKSHIFT);
+  yh := SarLongint(tmbbox[BOXTOP] - bmaporgy, MAPBLOCKSHIFT);
+
+  For bx := xl To xh Do Begin
+    For by := yl To yh Do Begin
+      If (Not P_BlockLinesIterator(bx, by, @PIT_CheckLine)) Then Begin
+        exit;
+      End;
+    End;
+  End;
+
+  result := true;
+End;
+
+//
+// P_TryMove
+// Attempt to move to a new position,
+// crossing special lines unless MF_TELEPORT is set.
+//
+
+Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
+Var
+  oldx, oldy: fixed_t;
+  side, oldside: int;
+  ld: Pline_t;
+Begin
+  result := false;
+
+  floatok := false;
+  If (Not P_CheckPosition(thing, x, y)) Then exit; // solid wall or thing
+
+  If ((thing^.flags And MF_NOCLIP) = 0) Then Begin
+
+    If (tmceilingz - tmfloorz < thing^.height) Then exit; // doesn't fit
+
+    floatok := true;
+
+    If ((thing^.flags And MF_TELEPORT) = 0)
+      And (tmceilingz - thing^.z < thing^.height) Then
+      exit; // mobj must lower itself to fit
+
+    If ((thing^.flags And MF_TELEPORT) = 0)
+      And (tmfloorz - thing^.z > 24 * FRACUNIT) Then
+      exit; // too big a step up
+
+    If ((thing^.flags And (MF_DROPOFF Or MF_FLOAT)) = 0)
+      And (tmfloorz - tmdropoffz > 24 * FRACUNIT) Then
+      exit; // don't stand over a dropoff
+  End;
+
+  // the move is ok,
+  // so link the thing into its new position
+  P_UnsetThingPosition(thing);
+
+  oldx := thing^.x;
+  oldy := thing^.y;
+  thing^.floorz := tmfloorz;
+  thing^.ceilingz := tmceilingz;
+  thing^.x := x;
+  thing^.y := y;
+
+  P_SetThingPosition(thing);
+
+  // if any special lines were hit, do the effect
+  If ((thing^.flags And (MF_TELEPORT Or MF_NOCLIP)) = 0) Then Begin
+
+    While (numspechit <> 0) Do Begin
+
+      // see if the line was crossed
+      ld := spechit[numspechit];
+      side := P_PointOnLineSide(thing^.x, thing^.y, ld);
+      oldside := P_PointOnLineSide(oldx, oldy, ld);
+      If (side <> oldside) Then Begin
+        If (ld^.special <> 0) Then Begin
+          P_CrossSpecialLine(ld - @lines[0], oldside, thing);
+        End;
+      End;
+      numspechit := numspechit - 1
+    End;
+  End;
+  result := true;
+End;
+
+//
+// PTR_SlideTraverse
+//
+
+Function PTR_SlideTraverse(_in: Pintercept_t): boolean;
+Label
+  isblocking;
+Var
+  li: Pline_t;
+Begin
+
+  If (Not _in^.isaline) Then Begin
+    I_Error('PTR_SlideTraverse: not a line?');
+  End;
+
+  li := _in^.d.line;
+
+  If ((li^.flags And ML_TWOSIDED)) = 0 Then Begin
+    If (P_PointOnLineSide(slidemo^.x, slidemo^.y, li) <> 0) Then Begin
+      // don't hit the back side
+      result := true;
+      exit;
+    End;
+    Goto isblocking;
+  End;
+
+  // set openrange, opentop, openbottom
+  P_LineOpening(li);
+
+  If (openrange < slidemo^.height) Then
+    Goto isblocking; // doesn't fit
+
+  If (opentop - slidemo^.z < slidemo^.height) Then
+    Goto isblocking; // mobj is too high
+
+  If (openbottom - slidemo^.z > 24 * FRACUNIT) Then
+    Goto isblocking; // too big a step up
+
+  // this line doesn't block movement
+  result := true;
+  exit;
+
+  // the line does block movement,
+  // see if it is closer than best so far
+  isblocking:
+  If (_in^.frac < bestslidefrac) Then Begin
+    secondslidefrac := bestslidefrac;
+    secondslideline := bestslideline;
+    bestslidefrac := _in^.frac;
+    bestslideline := li;
+  End;
+  result := false; // stop
+End;
+
+//
+// P_HitSlideLine
+// Adjusts the xmove / ymove
+// so that the next move will slide along the wall.
+//
+
+Procedure P_HitSlideLine(ld: Pline_t);
+Var
+  side: int;
+  lineangle, moveangle, deltaangle: angle_t;
+  movelen: fixed_t;
+  newlen: fixed_t;
+Begin
+  If (ld^.slopetype = ST_HORIZONTAL) Then Begin
+    tmymove := 0;
+    exit;
+  End;
+
+  If (ld^.slopetype = ST_VERTICAL) Then Begin
+    tmxmove := 0;
+    exit;
+  End;
+
+  side := P_PointOnLineSide(slidemo^.x, slidemo^.y, ld);
+
+  lineangle := R_PointToAngle2(0, 0, ld^.dx, ld^.dy);
+
+  If (side = 1) Then
+    lineangle := angle_t(lineangle + ANG180);
+
+  moveangle := R_PointToAngle2(0, 0, tmxmove, tmymove);
+  deltaangle := angle_t(moveangle - lineangle);
+
+  If (deltaangle > ANG180) Then
+    deltaangle := angle_t(deltaangle + ANG180);
+  // I_Error('SlideLine: ang>ANG180');
+
+  lineangle := lineangle Shr ANGLETOFINESHIFT;
+  deltaangle := deltaangle Shr ANGLETOFINESHIFT;
+
+  movelen := P_AproxDistance(tmxmove, tmymove);
+  newlen := FixedMul(movelen, finecosine[deltaangle]);
+
+  tmxmove := FixedMul(newlen, finecosine[lineangle]);
+  tmymove := FixedMul(newlen, finesine[lineangle]);
+End;
+
+//
+// P_SlideMove
+// The momx / momy move is bad, so try to slide
+// along a wall.
+// Find the first line hit, move flush to it,
+// and slide along it
+//
+// This is a kludgy mess.
+//
+
+Procedure P_SlideMove(mo: Pmobj_t);
+Label
+  retry;
+Label
+  stairstep;
+Var
+  leadx, leady,
+    trailx, traily,
+    newx, newy: fixed_t;
+  hitcount: int;
+Begin
+
+  slidemo := mo;
+  hitcount := 0;
+
+  retry:
+  hitcount := hitcount + 1;
+  If (hitcount = 3) Then
+    Goto stairstep; // don't loop forever
+
+  // trace along the three leading corners
+  If (mo^.momx > 0) Then Begin
+    leadx := mo^.x + mo^.radius;
+    trailx := mo^.x - mo^.radius;
+  End
+  Else Begin
+    leadx := mo^.x - mo^.radius;
+    trailx := mo^.x + mo^.radius;
+  End;
+
+  If (mo^.momy > 0) Then Begin
+    leady := mo^.y + mo^.radius;
+    traily := mo^.y - mo^.radius;
+  End
+  Else Begin
+    leady := mo^.y - mo^.radius;
+    traily := mo^.y + mo^.radius;
+  End;
+
+  bestslidefrac := FRACUNIT + 1;
+
+  P_PathTraverse(leadx, leady, leadx + mo^.momx, leady + mo^.momy,
+    PT_ADDLINES, @PTR_SlideTraverse);
+  P_PathTraverse(trailx, leady, trailx + mo^.momx, leady + mo^.momy,
+    PT_ADDLINES, @PTR_SlideTraverse);
+  P_PathTraverse(leadx, traily, leadx + mo^.momx, traily + mo^.momy,
+    PT_ADDLINES, @PTR_SlideTraverse);
+
+  // move up to the wall
+  If (bestslidefrac = FRACUNIT + 1) Then Begin
+    // the move most have hit the middle, so stairstep
+    stairstep:
+    If (Not P_TryMove(mo, mo^.x, mo^.y + mo^.momy)) Then
+      P_TryMove(mo, mo^.x + mo^.momx, mo^.y);
+    exit;
+  End;
+
+  // fudge a bit to make sure it doesn't hit
+  bestslidefrac := bestslidefrac - $800;
+  If (bestslidefrac > 0) Then Begin
+    newx := FixedMul(mo^.momx, bestslidefrac);
+    newy := FixedMul(mo^.momy, bestslidefrac);
+    If (Not P_TryMove(mo, mo^.x + newx, mo^.y + newy)) Then
+      Goto stairstep;
+  End;
+
+  // Now continue along the wall.
+  // First calculate remainder.
+  bestslidefrac := FRACUNIT - (bestslidefrac + $800);
+
+  If (bestslidefrac > FRACUNIT) Then
+    bestslidefrac := FRACUNIT;
+
+  If (bestslidefrac <= 0) Then
+    exit;
+
+  tmxmove := FixedMul(mo^.momx, bestslidefrac);
+  tmymove := FixedMul(mo^.momy, bestslidefrac);
+
+  P_HitSlideLine(bestslideline); // clip the moves
+
+  mo^.momx := tmxmove;
+  mo^.momy := tmymove;
+
+  If (Not P_TryMove(mo, mo^.x + tmxmove, mo^.y + tmymove)) Then Begin
+    Goto retry;
+  End;
 End;
 
 End.

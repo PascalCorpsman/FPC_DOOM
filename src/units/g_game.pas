@@ -64,6 +64,8 @@ Var
 
   precache: boolean = true; // if true, load all graphics at start
 
+  respawnmonsters: boolean = false;
+
 Procedure G_Ticker();
 Function G_Responder(Const ev: Pevent_t): boolean;
 
@@ -124,7 +126,6 @@ Var
   d_episode: int;
   d_map: int;
   savename: String;
-  respawnmonsters: boolean = false;
 
   turbodetected: Array[0..MAXPLAYERS - 1] Of boolean;
 
@@ -1421,19 +1422,18 @@ Begin
   //            forward -= forwardmove[speed];
   //    }
 
-  //    if (gamekeydown[key_strafeleft] || gamekeydown[key_alt_strafeleft] // [crispy] add key_alt_*
-  //     || joybuttons[joybstrafeleft]
-  //     || mousebuttons[mousebstrafeleft])
-  //    {
-  //        side -= sidemove[speed];
-  //    }
+  If (gamekeydown[key_strafeleft] {|| gamekeydown[key_alt_strafeleft] // [crispy] add key_alt_*
+    || joybuttons[joybstrafeleft]
+    || mousebuttons[mousebstrafeleft]}) Then Begin
 
-  //    if (gamekeydown[key_straferight] || gamekeydown[key_alt_straferight] // [crispy] add key_alt_*
-  //     || joybuttons[joybstraferight]
-  //     || mousebuttons[mousebstraferight])
-  //    {
-  //        side += sidemove[speed];
-  //    }
+    side := side - sidemove[speed];
+  End;
+
+  If (gamekeydown[key_straferight] {|| gamekeydown[key_alt_straferight] // [crispy] add key_alt_*
+    || joybuttons[joybstraferight]
+    || mousebuttons[mousebstraferight]}) Then Begin
+    side := side + sidemove[speed];
+  End;
 
   //    if (use_analog && joystrafemove)
   //    {

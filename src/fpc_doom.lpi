@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="88">
+    <Units Count="91">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -399,6 +399,18 @@
         <Filename Value="units/hu_lib.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit87>
+      <Unit88>
+        <Filename Value="units/p_floor.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit88>
+      <Unit89>
+        <Filename Value="units/p_doors.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit89>
+      <Unit90>
+        <Filename Value="units/p_plats.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit90>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

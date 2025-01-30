@@ -16,9 +16,9 @@ Var
   //extern int key_alt_up;
   key_down: int;
   //extern int key_alt_down;
-  //extern int key_strafeleft;
+  key_strafeleft: int;
   //extern int key_alt_strafeleft;
-  //extern int key_straferight;
+  key_straferight: int;
   //extern int key_alt_straferight;
   //extern int key_fire;
   //extern int key_use;
@@ -252,6 +252,8 @@ Begin
   key_left := KEY_LEFTARROW;
   key_up := KEY_UPARROW;
   key_down := KEY_DOWNARROW;
+  key_strafeleft := VK_A;
+  key_straferight := VK_D;
 
   key_strafe := KEY_RALT;
 

@@ -19,6 +19,8 @@ Procedure P_AddThinker(thinker: Pthinker_t);
 
 Procedure P_Ticker();
 
+Procedure P_RemoveThinker(thinker: Pthinker_t);
+
 Implementation
 
 Uses
@@ -170,6 +172,17 @@ Begin
   leveltime := leveltime + 1;
 End;
 
-End.
+//
+// P_RemoveThinker
+// Deallocation is lazy -- it will not actually be freed
+// until its thinking turn comes up.
+//
 
+Procedure P_RemoveThinker(thinker: Pthinker_t);
+Begin
+  // FIXME: NOP.
+  thinker^._function.acv := Nil;
+End;
+
+End.
 

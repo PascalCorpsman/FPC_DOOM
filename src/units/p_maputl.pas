@@ -11,6 +11,10 @@ Uses
   , p_local
   ;
 
+Type
+  TLineInterceptFunction = Function(ld: Pline_t): Boolean;
+  TBlockThingIteratorFunction = Function(obj: Pmobj_t): Boolean;
+
 Var
   opentop: fixed_t;
   openbottom: fixed_t;
@@ -27,18 +31,19 @@ Procedure P_UnsetThingPosition(thing: Pmobj_t);
 Procedure P_SetThingPosition(thing: pmobj_t);
 
 Function P_AproxDistance(dx, dy: fixed_t): fixed_t;
+Function P_BlockThingsIterator(x, y: int; func: TBlockThingIteratorFunction): boolean;
+Function P_BlockLinesIterator(x, y: int; func: TLineInterceptFunction): boolean;
+
+Function P_BoxOnLineSide(tmbox: Pfixed_t; ld: Pline_t): int;
 
 Implementation
 
 Uses
   doomdata
+  , m_bbox
   , p_mobj, p_setup
   , r_main
   ;
-
-Type
-  TLineInterceptFunction = Function(ld: Pline_t): Boolean;
-  TBlockThingIteratorFunction = Function(obj: Pmobj_t): Boolean;
 
 Var
   earlyout: boolean;
@@ -181,6 +186,54 @@ Begin
     inc(list);
   End;
   result := true; // everything was checked
+End;
+
+//
+// P_BoxOnLineSide
+// Considers the line to be infinite
+// Returns side 0 or 1, -1 if box crosses the line.
+//
+
+Function P_BoxOnLineSide(tmbox: Pfixed_t; ld: Pline_t): int;
+Var
+  p1, p2: int;
+Begin
+  p1 := 0;
+  p2 := 0;
+
+  Case ld^.slopetype Of
+    ST_HORIZONTAL: Begin
+        p1 := ord(tmbox[BOXTOP] > ld^.v1^.y);
+        p2 := ord(tmbox[BOXBOTTOM] > ld^.v1^.y);
+        If (ld^.dx < 0) Then Begin
+          p1 := p1 Xor 1;
+          p2 := p2 Xor 1;
+        End;
+      End;
+    ST_VERTICAL: Begin
+        p1 := ord(tmbox[BOXRIGHT] < ld^.v1^.x);
+        p2 := ord(tmbox[BOXLEFT] < ld^.v1^.x);
+        If (ld^.dy < 0) Then Begin
+          p1 := p1 Xor 1;
+          p2 := p2 Xor 1;
+        End;
+      End;
+    ST_POSITIVE: Begin
+        p1 := P_PointOnLineSide(tmbox[BOXLEFT], tmbox[BOXTOP], ld);
+        p2 := P_PointOnLineSide(tmbox[BOXRIGHT], tmbox[BOXBOTTOM], ld);
+      End;
+    ST_NEGATIVE: Begin
+        p1 := P_PointOnLineSide(tmbox[BOXRIGHT], tmbox[BOXTOP], ld);
+        p2 := P_PointOnLineSide(tmbox[BOXLEFT], tmbox[BOXBOTTOM], ld);
+      End;
+  End;
+
+  If (p1 = p2) Then Begin
+    result := p1;
+  End
+  Else Begin
+    result := -1;
+  End;
 End;
 
 //
@@ -368,10 +421,7 @@ End;
 
 Function P_InterceptVector(v2: Pdivline_t; v1: Pdivline_t): fixed_t;
 Var
-  frac,
-    num,
-    den: fixed_t;
-
+  frac, num, den: fixed_t;
 Begin
   //#if 1
   den := FixedMul(SarLongint(v1^.dy, 8), v2^.dx) - FixedMul(SarLongint(v1^.dx, 8), v2^.dy);
@@ -443,7 +493,6 @@ Begin
     result := false; // stop checking
     exit;
   End;
-
 
   check_intercept(); // [crispy] remove INTERCEPTS limit
   intercepts[intercept_p].frac := frac;
@@ -595,20 +644,14 @@ End;
 Function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: int; trav: traverser_t
   ): boolean;
 Var
-  xt1,
-    yt1,
-    xt2,
-    yt2,
-    xstep,
-    ystep,
+  xt1, yt1,
+    xt2, yt2,
+    xstep, ystep,
     partial,
-    xintercept,
-    yintercept: fixed_t;
+    xintercept, yintercept: fixed_t;
 
-  mapx,
-    mapy,
-    mapxstep,
-    mapystep,
+  mapx, mapy,
+    mapxstep, mapystep,
     count: int;
 
 Begin

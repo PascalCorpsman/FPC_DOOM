@@ -20,9 +20,9 @@ Uses
   , d_player, d_ticcmd, d_event
   , i_timer
   , g_game
-  , m_fixed
+  , m_fixed, m_menu
   , p_local, p_tick, p_mobj, p_spec, p_pspr, p_map
-  , r_main
+  , r_main, r_data
   ;
 
 Const
@@ -136,12 +136,11 @@ Begin
   Else If (cmd^.forwardmove <> 0) And (critical^.jump <> 0) Then
     P_Thrust(player, player^.mo^.angle, FRACUNIT Shr 8);
 
-  //    if (cmd^.sidemove && onground)
-  //	P_Thrust (player, player^.mo^.angle-ANG90, cmd^.sidemove*2048);
-  //    else
-  //    // [crispy] in-air movement is only possible with jumping enabled
-  //    if (cmd^.sidemove && critical^.jump)
-  //            P_Thrust(player, player^.mo^.angle, FRACUNIT >> 8);
+  If (cmd^.sidemove <> 0) And (onground) Then
+    P_Thrust(player, angle_t(player^.mo^.angle - ANG90), cmd^.sidemove * 2048)
+      // [crispy] in-air movement is only possible with jumping enabled
+  Else If (cmd^.sidemove <> 0) And (critical^.jump <> 0) Then
+    P_Thrust(player, angle_t(player^.mo^.angle - ANG90), FRACUNIT Shr 8);
 
   If (((cmd^.forwardmove <> 0) Or (cmd^.sidemove <> 0))
     And (player^.mo^.state = @states[integer(S_PLAY)])) Then Begin
@@ -149,28 +148,24 @@ Begin
   End;
 
   // [crispy] apply lookdir delta
-  //    look = cmd^.lookfly & 15;
-  //    if (look > 7)
-  //    {
-  //        look -= 16;
-  //    }
-  //    if (look)
-  //    {
-  //        if (look == TOCENTER)
-  //        {
-  //            player^.centering = true;
-  //        }
-  //        else
-  //        {
-  //            cmd^.lookdir = MLOOKUNIT * 5 * look;
-  //        }
-  //    }
-  //    if (!menuactive && !demoplayback)
-  //    {
-  //	player^.lookdir = BETWEEN(-LOOKDIRMIN * MLOOKUNIT,
-  //	                          LOOKDIRMAX * MLOOKUNIT,
-  //	                          player^.lookdir + cmd^.lookdir);
-  //    }
+  look := cmd^.lookfly And 15;
+  If (look > 7) Then Begin
+
+    look := look - 16;
+  End;
+  If (look <> 0) Then Begin
+
+    If (look = TOCENTER) Then Begin
+      player^.centering := true;
+    End
+    Else Begin
+      cmd^.lookdir := MLOOKUNIT * 5 * look;
+    End;
+  End;
+  If (Not menuactive) And (Not demoplayback) Then Begin
+    player^.lookdir := Clamp(player^.lookdir + cmd^.lookdir,
+      -LOOKDIRMIN * MLOOKUNIT, LOOKDIRMAX * MLOOKUNIT);
+  End;
 End;
 
 Procedure P_PlayerThink(player: Pplayer_t);

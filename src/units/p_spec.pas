@@ -9,6 +9,65 @@ Uses
   info_types
   ;
 
+//
+// P_FLOOR
+//
+Type
+  floor_e = (
+    // lower floor to highest surrounding floor
+    lowerFloor,
+
+    // lower floor to lowest surrounding floor
+    lowerFloorToLowest,
+
+    // lower floor to highest surrounding floor VERY FAST
+    turboLower,
+
+    // raise floor to lowest surrounding CEILING
+    raiseFloor,
+
+    // raise floor to next highest surrounding floor
+    raiseFloorToNearest,
+
+    // raise floor to shortest height texture around it
+    raiseToTexture,
+
+    // lower floor to lowest surrounding floor
+    //  and change floorpic
+    lowerAndChange,
+
+    raiseFloor24,
+    raiseFloor24AndChange,
+    raiseFloorCrush,
+
+    // raise to next highest floor, turbo-speed
+    raiseFloorTurbo,
+    donutRaise,
+    raiseFloor512
+    );
+
+  //
+  // P_DOORS
+  //
+  vldoor_e = (
+    vld_normal,
+    vld_close30ThenOpen,
+    vld_close,
+    vld_open,
+    vld_raiseIn5Mins,
+    vld_blazeRaise,
+    vld_blazeOpen,
+    vld_blazeClose
+    );
+
+  plattype_e = (
+    perpetualRaise,
+    downWaitUpStay,
+    raiseAndChange,
+    raiseToNearestAndChange,
+    blazeDWUS
+    );
+
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();
@@ -24,7 +83,7 @@ Uses
   d_loop
   , i_timer
   , g_game
-  , p_tick, p_setup
+  , p_tick, p_setup, p_floor, p_switch, p_doors, p_plats
   , r_draw
   ;
 
@@ -439,51 +498,47 @@ End;
 //
 
 Procedure P_ShootSpecialLine(thing: Pmobj_t; line: pline_t);
+Var
+  ok: int;
 Begin
-  Raise exception.create('P_ShootSpecialLine');
-  //      int		ok;
-  //
-  //    //	Impacts that other things can activate.
-  //    if (!thing->player)
-  //    {
-  //	ok = 0;
-  //	switch(line->special)
-  //	{
-  //	  case 46:
-  //	    // OPEN DOOR IMPACT
-  //	    ok = 1;
-  //	    break;
-  //	}
-  //	if (!ok)
-  //	    return;
-  //    }
-  //
-  //    switch(line->special)
-  //    {
-  //      case 24:
-  //	// RAISE FLOOR
-  //	EV_DoFloor(line,raiseFloor);
-  //	P_ChangeSwitchTexture(line,0);
-  //	break;
-  //
-  //      case 46:
-  //	// OPEN DOOR
-  //	EV_DoDoor(line,vld_open);
-  //	P_ChangeSwitchTexture(line,1);
-  //	break;
-  //
-  //      case 47:
-  //	// RAISE FLOOR NEAR AND CHANGE
-  //	EV_DoPlat(line,raiseToNearestAndChange,0);
-  //	P_ChangeSwitchTexture(line,0);
-  //	break;
-  //    }
+  // Impacts that other things can activate.
+  If (thing^.player = Nil) Then Begin
+    ok := 0;
+    Case (line^.special) Of
+      46: Begin
+          // OPEN DOOR IMPACT
+          ok := 1;
+        End;
+    End;
+    If (ok = 0) Then
+      exit;
+  End;
+
+  Case (line^.special) Of
+    24: Begin
+        // RAISE FLOOR
+        EV_DoFloor(line, raiseFloor);
+        P_ChangeSwitchTexture(line, 0);
+      End;
+    46: Begin
+        // OPEN DOOR
+        EV_DoDoor(line, vld_open);
+        P_ChangeSwitchTexture(line, 1);
+      End;
+    47: Begin
+        // RAISE FLOOR NEAR AND CHANGE
+        EV_DoPlat(line, raiseToNearestAndChange, 0);
+        P_ChangeSwitchTexture(line, 0);
+      End;
+  End;
 End;
 
 // [crispy] more MBF code pointers
 
 Procedure P_CrossSpecialLinePtr(line: pline_t; side: int; thing: Pmobj_t);
 Begin
+  Raise exception.create('P_CrossSpecialLinePtr');
+
   ////  line_t*	line;
   //    int		ok;
   //
