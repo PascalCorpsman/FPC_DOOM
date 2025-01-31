@@ -637,7 +637,7 @@ Begin
 
   If ((tmthing^.flags And MF_MISSILE) = 0) Then Begin
 
-    If (ld^.flags And ML_BLOCKING) = 0 Then
+    If (ld^.flags And ML_BLOCKING) <> 0 Then
       exit; // explicitly blocking everything
 
     If (tmthing^.player = Nil) And ((ld^.flags And ML_BLOCKMONSTERS) <> 0) Then
