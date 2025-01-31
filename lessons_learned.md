@@ -168,6 +168,25 @@ begin
   // j := @i + 2; // This is wrong !!!
   j := @i[2];
 ```
+
+### calculating the index of a array by a pointer of a element
+
+```cpp
+lines_t *lines; //This is the array that holds lots of elements of lines_t
+lines_t *ld;
+// lets assume lines is correct defined and somewhere in the code ld was set to one of its elements
+int index = ld-lines;
+```
+Translates to this:
+
+```pascal
+var
+  lines: array of lines_t;
+  ld: ^lines_t;
+  index: integer;
+// lets assume lines is correct defined and somewhere in the code ld was set to one of its elements
+index := (ptrint(ld) - ptrint(@lines[0])) Div sizeof(lines[0]);
+```
 ### accessing to a substruct whithin a strucr
 
 ```cpp
