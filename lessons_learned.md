@@ -1,8 +1,8 @@
 # Lessons learned
 
-This is a small collection of the "most" made misstakes during porting crispy DOOM to FPC. Goal is not to blame C / C++ but more to give a list on which points you have to be special carefull when porting C / C++ code to FPC.
+This is a small collection of the "most" made mistakes during porting crispy DOOM to FPC. Goal is not to blame C / C++ but more to give a list on which points you have to be special carefull when porting C / C++ code to FPC.
 
-if you want to test the code snippets right away, you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
+If you want to test the code snippets right away, you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
 
 ### Assignments of variables
 
@@ -19,7 +19,7 @@ if (++i)
 i = 0;
 if (i++)
   x = 2; 
-// i -> 2, x is still 1 (most FPC programmer would not expect this)
+// i is 2, x is still 1 (most FPC programmer would not expect this)
 ```
 
 ### Assignments during boolean evaluations
