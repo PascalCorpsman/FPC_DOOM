@@ -1026,18 +1026,17 @@ Begin
   // if any special lines were hit, do the effect
   If ((thing^.flags And (MF_TELEPORT Or MF_NOCLIP)) = 0) Then Begin
 
-    While (numspechit <> 0) Do Begin
-
+    While (numspechit > 0) Do Begin
+      numspechit := numspechit - 1;
       // see if the line was crossed
       ld := spechit[numspechit];
       side := P_PointOnLineSide(thing^.x, thing^.y, ld);
       oldside := P_PointOnLineSide(oldx, oldy, ld);
       If (side <> oldside) Then Begin
         If (ld^.special <> 0) Then Begin
-          P_CrossSpecialLine(ld - @lines[0], oldside, thing);
+          P_CrossSpecialLine((ptrint(ld) - ptrint(@lines[0])) Div sizeof(lines[0]), oldside, thing);
         End;
       End;
-      numspechit := numspechit - 1
     End;
   End;
   result := true;
