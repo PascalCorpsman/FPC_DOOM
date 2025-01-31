@@ -30,6 +30,9 @@ ports, but that version only supports DirectX and therefore only supports Window
 - wait until this repository has have enough progress to be a playable game (see section [progress](#progress))
 - start the application
 
+## Lessons learned ?
+As this section is not interesting for everyone i extracted this into a separate section [lessons learned](lessons_learned.md).
+
 ## progress:
 <!-- 
 Homepage used to create .gif images: https://ezgif.com/maker

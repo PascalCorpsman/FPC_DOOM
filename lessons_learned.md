@@ -1,0 +1,221 @@
+# Lessons learned
+
+This is a small collection of the "most" made misstakes during porting crispy DOOM to FPC. Goal is not to blame C++ but more to give a list on which points you have to be special carefull when porting C / C++ code to FPC.
+
+If you want to see that the listings are "right" you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
+
+### Assignments of variables
+
+The position of the ++ does matter in c, when further processed (this is also relevant for loops)!
+
+```cpp
+// C / CPP
+int i = 0;
+int x = 0;
+if (++i)
+  x = 1; 
+// i is 1, x is 1
+i = 0;
+if (i++)
+  x = 2; 
+// i -> 2, x is still 1
+```
+
+### Assignments during boolean evaluations
+
+Assigning and checking a value at the same time, this not possible in FPC.
+```cpp
+// C / CPP
+int x;
+..
+if (x = fancy_functioncall())
+{
+  ..
+}
+```
+Translate this as
+
+```pascal
+// Pascal
+var X:integer;
+..
+x := fancy_functioncall();
+if (x <> 0) then 
+begin
+  ..
+end;
+```
+
+### Evaluation of boolean expressions
+
+The "!" is small and can be overseen easily, also c does not require braces here nor is the bit test masked.
+
+```cpp
+#define ML_BLOCKMONSTERS (8)
+// This is a NULL pointer check, and a "bit set" test
+if ( !tmthing->player && ld->flags & ML_BLOCKMONSTERS )
+  return false; // block monsters only
+```    
+
+Translate this as
+
+```pascal
+const ML_BLOCKMONSTERS = 8;
+if (tmthing^.player = Nil) and ((ld^.flags and ML_BLOCKMONSTERS) <> 0) then begin
+  result := false; // block monsters only
+  exit;
+end;
+```
+
+### Strings
+
+Most of the time a *char is simple a string
+
+```cpp
+typedef struct
+{
+    // settings for this cheat
+
+    char sequence[MAX_CHEAT_LEN];
+    size_t sequence_len;
+    int parameter_chars;
+
+    // state used during the game
+
+    size_t chars_read;
+    int param_chars_read;
+    char parameter_buf[MAX_CHEAT_PARAMS];
+} cheatseq_t;
+``` 
+can be reduced to
+```pascal
+type 
+  cheatseq_t = record
+    // settings for this cheat
+    sequence: String;
+    parameter_chars: integer;
+
+    // state used during the game
+    chars_read: integer; 
+    parameter_buf:String;
+  end;
+``` 
+But be carefull, as you now shifted the readindex of the first character from C = 0 to FPC = 1 !
+
+## Loops
+
+### repeat vs. while
+```cpp
+do
+{
+..
+} while (running);
+```
+
+Translate this as
+
+```pascal
+repeat
+..
+until (not running); // Attention you need to invert the condition here!
+```
+
+### iterating through an array
+
+```cpp
+int *sectors; // the array that holds the elements
+int *sector; // element that iterates through the array
+int numsectors; // number of elements in sectors
+for (int i = 0, sector = sectors; i < numsectors; i++, sector++)
+{
+  *sector = i + 1;
+}
+```
+
+Translate this as
+
+```pascal
+var
+  sectors: array of int;
+  i, numsectors: integer;
+..
+for i := 0 to numsectors - 1 do 
+begin
+  sectors[i] := i + 1;
+end;
+```
+
+## Pointers
+
+### gett a slice of an array
+
+```cpp
+int i[10];
+int *j;
+j = i + 2; // j points now to the 3. element
+```
+
+Translate this as
+
+```pascal
+var
+  i:array[0..9] of integer;
+  j:^integer;
+begin
+  j := @i[2];
+```
+### accessing to a substruct whithin a strucr
+
+```cpp
+typedef struct
+{
+  int a;
+  int b;
+  int c;
+} big_data_t;
+
+typedef struct
+{
+  int b;
+  int c;
+} small_data_t;
+
+big_data_t *a;
+small_data_t *b;
+// Let point a to something valid
+b = a + 4; // This is the worst, as the sizeof operator is not used ! better would be sizeof(int)
+```
+
+Translate this as
+```pascal
+type 
+  big_data_t = record
+    a: integer;
+    b: integer;
+    c: integer;
+  end;
+  small_data_t = record
+    b: integer;
+    c: integer;
+  end;
+var
+  a: ^big_data_t;
+  b: ^small_data_t;
+begin
+  // Let point a to something valid
+  b := pointer(a) + sizeof(integer);
+  // Don't do: b := a + sizeof(integer); !!!
+```
+
+<!---
+Backlog:
+
+for (p = line; *p != '\0' && !isspace(*p) && *p != '='; ++p)
+
+for (i = 9, k = 0; i < 18 && k < 5; i += 2, k++)
+
+for (i = lumphash[hash]; i != -1; i = lumpinfo[i]->next)
+
+unions
+
+-->
