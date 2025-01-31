@@ -228,6 +228,11 @@ begin
   b := pointer(a) + sizeof(integer);
 ```
 
+### TBytes is not PByte
+
+When dealing with array's of byte do not use the TBytes datatype, use PByte instead !
+
+
 <!---
 Backlog:
 
