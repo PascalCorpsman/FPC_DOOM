@@ -157,7 +157,7 @@ Begin
   setlength(wadblockmaplump, lumplen);
   W_ReadLump(lump, @wadblockmaplump[0]);
   setlength(blockmaplump, count);
-  blockmap := pointer(@blockmaplump[0]) + 4;
+  blockmap := @blockmaplump[4];
 
   blockmaplump[0] := wadblockmaplump[0];
   blockmaplump[1] := wadblockmaplump[1];

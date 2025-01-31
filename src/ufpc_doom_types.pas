@@ -222,7 +222,7 @@ Initialization
   Crispy.centerweapon := 0;
   Crispy.coloredblood := 0;
   Crispy.coloredhud := COLOREDHUD_OFF;
-  Crispy.crosshair := CROSSHAIR_OFF; // TODO: der CROSSHAIR_PROJECTED erzeugt noch an ettlichen stellen einen Bug, obwohl er eigentlich gehen sollte :/
+  Crispy.crosshair := CROSSHAIR_OFF;
   Crispy.crosshairhealth := 0;
   Crispy.crosshairtarget := 0;
   Crispy.crosshairtype := 0;
