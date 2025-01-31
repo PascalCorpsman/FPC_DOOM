@@ -95,7 +95,7 @@ Type
     //    	int freelook_hh;
     //    	int gamma;
     hires: Int; // 0, 1, 2 Alles über 2 macht eigentlich keinen Sinn mehr, Bei werten > 2 muss MAXWIDTH und MAXHEIGHT aus i_video.pas angepasst werden, sonst knallts beim start !
-    jump: int; // 0, 1
+    jump: int; // 0, 1 -> ist aber nur im Singleplayer erlaubt !
     //    	int leveltime;
     mouselook: int; // ?
     //    	int neghealth;

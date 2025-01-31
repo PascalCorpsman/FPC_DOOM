@@ -16,13 +16,14 @@ Procedure P_CalcHeight(player: Pplayer_t);
 Implementation
 
 Uses
-  a11y_weapon_pspr, tables, doomdef, info
+  a11y_weapon_pspr, tables, doomdef, info, sounds
   , d_player, d_ticcmd, d_event
   , i_timer
   , g_game
   , m_fixed, m_menu
   , p_local, p_tick, p_mobj, p_spec, p_pspr, p_map
   , r_main, r_data
+  , s_sound
   ;
 
 Const
@@ -270,64 +271,63 @@ Begin
   End;
 
   // [crispy] jumping: apply vertical momentum
-//    if (cmd^.arti)
-//    {
-//        if ((cmd^.arti & AFLAG_JUMP) && onground &&
-//            player^.viewz < player^.mo^.ceilingz-16*FRACUNIT &&
-//            !player^.jumpTics)
-//        {
-//            // [crispy] Hexen sets 9; Strife adds 8
-//            player^.mo^.momz = (7 + critical^.jump) * FRACUNIT;
-//            player^.jumpTics = 18;
-//            // [NS] Jump sound.
-//            S_StartSoundOptional(player^.mo, sfx_pljump, -1);
-//        }
-//    }
+  If (cmd^.arti <> 0) Then Begin
 
-// Check for weapon change.
+    If ((cmd^.arti And AFLAG_JUMP) <> 0) And (onground) And
+      (player^.viewz < player^.mo^.ceilingz - 16 * FRACUNIT) And (
+      player^.jumpTics = 0) Then Begin
+      // [crispy] Hexen sets 9; Strife adds 8
+      player^.mo^.momz := (7 + critical^.jump) * FRACUNIT;
+      player^.jumpTics := 18;
+      // [NS] Jump sound.
+      S_StartSoundOptional(player^.mo, sfx_pljump, sfx_None);
+    End;
+  End;
 
-//    // A special event has no other buttons.
-//    if (cmd^.buttons & BT_SPECIAL)
-//	cmd^.buttons = 0;
+  // Check for weapon change.
 
-//    if (cmd^.buttons & BT_CHANGE)
-//    {
-//	// The actual changing of the weapon is done
-//	//  when the weapon psprite can do it
-//	//  (read: not in the middle of an attack).
-//	newweapon = (cmd^.buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT;
-//
-//	if (newweapon == wp_fist
-//	    && player^.weaponowned[wp_chainsaw]
-//	    && !(player^.readyweapon == wp_chainsaw
-//		 && player^.powers[pw_strength]))
-//	{
-//	    newweapon = wp_chainsaw;
-//	}
+  //    // A special event has no other buttons.
+  //    if (cmd^.buttons & BT_SPECIAL)
+  //	cmd^.buttons = 0;
 
-//	if ( (crispy^.havessg)
-//	    && newweapon == wp_shotgun
-//	    && player^.weaponowned[wp_supershotgun]
-//	    && player^.readyweapon != wp_supershotgun)
-//	{
-//	    newweapon = wp_supershotgun;
-//	}
+  //    if (cmd^.buttons & BT_CHANGE)
+  //    {
+  //	// The actual changing of the weapon is done
+  //	//  when the weapon psprite can do it
+  //	//  (read: not in the middle of an attack).
+  //	newweapon = (cmd^.buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT;
+  //
+  //	if (newweapon == wp_fist
+  //	    && player^.weaponowned[wp_chainsaw]
+  //	    && !(player^.readyweapon == wp_chainsaw
+  //		 && player^.powers[pw_strength]))
+  //	{
+  //	    newweapon = wp_chainsaw;
+  //	}
 
-//	if (player^.weaponowned[newweapon]
-//	    && newweapon != player^.readyweapon)
-//	{
-//	    // Do not go to plasma or BFG in shareware,
-//	    //  even if cheated.
-//	    if ((newweapon != wp_plasma
-//		 && newweapon != wp_bfg)
-//		|| (gamemode != shareware) )
-//	    {
-//		player^.pendingweapon = newweapon;
-//	    }
-//	}
-//    }
+  //	if ( (crispy^.havessg)
+  //	    && newweapon == wp_shotgun
+  //	    && player^.weaponowned[wp_supershotgun]
+  //	    && player^.readyweapon != wp_supershotgun)
+  //	{
+  //	    newweapon = wp_supershotgun;
+  //	}
 
-// check for use
+  //	if (player^.weaponowned[newweapon]
+  //	    && newweapon != player^.readyweapon)
+  //	{
+  //	    // Do not go to plasma or BFG in shareware,
+  //	    //  even if cheated.
+  //	    if ((newweapon != wp_plasma
+  //		 && newweapon != wp_bfg)
+  //		|| (gamemode != shareware) )
+  //	    {
+  //		player^.pendingweapon = newweapon;
+  //	    }
+  //	}
+  //    }
+
+  // check for use
   If (cmd^.buttons And BT_USE) <> 0 Then Begin
     If (Not player^.usedown) Then Begin
       P_UseLines(player);

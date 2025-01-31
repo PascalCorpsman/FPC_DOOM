@@ -97,7 +97,7 @@ Uses
   , hu_stuff
   , m_menu, m_argv, m_random, m_fixed, m_controls
   , net_defs
-  , p_setup, p_mobj, p_inter, p_tick
+  , p_setup, p_mobj, p_inter, p_tick, p_local
   , r_data, r_sky, r_main
   , s_sound, st_stuff
   ;
@@ -1497,17 +1497,15 @@ Begin
   //        }
   //    }
 
-  //    // [crispy] jump keys
-  //    if (critical->jump)
-  //    {
-  //        if (gamekeydown[key_jump] || mousebuttons[mousebjump]
-  //            || joybuttons[joybjump])
-  //        {
-  //            cmd->arti |= AFLAG_JUMP;
-  //        }
-  //    }
+  // [crispy] jump keys
+  If assigned(critical) And (critical^.jump <> 0) Then Begin
+    If (gamekeydown[key_jump] { || mousebuttons[mousebjump]
+      || joybuttons[joybjump]}) Then Begin
+      cmd.arti := cmd.arti Or AFLAG_JUMP;
+    End;
+  End;
 
-  //    // buttons
+  // buttons
   //    cmd->chatchar = HU_dequeueChatChar();
 
   //    if (gamekeydown[key_fire] || mousebuttons[mousebfire]

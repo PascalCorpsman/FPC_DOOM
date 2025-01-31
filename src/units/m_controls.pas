@@ -26,7 +26,7 @@ Var
   key_speed: int;
   //extern int key_demospeed;  // [crispy]
   //
-  //extern int key_jump;
+  key_jump: int;
   //extern int key_toggleautorun;
   //extern int key_togglenovert;
   //
@@ -252,6 +252,7 @@ Begin
   key_left := KEY_LEFTARROW;
   key_up := KEY_UPARROW;
   key_down := KEY_DOWNARROW;
+  key_jump := VK_W; // Bei hexen ist der "a", aber der ist ja schon mit dem Strafen vorbelegt -> w macht irgendwie sinn ;)
   key_strafeleft := VK_A;
   key_straferight := VK_D;
 

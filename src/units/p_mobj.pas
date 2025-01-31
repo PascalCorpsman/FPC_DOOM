@@ -598,8 +598,6 @@ Begin
       ymove := 0;
     End;
 
-    Irgendwo hier wird das Berühren der Wände nicht richtig erkannt -> Suchen
-
     If (Not P_TryMove(mo, ptryx, ptryy)) Then Begin
 
       // blocked move
