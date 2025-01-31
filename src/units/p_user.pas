@@ -31,6 +31,7 @@ Const
   MAXBOB = $100000;
   // Index of the special effects (INVUL inverse) map.
   INVERSECOLORMAP = 32;
+  ANG5 = (ANG90 Div 18);
 
   // [crispy] variable player view bob
   crispy_bobfactor: Array[0..2] Of fixed_t = (4, 3, 0);
@@ -57,52 +58,50 @@ End;
 //
 
 Procedure P_DeathThink(player: Pplayer_t);
+Var
+  angle, delta: angle_t;
 Begin
-  //      angle_t		angle;
-  //      angle_t		delta;
 
   P_MovePsprites(player);
 
-  //      // fall to the ground
-  //      if (player->viewheight > 6*FRACUNIT)
-  //  	player->viewheight -= FRACUNIT;
-  //
-  //      if (player->viewheight < 6*FRACUNIT)
-  //  	player->viewheight = 6*FRACUNIT;
-  //
-  //      player->deltaviewheight = 0;
-  //      onground = (player->mo->z <= player->mo->floorz);
-  //      P_CalcHeight (player);
-  //
-  //      if (player->attacker && player->attacker != player->mo)
-  //      {
-  //  	angle = R_PointToAngle2 (player->mo->x,
-  //  				 player->mo->y,
-  //  				 player->attacker->x,
-  //  				 player->attacker->y);
-  //
-  //  	delta = angle - player->mo->angle;
-  //
-  //  	if (delta < ANG5 || delta > (unsigned)-ANG5)
-  //  	{
-  //  	    // Looking at killer,
-  //  	    //  so fade damage flash down.
-  //  	    player->mo->angle = angle;
-  //
-  //  	    if (player->damagecount)
-  //  		player->damagecount--;
-  //  	}
-  //  	else if (delta < ANG180)
-  //  	    player->mo->angle += ANG5;
-  //  	else
-  //  	    player->mo->angle -= ANG5;
-  //      }
-  //      else if (player->damagecount)
-  //  	player->damagecount--;
-  //
-  //
-  //      if (player->cmd.buttons & BT_USE)
-  //  	player->playerstate = PST_REBORN;
+  // fall to the ground
+  If (player^.viewheight > 6 * FRACUNIT) Then
+    player^.viewheight := player^.viewheight - FRACUNIT;
+
+  If (player^.viewheight < 6 * FRACUNIT) Then
+    player^.viewheight := 6 * FRACUNIT;
+
+  player^.deltaviewheight := 0;
+  onground := (player^.mo^.z <= player^.mo^.floorz);
+  P_CalcHeight(player);
+
+  If (assigned(player^.attacker) And (player^.attacker <> player^.mo)) Then Begin
+    angle := R_PointToAngle2(player^.mo^.x,
+      player^.mo^.y,
+      player^.attacker^.x,
+      player^.attacker^.y);
+
+    delta := angle - player^.mo^.angle;
+
+    If (delta < ANG5) Or (delta > angle_t(-ANG5)) Then Begin
+
+      // Looking at killer,
+      //  so fade damage flash down.
+      player^.mo^.angle := angle;
+
+      If (player^.damagecount <> 0) Then
+        player^.damagecount := player^.damagecount - 1;
+    End
+    Else If (delta < ANG180) Then
+      player^.mo^.angle := player^.mo^.angle + ANG5
+    Else
+      player^.mo^.angle := player^.mo^.angle - ANG5;
+  End
+  Else If (player^.damagecount) <> 0 Then
+    player^.damagecount := player^.damagecount - 1;
+
+  If (player^.cmd.buttons And BT_USE) <> 0 Then
+    player^.playerstate := PST_REBORN;
 End;
 
 //

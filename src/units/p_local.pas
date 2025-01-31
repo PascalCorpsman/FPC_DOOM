@@ -10,6 +10,9 @@ Uses
   , m_fixed
   ;
 Const
+  // [crispy] blinking key or skull in the status bar
+  KEYBLINKMASK = $8;
+  KEYBLINKTICS = (7 * KEYBLINKMASK);
 
   TOCENTER = -8;
   AFLAG_JUMP = $80;
@@ -275,10 +278,7 @@ Const
   //
   //// [crispy] factor out map lump name and number finding into a separate function
   //extern int P_GetNumForMap (int episode, int map, boolean critical);
-  //
-  //// [crispy] blinking key or skull in the status bar
-  //#define KEYBLINKMASK 0x8
-  //#define KEYBLINKTICS (7*KEYBLINKMASK)
+
   //extern int st_keyorskull[3];
   //
   ////
@@ -309,4 +309,6 @@ Begin
 End;
 
 End.
+
+
 

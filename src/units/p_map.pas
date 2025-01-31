@@ -57,12 +57,13 @@ Procedure P_SlideMove(mo: Pmobj_t);
 Implementation
 
 Uses
-  math, doomdata
+  math, doomdata, sounds
   , deh_misc
   , i_video, i_system
   , m_random, m_bbox
-  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter
+  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch
   , r_things, r_main, r_sky
+  , s_sound
   ;
 
 Var
@@ -82,6 +83,7 @@ Var
   secondslideline: Pline_t;
 
   slidemo: Pmobj_t;
+  usething: Pmobj_t;
 
   tmxmove: fixed_t;
   tmymove: fixed_t;
@@ -574,30 +576,62 @@ Begin
     @PTR_ShootTraverse);
 End;
 
+
+Function PTR_UseTraverse(_in: Pintercept_t): Boolean;
+Var
+  side: int;
+Begin
+
+  If (_in^.d.line^.special = 0) Then Begin
+
+    P_LineOpening(_in^.d.line);
+    If (openrange <= 0) Then Begin
+
+      S_StartSound(usething, sfx_noway);
+
+      // can't use through a wall
+      result := false;
+      exit;
+    End;
+    // not a special line, but keep checking
+    result := true;
+    exit;
+  End;
+
+  side := 0;
+  If (P_PointOnLineSide(usething^.x, usething^.y, _in^.d.line) = 1) Then
+    side := 1;
+
+  //	return false;		// don't use back side
+
+  P_UseSpecialLine(usething, _In^.d.line, side);
+
+  // can't use for than one special line in a row
+  result := false;
+End;
+
 //
 // P_UseLines
 // Looks for special lines in front of the player to activate.
 //
 
 Procedure P_UseLines(player: Pplayer_t);
+Var
+  angle: int;
+  x1, y1,
+    x2, y2: fixed_t;
 Begin
-  //   int		angle;
-  //    fixed_t	x1;
-  //    fixed_t	y1;
-  //    fixed_t	x2;
-  //    fixed_t	y2;
-  //
-  //    usething = player->mo;
-  //
-  //    angle = player->mo->angle >> ANGLETOFINESHIFT;
-  //
-  //    x1 = player->mo->x;
-  //    y1 = player->mo->y;
-  //    x2 = x1 + (USERANGE>>FRACBITS)*finecosine[angle];
-  //    y2 = y1 + (USERANGE>>FRACBITS)*finesine[angle];
-  //
-  //    P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse );
 
+  usething := player^.mo;
+
+  angle := player^.mo^.angle Shr ANGLETOFINESHIFT;
+
+  x1 := player^.mo^.x;
+  y1 := player^.mo^.y;
+  x2 := x1 + (USERANGE Shr FRACBITS) * finecosine[angle];
+  y2 := y1 + (USERANGE Shr FRACBITS) * finesine[angle];
+
+  P_PathTraverse(x1, y1, x2, y2, PT_ADDLINES, @PTR_UseTraverse);
 End;
 
 //

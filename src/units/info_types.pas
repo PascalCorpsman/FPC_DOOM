@@ -1944,7 +1944,7 @@ Type
     bob2: fixed_t;
 
     // [crispy] blinking key or skull in the status bar
-    tryopen: Array[card_t] Of boolean;
+    tryopen: Array[card_t] Of int;
 
     // [crispy] negative player health
     neghealth: int;

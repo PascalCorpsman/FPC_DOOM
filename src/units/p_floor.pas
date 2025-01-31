@@ -12,11 +12,14 @@ Uses
 
 Function EV_DoFloor(line: Pline_t; floortype: floor_e): int;
 
+Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t; crush: boolean; floorOrCeiling: int; direction: int): result_e;
+
 Implementation
 
 //
 // HANDLE FLOOR TYPES
 //
+
 Function EV_DoFloor(line: Pline_t; floortype: floor_e): int;
 Var
   //   int			secnum;
@@ -202,6 +205,172 @@ Begin
   //	}
   //    }
   result := rtn;
+End;
+
+//
+// Move a plane (floor or ceiling) and check for crushing
+//
+
+Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
+  crush: boolean; floorOrCeiling: int; direction: int): result_e;
+Begin
+
+  Das hier noch, dann sollte sich die Türe öffnen ;)
+
+  //     boolean	flag;
+  //    fixed_t	lastpos;
+  //
+  //    // [AM] Store old sector heights for interpolation.
+  //    if (sector->oldgametic != gametic)
+  //    {
+  //        sector->oldfloorheight = sector->floorheight;
+  //        sector->oldceilingheight = sector->ceilingheight;
+  //        sector->oldgametic = gametic;
+  //    }
+  //
+  //    switch(floorOrCeiling)
+  //    {
+  //      case 0:
+  //	// FLOOR
+  //	switch(direction)
+  //	{
+  //	  case -1:
+  //	    // DOWN
+  //	    if (sector->floorheight - speed < dest)
+  //	    {
+  //		lastpos = sector->floorheight;
+  //		sector->floorheight = dest;
+  //		flag = P_ChangeSector(sector,crush);
+  //		if (flag == true)
+  //		{
+  //		    sector->floorheight =lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    //return crushed;
+  //		}
+  //		return pastdest;
+  //	    }
+  //	    else
+  //	    {
+  //		lastpos = sector->floorheight;
+  //		sector->floorheight -= speed;
+  //		flag = P_ChangeSector(sector,crush);
+  //		if (flag == true)
+  //		{
+  //		    sector->floorheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    return crushed;
+  //		}
+  //	    }
+  //	    break;
+  //
+  //	  case 1:
+  //	    // UP
+  //	    if (sector->floorheight + speed > dest)
+  //	    {
+  //		lastpos = sector->floorheight;
+  //		sector->floorheight = dest;
+  //		flag = P_ChangeSector(sector,crush);
+  //		if (flag == true)
+  //		{
+  //		    sector->floorheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    //return crushed;
+  //		}
+  //		return pastdest;
+  //	    }
+  //	    else
+  //	    {
+  //		// COULD GET CRUSHED
+  //		lastpos = sector->floorheight;
+  //		sector->floorheight += speed;
+  //		flag = P_ChangeSector(sector,crush);
+  //		if (flag == true)
+  //		{
+  //		    if (crush == true)
+  //			return crushed;
+  //		    sector->floorheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    return crushed;
+  //		}
+  //	    }
+  //	    break;
+  //	}
+  //	break;
+  //
+  //      case 1:
+  //	// CEILING
+  //	switch(direction)
+  //	{
+  //	  case -1:
+  //	    // DOWN
+  //	    if (sector->ceilingheight - speed < dest)
+  //	    {
+  //		lastpos = sector->ceilingheight;
+  //		sector->ceilingheight = dest;
+  //		flag = P_ChangeSector(sector,crush);
+  //
+  //		if (flag == true)
+  //		{
+  //		    sector->ceilingheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    //return crushed;
+  //		}
+  //		return pastdest;
+  //	    }
+  //	    else
+  //	    {
+  //		// COULD GET CRUSHED
+  //		lastpos = sector->ceilingheight;
+  //		sector->ceilingheight -= speed;
+  //		flag = P_ChangeSector(sector,crush);
+  //
+  //		if (flag == true)
+  //		{
+  //		    if (crush == true)
+  //			return crushed;
+  //		    sector->ceilingheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    return crushed;
+  //		}
+  //	    }
+  //	    break;
+  //
+  //	  case 1:
+  //	    // UP
+  //	    if (sector->ceilingheight + speed > dest)
+  //	    {
+  //		lastpos = sector->ceilingheight;
+  //		sector->ceilingheight = dest;
+  //		flag = P_ChangeSector(sector,crush);
+  //		if (flag == true)
+  //		{
+  //		    sector->ceilingheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    //return crushed;
+  //		}
+  //		return pastdest;
+  //	    }
+  //	    else
+  //	    {
+  //		lastpos = sector->ceilingheight;
+  //		sector->ceilingheight += speed;
+  //		flag = P_ChangeSector(sector,crush);
+  //// UNUSED
+  //#if 0
+  //		if (flag == true)
+  //		{
+  //		    sector->ceilingheight = lastpos;
+  //		    P_ChangeSector(sector,crush);
+  //		    return crushed;
+  //		}
+  //#endif
+  //	    }
+  //	    break;
+  //	}
+  //	break;
+  //
+  //    }
+  result := ok;
 End;
 
 End.

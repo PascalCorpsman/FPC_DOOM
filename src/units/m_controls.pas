@@ -21,7 +21,7 @@ Var
   key_straferight: int;
   //extern int key_alt_straferight;
   //extern int key_fire;
-  //extern int key_use;
+  key_use: int;
   key_strafe: int;
   key_speed: int;
   //extern int key_demospeed;  // [crispy]
@@ -255,7 +255,7 @@ Begin
   key_jump := VK_W; // Bei hexen ist der "a", aber der ist ja schon mit dem Strafen vorbelegt -> w macht irgendwie sinn ;)
   key_strafeleft := VK_A;
   key_straferight := VK_D;
-
+  key_use := VK_SPACE;
   key_strafe := KEY_RALT;
 
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden

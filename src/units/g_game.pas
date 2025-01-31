@@ -81,6 +81,7 @@ Procedure G_BuildTiccmd(Var cmd: ticcmd_t; maketic: int);
 Procedure G_DeferedInitNew(skill: skill_t; episode: int; map: int);
 
 Procedure G_ExitLevel();
+Procedure G_SecretExitLevel();
 
 Procedure G_DemoGotoNextLevel(start: Boolean);
 Function G_CheckDemoStatus(): boolean;
@@ -100,6 +101,7 @@ Uses
   , p_setup, p_mobj, p_inter, p_tick, p_local
   , r_data, r_sky, r_main
   , s_sound, st_stuff
+  , w_wad
   ;
 
 Const
@@ -140,6 +142,7 @@ Var
   next_weapon: int = 0;
 
   oldgamestate: gamestate_t; // WTF: die gibt es in D_Display auch als Static variable ...
+  dclicks: int = 0;
 
 Procedure G_ClearSavename();
 Begin
@@ -1512,14 +1515,14 @@ Begin
   //	|| joybuttons[joybfire])
   //	cmd->buttons |= BT_ATTACK;
 
-  //    if (gamekeydown[key_use]
-  //     || joybuttons[joybuse]
-  //     || mousebuttons[mousebuse])
-  //    {
-  //	cmd->buttons |= BT_USE;
-  //	// clear double clicks if hit use button
-  //	dclicks = 0;
-  //    }
+  If (gamekeydown[key_use] {
+    || joybuttons[joybuse]
+    || mousebuttons[mousebuse]}) Then Begin
+
+    cmd.buttons := cmd.buttons Or BT_USE;
+    // clear double clicks if hit use button
+    dclicks := 0;
+  End;
 
   // If the previous or next weapon button is pressed, the
   // next_weapon variable is set to change weapons when
@@ -1888,6 +1891,18 @@ End;
 Procedure G_ExitLevel();
 Begin
   secretexit := false;
+  G_ClearSavename();
+  gameaction := ga_completed;
+End;
+
+Procedure G_SecretExitLevel();
+Begin
+  // IF NO WOLF3D LEVELS, NO SECRET EXIT!
+  If ((gamemode = commercial)
+    And (W_CheckNumForName('map31') < 0)) Then
+    secretexit := false
+  Else
+    secretexit := true;
   G_ClearSavename();
   gameaction := ga_completed;
 End;

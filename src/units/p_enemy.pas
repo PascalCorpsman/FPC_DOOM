@@ -922,8 +922,8 @@ Begin
   //	    }
   //	}
   //    }
-  //
-  //    G_ExitLevel ();
+
+  G_ExitLevel();
 End;
 
 Procedure A_CPosAttack(actor: Pmobj_t);
@@ -1462,5 +1462,4 @@ Begin
 End;
 
 End.
-
 
