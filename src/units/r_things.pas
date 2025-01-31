@@ -674,7 +674,7 @@ Begin
   // [crispy] brightmaps for select sprites
   dc_colormap[0] := vis^.colormap[0];
   dc_colormap[1] := vis^.colormap[1];
-  dc_brightmap := vis^.brightmap;
+  dc_brightmap := @vis^.brightmap[0];
 
   If (dc_colormap[0] = Nil) Then Begin
     // NULL colormap = shadow draw
@@ -973,7 +973,7 @@ Begin
     vis^.colormap[0] := colormaps;
     vis^.colormap[1] := colormaps; // [crispy] always full brightness
   End;
-  vis^.brightmap := dc_brightmap;
+  vis^.brightmap := @dc_brightmap[0];
   vis^.translation := R_LaserspotColor();
   //#ifdef CRISPY_TRUECOLOR
   //    vis^.mobjflags |= MF_TRANSLUCENT;
@@ -993,7 +993,6 @@ Begin
 
   R_DrawVisSprite(vis, vis^.x1, vis^.x2);
 End;
-
 
 //
 // R_DrawPSprite

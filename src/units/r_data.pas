@@ -64,7 +64,7 @@ Var
   firstflat: int;
   flattranslation: Array Of int;
   texturetranslation: Array Of int;
-  texturebrightmap: Array Of TBytes; // [crispy] brightmaps
+  texturebrightmap: Array Of PByte; // [crispy] brightmaps
 
 Procedure R_InitData();
 

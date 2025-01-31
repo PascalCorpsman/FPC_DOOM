@@ -137,7 +137,7 @@ Type
     //  maxbright frames as well
     // [crispy] brightmaps for select sprites
     colormap: Array[0..1] Of Plighttable_t;
-    brightmap: Array Of byte;
+    brightmap: Pbyte;
 
     mobjflags: int;
     // [crispy] color translation table for blood colored by monster class

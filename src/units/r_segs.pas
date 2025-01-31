@@ -192,7 +192,7 @@ Begin
       dc_texturemid := rw_midtexturemid;
       dc_source := R_GetColumn(midtexture, texturecolumn);
       dc_texheight := SarLongint(textureheight[midtexture], FRACBITS); // [crispy] Tutti-Frutti fix
-      dc_brightmap := texturebrightmap[midtexture];
+      dc_brightmap := @texturebrightmap[midtexture][0];
       colfunc();
       ceilingclip[rw_x] := viewheight;
       floorclip[rw_x] := -1;
@@ -213,7 +213,7 @@ Begin
           dc_texturemid := rw_toptexturemid;
           dc_source := R_GetColumn(toptexture, texturecolumn);
           dc_texheight := SarLongint(textureheight[toptexture], FRACBITS); // [crispy] Tutti-Frutti fix
-          dc_brightmap := texturebrightmap[toptexture];
+          dc_brightmap := @texturebrightmap[toptexture][0];
           colfunc();
           ceilingclip[rw_x] := mid;
         End
@@ -242,7 +242,7 @@ Begin
           dc_texturemid := rw_bottomtexturemid;
           dc_source := R_GetColumn(bottomtexture, texturecolumn);
           dc_texheight := SarLongint(textureheight[bottomtexture], FRACBITS); // [crispy] Tutti-Frutti fix
-          dc_brightmap := texturebrightmap[bottomtexture];
+          dc_brightmap := @texturebrightmap[bottomtexture][0];
           colfunc();
           floorclip[rw_x] := mid;
         End
@@ -837,7 +837,7 @@ Begin
         If (index >= MAXLIGHTSCALE) Then index := MAXLIGHTSCALE - 1;
 
         // [crispy] brightmaps for mid-textures
-        dc_brightmap := texturebrightmap[texnum];
+        dc_brightmap := @texturebrightmap[texnum][0];
         dc_colormap[0] := walllights[index];
         If (crispy.brightmaps And BRIGHTMAPS_TEXTURES) <> 0 Then Begin
           dc_colormap[1] := colormaps;

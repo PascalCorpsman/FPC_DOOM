@@ -79,7 +79,7 @@ Type
     centerweapon: int;
     coloredblood: int;
     coloredhud: int; // COLOREDHUD_OFF .. COLOREDHUD_BOTH
-    crosshair: int;
+    crosshair: int; // CROSSHAIR_OFF .. CROSSHAIR_PROJECTED
     crosshairhealth: int;
     crosshairtarget: int;
     crosshairtype: int;
