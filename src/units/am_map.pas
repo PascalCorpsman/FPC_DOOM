@@ -16,9 +16,7 @@ Const
   AM_MSGENTERED = (AM_MSGHEADER Or (ord('e') Shl 8));
   AM_MSGEXITED = (AM_MSGHEADER Or (ord('x') Shl 8));
 
-  cheat_amap: cheatseq_t = (
-    sequence: 'iddt'; parameter_chars: 0
-    );
+  cheat_amap: cheatseq_t = (sequence: 'iddt'; parameter_chars: 0);
 
 Type
 

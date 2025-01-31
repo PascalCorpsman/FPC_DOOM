@@ -411,10 +411,10 @@ Const
   //
   //  #define STSTR_KFAADDED	"Very Happy Ammo Added"
   //  #define STSTR_FAADDED	"Ammo (no keys) Added"
-  //
-  //  #define STSTR_NCON		"No Clipping Mode ON"
-  //  #define STSTR_NCOFF		"No Clipping Mode OFF"
-  //
+
+  STSTR_NCON = 'No Clipping Mode ON';
+  STSTR_NCOFF = 'No Clipping Mode OFF';
+
   //  #define STSTR_BEHOLD	"inVuln, Str, Inviso, Rad, Allmap, or Lite-amp"
   //  #define STSTR_BEHOLDX	"Power-up Toggled"
   //

@@ -17,6 +17,9 @@ Const
   ST_HEIGHT = 32;
   CRISPY_HUD = 12;
 
+  cheat_noclip: cheatseq_t = (sequence: 'idspispopd'; parameter_chars: 0);
+  cheat_commercial_noclip: cheatseq_t = (sequence: 'idclip'; parameter_chars: 0);
+
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
 
@@ -36,7 +39,7 @@ Implementation
 Uses
   info_types
   , am_map
-  , d_items
+  , d_items, d_player, d_englsh
   , g_game
   , m_menu
   , st_lib
@@ -554,12 +557,12 @@ End;
 
 Function cht_CheckCheatSP(Var cht: cheatseq_t; key: char): int;
 Begin
-  If (cht_CheckCheat(cht, key) <> 0) Then Begin
+  If (cht_CheckCheat(cht, key) = 0) Then Begin
     result := 0;
     exit;
   End
   Else Begin
-    If (crispy.singleplayer) Then Begin
+    If (Not crispy.singleplayer) Then Begin
       plyr^.message := 'Cheater!';
       result := 0;
       exit;
@@ -757,23 +760,17 @@ Begin
     //	return isdigit(buf[0]);
     //      }
     //      // [crispy] allow both idspispopd and idclip cheats in all gamemissions
-    //      else if ( ( /* logical_gamemission == doom
-    //                 && */ cht_CheckCheatSP(&cheat_noclip, ev->data2))
-    //             || ( /* logical_gamemission != doom
-    //                 && */ cht_CheckCheatSP(&cheat_commercial_noclip,ev->data2)))
-    //      {
-    //        // Noclip cheat.
-    //        // For Doom 1, use the idspipsopd cheat; for all others, use
-    //        // idclip
-    //
-    //	plyr->cheats ^= CF_NOCLIP;
-    //
-    //	if (plyr->cheats & CF_NOCLIP)
-    //	  plyr->message = DEH_String(STSTR_NCON);
-    //	else
-    //	  plyr->message = DEH_String(STSTR_NCOFF);
-    //      }
-    //      // 'behold?' power-up cheats
+    //      else
+    If (cht_CheckCheatSP(cheat_noclip, chr(ev^.data2)) <> 0)
+      Or (cht_CheckCheatSP(cheat_commercial_noclip, chr(ev^.data2)) <> 0)
+      Then Begin
+      plyr^.cheats := plyr^.cheats Xor integer(CF_NOCLIP);
+      If (plyr^.cheats And integer(CF_NOCLIP)) <> 0 Then
+        plyr^.message := STSTR_NCON
+      Else
+        plyr^.message := STSTR_NCOFF;
+    End
+      //      // 'behold?' power-up cheats
     //      for (i=0;i<6;i++)
     //      {
     //	if (i < 4 ? cht_CheckCheatSP(&cheat_powerup[i], ev->data2) : cht_CheckCheat(&cheat_powerup[i], ev->data2))
@@ -1013,7 +1010,8 @@ Begin
     //	}
     //      }
     //    }
-    //
+      ;
+
     //// [crispy] now follow "harmless" Crispy Doom specific cheats
     //
     //    // [crispy] implement Crispy Doom's "showfps" cheat, ne debug aid
