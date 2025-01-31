@@ -1,8 +1,8 @@
 # Lessons learned
 
-This is a small collection of the "most" made misstakes during porting crispy DOOM to FPC. Goal is not to blame C++ but more to give a list on which points you have to be special carefull when porting C / C++ code to FPC.
+This is a small collection of the "most" made misstakes during porting crispy DOOM to FPC. Goal is not to blame C / C++ but more to give a list on which points you have to be special carefull when porting C / C++ code to FPC.
 
-If you want to see that the listings are "right" you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
+if you want to test the code snippets right away, you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
 
 ### Assignments of variables
 
@@ -14,11 +14,12 @@ int i = 0;
 int x = 0;
 if (++i)
   x = 1; 
-// i is 1, x is 1
+// i is 1, x is 1 (like expected)
+
 i = 0;
 if (i++)
   x = 2; 
-// i -> 2, x is still 1
+// i -> 2, x is still 1 (most FPC programmer would not expect this)
 ```
 
 ### Assignments during boolean evaluations
@@ -33,7 +34,7 @@ if (x = fancy_functioncall())
   ..
 }
 ```
-Translate this as
+Translates to this:
 
 ```pascal
 // Pascal
@@ -53,14 +54,16 @@ The "!" is small and can be overseen easily, also c does not require braces here
 ```cpp
 #define ML_BLOCKMONSTERS (8)
 // This is a NULL pointer check, and a "bit set" test
+
 if ( !tmthing->player && ld->flags & ML_BLOCKMONSTERS )
   return false; // block monsters only
 ```    
 
-Translate this as
+Translates to this:
 
 ```pascal
 const ML_BLOCKMONSTERS = 8;
+
 if (tmthing^.player = Nil) and ((ld^.flags and ML_BLOCKMONSTERS) <> 0) then begin
   result := false; // block monsters only
   exit;
@@ -69,7 +72,7 @@ end;
 
 ### Strings
 
-Most of the time a *char is simple a string
+Most of the time a *char is simple a string.
 
 ```cpp
 typedef struct
@@ -87,7 +90,8 @@ typedef struct
     char parameter_buf[MAX_CHEAT_PARAMS];
 } cheatseq_t;
 ``` 
-can be reduced to
+Can be reduced to:
+
 ```pascal
 type 
   cheatseq_t = record
@@ -100,7 +104,7 @@ type
     parameter_buf:String;
   end;
 ``` 
-But be carefull, as you now shifted the readindex of the first character from C = 0 to FPC = 1 !
+⚠️ But be carefull, as you now shifted the readindex of the first character from C = 0 to FPC = 1 ⚠️
 
 ## Loops
 
@@ -111,8 +115,7 @@ do
 ..
 } while (running);
 ```
-
-Translate this as
+Translates to this:
 
 ```pascal
 repeat
@@ -132,7 +135,7 @@ for (int i = 0, sector = sectors; i < numsectors; i++, sector++)
 }
 ```
 
-Translate this as
+Translates to this:
 
 ```pascal
 var
@@ -155,13 +158,14 @@ int *j;
 j = i + 2; // j points now to the 3. element
 ```
 
-Translate this as
+Translates to this:
 
 ```pascal
 var
   i:array[0..9] of integer;
   j:^integer;
 begin
+  // j := @i + 2; // This is wrong !!!
   j := @i[2];
 ```
 ### accessing to a substruct whithin a strucr
@@ -185,8 +189,7 @@ small_data_t *b;
 // Let point a to something valid
 b = a + 4; // This is the worst, as the sizeof operator is not used ! better would be sizeof(int)
 ```
-
-Translate this as
+Translates to this:
 ```pascal
 type 
   big_data_t = record
@@ -204,7 +207,6 @@ var
 begin
   // Let point a to something valid
   b := pointer(a) + sizeof(integer);
-  // Don't do: b := a + sizeof(integer); !!!
 ```
 
 <!---
