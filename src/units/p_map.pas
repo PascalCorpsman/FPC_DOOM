@@ -54,14 +54,16 @@ Function PIT_CheckLine(ld: Pline_t): boolean;
 Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 Procedure P_SlideMove(mo: Pmobj_t);
 
+Function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
+
 Implementation
 
 Uses
-  math, doomdata, sounds
-  , deh_misc
+  math, doomdata, sounds, doomstat
+  , d_mode, deh_misc
   , i_video, i_system
   , m_random, m_bbox
-  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch
+  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch, p_tick
   , r_things, r_main, r_sky
   , s_sound
   ;
@@ -87,6 +89,8 @@ Var
 
   tmxmove: fixed_t;
   tmymove: fixed_t;
+  crushchange: boolean;
+  nofit: boolean;
 
   // Certain functions assume that a mobj_t pointer is non-NULL,
   // causing a crash in some situations where it is NULL.  Vanilla
@@ -1274,6 +1278,150 @@ Begin
   If (Not P_TryMove(mo, mo^.x + tmxmove, mo^.y + tmymove)) Then Begin
     Goto retry;
   End;
+End;
+
+//
+// P_ThingHeightClip
+// Takes a valid thing and adjusts the thing->floorz,
+// thing->ceilingz, and possibly thing->z.
+// This is called for all nearby monsters
+// whenever a sector changes height.
+// If the thing doesn't fit,
+// the z will be set to the lowest value
+// and false will be returned.
+//
+
+Function P_ThingHeightClip(thing: Pmobj_t): boolean;
+Var
+  onfloor: boolean;
+Begin
+
+
+  onfloor := (thing^.z = thing^.floorz);
+
+  P_CheckPosition(thing, thing^.x, thing^.y);
+  // what about stranding a monster partially off an edge?
+
+  thing^.floorz := tmfloorz;
+  thing^.ceilingz := tmceilingz;
+
+  If (onfloor) Then Begin
+
+    // walking monsters rise and fall with the floor
+    thing^.z := thing^.floorz;
+  End
+  Else Begin
+    // don't adjust a floating monster unless forced to
+    If (thing^.z + thing^.height > thing^.ceilingz) Then
+      thing^.z := thing^.ceilingz - thing^.height;
+  End;
+
+  If (thing^.ceilingz - thing^.floorz < thing^.height) Then Begin
+    result := false;
+    exit;
+  End;
+
+  result := true;
+End;
+
+//
+// PIT_ChangeSector
+//
+
+Function PIT_ChangeSector(thing: Pmobj_t): boolean;
+Var
+  mo: pmobj_t;
+Begin
+  If (P_ThingHeightClip(thing)) Then Begin
+    // keep checking
+    result := true;
+    exit;
+  End;
+
+  // crunch bodies to giblets
+  If (thing^.health <= 0) Then Begin
+    P_SetMobjState(thing, S_GIBS);
+
+    // [crispy] no blood, no giblets
+    If (thing^.flags And MF_NOBLOOD) <> 0 Then
+      thing^.sprite := SPR_TNT1;
+
+    If (gameversion > exe_doom_1_2) Then
+      thing^.flags := thing^.flags And Not MF_SOLID;
+    thing^.height := 0;
+    thing^.radius := 0;
+
+    // [crispy] connect giblet object with the crushed monster
+    thing^.target := thing;
+
+    // keep checking
+    result := true;
+    exit;
+  End;
+
+  // crunch dropped items
+  If (thing^.flags And MF_DROPPED) <> 0 Then Begin
+    P_RemoveMobj(thing);
+    // keep checking
+    result := true;
+    exit;
+  End;
+
+  If ((thing^.flags And MF_SHOOTABLE) = 0) Then Begin
+    // assume it is bloody gibs or something
+    result := true;
+    exit;
+  End;
+
+  nofit := true;
+
+  If (crushchange And ((leveltime And 3) = 0)) Then Begin
+
+    P_DamageMobj(thing, Nil, Nil, 10);
+
+    // spray blood in a random direction
+    If (thing^.flags And MF_NOBLOOD) <> 0 Then Begin
+      mo := P_SpawnMobj(thing^.x,
+        thing^.y,
+        // [crispy] no blood, no.. well.. blood
+        thing^.z + thing^.height Div 2, MT_PUFF);
+    End
+    Else Begin
+      mo := P_SpawnMobj(thing^.x,
+        thing^.y,
+        // [crispy] no blood, no.. well.. blood
+        thing^.z + thing^.height Div 2, MT_BLOOD);
+    End;
+
+    mo^.momx := P_SubRandom() Shl 12;
+    mo^.momy := P_SubRandom() Shl 12;
+
+    // [crispy] connect blood object with the monster that bleeds it
+    mo^.target := thing;
+
+    // [crispy] Spectres bleed spectre blood
+    If (crispy.coloredblood = COLOREDBLOOD_ALL) Then
+      mo^.flags := mo^.flags Or (thing^.flags And MF_SHADOW);
+  End;
+
+  // keep checking (crush other things)
+  result := true;
+End;
+
+Function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
+Var
+  x: int;
+  y: int;
+Begin
+  nofit := false;
+  crushchange := crunch;
+  // re-check heights for all things near the moving sector
+  For x := sector^.blockbox[BOXLEFT] To sector^.blockbox[BOXRIGHT] Do Begin
+    For y := sector^.blockbox[BOXBOTTOM] To sector^.blockbox[BOXTOP] Do Begin
+      P_BlockThingsIterator(x, y, @PIT_ChangeSector);
+    End;
+  End;
+  result := nofit;
 End;
 
 End.

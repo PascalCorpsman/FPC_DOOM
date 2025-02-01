@@ -16,6 +16,11 @@ Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t; crush: bo
 
 Implementation
 
+Uses
+  d_loop
+  , p_map
+  ;
+
 //
 // HANDLE FLOOR TYPES
 //
@@ -213,163 +218,154 @@ End;
 
 Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
   crush: boolean; floorOrCeiling: int; direction: int): result_e;
+
+Var
+  flag: boolean;
+  lastpos: fixed_t;
 Begin
+  // [AM] Store old sector heights for interpolation.
+  If (sector^.oldgametic <> gametic) Then Begin
+    sector^.oldfloorheight := sector^.floorheight;
+    sector^.oldceilingheight := sector^.ceilingheight;
+    sector^.oldgametic := gametic;
+  End;
 
-  Das hier noch, dann sollte sich die Türe öffnen ;)
+  Case (floorOrCeiling) Of
+    0: Begin
+        // FLOOR
+        Case (direction) Of
+          -1: Begin
+              // DOWN
+              If (sector^.floorheight - speed < dest) Then Begin
+                lastpos := sector^.floorheight;
+                sector^.floorheight := dest;
+                flag := P_ChangeSector(sector, crush);
+                If (flag = true) Then Begin
+                  sector^.floorheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  //return crushed;
+                End;
+                result := pastdest;
+                exit;
+              End
+              Else Begin
+                lastpos := sector^.floorheight;
+                sector^.floorheight := sector^.floorheight - speed;
+                flag := P_ChangeSector(sector, crush);
+                If (flag) Then Begin
+                  sector^.floorheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  result := crushed;
+                  exit;
+                End;
+              End;
+            End;
+          1: Begin
+              // UP
+              If (sector^.floorheight + speed > dest) Then Begin
+                lastpos := sector^.floorheight;
+                sector^.floorheight := dest;
+                flag := P_ChangeSector(sector, crush);
+                If (flag) Then Begin
+                  sector^.floorheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  //result :=  crushed;
+                  // exit;
+                End;
+                result := pastdest;
+                exit;
+              End
+              Else Begin
+                // COULD GET CRUSHED
+                lastpos := sector^.floorheight;
+                sector^.floorheight := sector^.floorheight + speed;
+                flag := P_ChangeSector(sector, crush);
+                If (flag) Then Begin
+                  If (crush = true) Then Begin
+                    result := crushed;
+                    exit;
+                  End;
+                  sector^.floorheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  result := crushed;
+                  exit;
+                End;
+              End;
+            End;
+        End;
+      End;
+    1: Begin
+        // CEILING
+        Case (direction) Of
+          -1: Begin
+              // DOWN
+              If (sector^.ceilingheight - speed < dest) Then Begin
 
-  //     boolean	flag;
-  //    fixed_t	lastpos;
-  //
-  //    // [AM] Store old sector heights for interpolation.
-  //    if (sector->oldgametic != gametic)
-  //    {
-  //        sector->oldfloorheight = sector->floorheight;
-  //        sector->oldceilingheight = sector->ceilingheight;
-  //        sector->oldgametic = gametic;
-  //    }
-  //
-  //    switch(floorOrCeiling)
-  //    {
-  //      case 0:
-  //	// FLOOR
-  //	switch(direction)
-  //	{
-  //	  case -1:
-  //	    // DOWN
-  //	    if (sector->floorheight - speed < dest)
-  //	    {
-  //		lastpos = sector->floorheight;
-  //		sector->floorheight = dest;
-  //		flag = P_ChangeSector(sector,crush);
-  //		if (flag == true)
-  //		{
-  //		    sector->floorheight =lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    //return crushed;
-  //		}
-  //		return pastdest;
-  //	    }
-  //	    else
-  //	    {
-  //		lastpos = sector->floorheight;
-  //		sector->floorheight -= speed;
-  //		flag = P_ChangeSector(sector,crush);
-  //		if (flag == true)
-  //		{
-  //		    sector->floorheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    return crushed;
-  //		}
-  //	    }
-  //	    break;
-  //
-  //	  case 1:
-  //	    // UP
-  //	    if (sector->floorheight + speed > dest)
-  //	    {
-  //		lastpos = sector->floorheight;
-  //		sector->floorheight = dest;
-  //		flag = P_ChangeSector(sector,crush);
-  //		if (flag == true)
-  //		{
-  //		    sector->floorheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    //return crushed;
-  //		}
-  //		return pastdest;
-  //	    }
-  //	    else
-  //	    {
-  //		// COULD GET CRUSHED
-  //		lastpos = sector->floorheight;
-  //		sector->floorheight += speed;
-  //		flag = P_ChangeSector(sector,crush);
-  //		if (flag == true)
-  //		{
-  //		    if (crush == true)
-  //			return crushed;
-  //		    sector->floorheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    return crushed;
-  //		}
-  //	    }
-  //	    break;
-  //	}
-  //	break;
-  //
-  //      case 1:
-  //	// CEILING
-  //	switch(direction)
-  //	{
-  //	  case -1:
-  //	    // DOWN
-  //	    if (sector->ceilingheight - speed < dest)
-  //	    {
-  //		lastpos = sector->ceilingheight;
-  //		sector->ceilingheight = dest;
-  //		flag = P_ChangeSector(sector,crush);
-  //
-  //		if (flag == true)
-  //		{
-  //		    sector->ceilingheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    //return crushed;
-  //		}
-  //		return pastdest;
-  //	    }
-  //	    else
-  //	    {
-  //		// COULD GET CRUSHED
-  //		lastpos = sector->ceilingheight;
-  //		sector->ceilingheight -= speed;
-  //		flag = P_ChangeSector(sector,crush);
-  //
-  //		if (flag == true)
-  //		{
-  //		    if (crush == true)
-  //			return crushed;
-  //		    sector->ceilingheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    return crushed;
-  //		}
-  //	    }
-  //	    break;
-  //
-  //	  case 1:
-  //	    // UP
-  //	    if (sector->ceilingheight + speed > dest)
-  //	    {
-  //		lastpos = sector->ceilingheight;
-  //		sector->ceilingheight = dest;
-  //		flag = P_ChangeSector(sector,crush);
-  //		if (flag == true)
-  //		{
-  //		    sector->ceilingheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    //return crushed;
-  //		}
-  //		return pastdest;
-  //	    }
-  //	    else
-  //	    {
-  //		lastpos = sector->ceilingheight;
-  //		sector->ceilingheight += speed;
-  //		flag = P_ChangeSector(sector,crush);
-  //// UNUSED
-  //#if 0
-  //		if (flag == true)
-  //		{
-  //		    sector->ceilingheight = lastpos;
-  //		    P_ChangeSector(sector,crush);
-  //		    return crushed;
-  //		}
-  //#endif
-  //	    }
-  //	    break;
-  //	}
-  //	break;
-  //
-  //    }
+                lastpos := sector^.ceilingheight;
+                sector^.ceilingheight := dest;
+                flag := P_ChangeSector(sector, crush);
+
+                If (flag) Then Begin
+                  sector^.ceilingheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  // result := crushed;
+                  // Exit;
+                End;
+                result := pastdest;
+                exit;
+              End
+              Else Begin
+                // COULD GET CRUSHED
+                lastpos := sector^.ceilingheight;
+                sector^.ceilingheight := sector^.ceilingheight - speed;
+                flag := P_ChangeSector(sector, crush);
+
+                If (flag) Then Begin
+                  If (crush = true) Then Begin
+                    result := crushed;
+                    exit;
+                  End;
+                  sector^.ceilingheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  result := crushed;
+                  exit;
+                End;
+              End;
+            End;
+          1: Begin
+              // UP
+              If (sector^.ceilingheight + speed > dest) Then Begin
+                lastpos := sector^.ceilingheight;
+                sector^.ceilingheight := dest;
+                flag := P_ChangeSector(sector, crush);
+                If (flag) Then Begin
+
+                  sector^.ceilingheight := lastpos;
+                  P_ChangeSector(sector, crush);
+                  // result := crushed;
+                  // Exit;
+                End;
+                result := pastdest;
+                exit;
+              End
+              Else Begin
+                lastpos := sector^.ceilingheight;
+                sector^.ceilingheight := sector^.ceilingheight + speed;
+                flag := P_ChangeSector(sector, crush);
+                //// UNUSED
+                //#if 0
+                //		if (flag == true)
+                //		{
+                //		    sector^.ceilingheight = lastpos;
+                //		    P_ChangeSector(sector,crush);
+                //		    return crushed;
+                //		}
+                //#endif
+              End;
+            End;
+        End;
+      End;
+  End;
   result := ok;
 End;
 

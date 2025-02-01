@@ -566,41 +566,41 @@ Begin
 
         // check for turbo cheats
 
-               // check ~ 4 seconds whether to display the turbo message.
-               // store if the turbo threshold was exceeded in any tics
-               // over the past 4 seconds.  offset the checking period
-               // for each player so messages are not displayed at the
-               // same time.
+        // check ~ 4 seconds whether to display the turbo message.
+        // store if the turbo threshold was exceeded in any tics
+        // over the past 4 seconds.  offset the checking period
+        // for each player so messages are not displayed at the
+        // same time.
 
-   //            if (cmd->forwardmove > TURBOTHRESHOLD)
-   //            {
-   //                turbodetected[i] = true;
-   //            }
+//            if (cmd->forwardmove > TURBOTHRESHOLD)
+//            {
+//                turbodetected[i] = true;
+//            }
 
-   //            if ((gametic & 31) == 0
-   //             && ((gametic >> 5) % MAXPLAYERS) == i
-   //             && turbodetected[i])
-   //            {
-   //                static char turbomessage[80];
-   //                M_snprintf(turbomessage, sizeof(turbomessage),
-   //                           "%s is turbo!", player_names[i]);
-   //                players[consoleplayer].message = turbomessage;
-   //                turbodetected[i] = false;
-   //            }
+//            if ((gametic & 31) == 0
+//             && ((gametic >> 5) % MAXPLAYERS) == i
+//             && turbodetected[i])
+//            {
+//                static char turbomessage[80];
+//                M_snprintf(turbomessage, sizeof(turbomessage),
+//                           "%s is turbo!", player_names[i]);
+//                players[consoleplayer].message = turbomessage;
+//                turbodetected[i] = false;
+//            }
 
-   //	    if (netgame && !netdemo && !(gametic%ticdup) )
-   //	    {
-   //		if (gametic > BACKUPTICS
-   //		    && consistancy[i][buf] != cmd->consistancy)
-   //		{
-   //		    I_Error ("consistency failure (%i should be %i)",
-   //			     cmd->consistancy, consistancy[i][buf]);
-   //		}
-   //		if (players[i].mo)
-   //		    consistancy[i][buf] = players[i].mo->x;
-   //		else
-   //		    consistancy[i][buf] = rndindex;
-   //	    }
+//	    if (netgame && !netdemo && !(gametic%ticdup) )
+//	    {
+//		if (gametic > BACKUPTICS
+//		    && consistancy[i][buf] != cmd->consistancy)
+//		{
+//		    I_Error ("consistency failure (%i should be %i)",
+//			     cmd->consistancy, consistancy[i][buf]);
+//		}
+//		if (players[i].mo)
+//		    consistancy[i][buf] = players[i].mo->x;
+//		else
+//		    consistancy[i][buf] = rndindex;
+//	    }
       End;
     End;
 

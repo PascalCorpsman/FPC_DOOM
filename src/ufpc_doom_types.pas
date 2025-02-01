@@ -42,6 +42,11 @@ Const
   COLOREDHUD_BOTH = 3;
   NUM_COLOREDHUD = 4;
 
+  COLOREDBLOOD_OFF = 0;
+  COLOREDBLOOD_BLOOD = 1;
+  COLOREDBLOOD_ALL = 2;
+  NUM_COLOREDBLOOD = 3;
+
 Type
   TProcedure = Procedure();
 
@@ -77,7 +82,7 @@ Type
     brightmaps: int;
     btusetimer: int; // ?
     centerweapon: int;
-    coloredblood: int;
+    coloredblood: int; // COLOREDBLOOD_OFF .. COLOREDBLOOD_ALL
     coloredhud: int; // COLOREDHUD_OFF .. COLOREDHUD_BOTH
     crosshair: int; // CROSSHAIR_OFF .. CROSSHAIR_PROJECTED
     crosshairhealth: int;
@@ -220,7 +225,7 @@ Initialization
   Crispy.brightmaps := 0;
   Crispy.btusetimer := 0;
   Crispy.centerweapon := 0;
-  Crispy.coloredblood := 0;
+  Crispy.coloredblood := COLOREDBLOOD_OFF;
   Crispy.coloredhud := COLOREDHUD_OFF;
   Crispy.crosshair := CROSSHAIR_OFF;
   Crispy.crosshairhealth := 0;

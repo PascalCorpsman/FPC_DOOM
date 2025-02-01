@@ -135,6 +135,8 @@ Procedure P_SpawnBlood(x, y, z: fixed_t; damage: int; target: Pmobj_t); // [cris
 
 Function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 
+Procedure P_RemoveMobj(mobj: Pmobj_t);
+
 Implementation
 
 Uses

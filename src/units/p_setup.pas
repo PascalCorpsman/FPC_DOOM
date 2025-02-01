@@ -88,7 +88,7 @@ Uses
   , i_timer, i_system
   , g_game
   , m_argv, m_bbox
-  , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_inter, p_switch, p_spec
+  , p_tick, p_extnodes, p_blockmap, p_local, p_mobj, p_switch, p_spec
   , r_data, r_main, r_things
   , s_musinfo, s_sound
   , z_zone
@@ -685,6 +685,9 @@ Begin
   End;
 
   // build line tables for each sector
+  For i := 0 To high(sectors) Do Begin
+    setlength(sectors[i].lines, 0);
+  End;
   For i := 0 To numsectors - 1 Do Begin
     // Assign the line buffer for this sector
     setlength(sectors[i].lines, sectors[i].linecount);
