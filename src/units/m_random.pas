@@ -23,7 +23,7 @@ Procedure M_ClearRandom();
 
 // Defined version of P_Random() - P_Random()
 Function P_SubRandom(): int;
-//Function Crispy_SubRandom(): int;
+Function Crispy_SubRandom(): int;
 
 Implementation
 
@@ -87,6 +87,14 @@ Var
 Begin
   r := P_Random();
   result := r - P_Random();
+End;
+
+Function Crispy_SubRandom(): int;
+Var
+  r: int;
+Begin
+  r := Crispy_Random();
+  result := r - Crispy_Random();
 End;
 
 End.

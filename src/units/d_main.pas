@@ -1714,46 +1714,44 @@ Begin
   I_InitSound(doom);
   I_InitMusic();
 
-  //    // [crispy] check for SSG resources
-  //    crispy->havessg =
-  //    (
-  //        gamemode == commercial ||
-  //        (
-  //            W_CheckNumForName("sht2a0")         != -1 && // [crispy] wielding/firing sprite sequence
-  //            I_GetSfxLumpNum(&S_sfx[sfx_dshtgn]) != -1 && // [crispy] firing sound
-  //            I_GetSfxLumpNum(&S_sfx[sfx_dbopn])  != -1 && // [crispy] opening sound
-  //            I_GetSfxLumpNum(&S_sfx[sfx_dbload]) != -1 && // [crispy] reloading sound
-  //            I_GetSfxLumpNum(&S_sfx[sfx_dbcls])  != -1    // [crispy] closing sound
-  //        )
-  //    );
+  // [crispy] check for SSG resources
+  crispy.havessg :=
+    (gamemode = commercial) Or
+    (
+    (W_CheckNumForName('sht2a0') <> -1) And // [crispy] wielding/firing sprite sequence
+    (I_GetSfxLumpNum(@S_sfx[integer(sfx_dshtgn)]) <> -1) And // [crispy] firing sound
+    (I_GetSfxLumpNum(@S_sfx[integer(sfx_dbopn)]) <> -1) And // [crispy] opening sound
+    (I_GetSfxLumpNum(@S_sfx[integer(sfx_dbload)]) <> -1) And // [crispy] reloading sound
+    (I_GetSfxLumpNum(@S_sfx[integer(sfx_dbcls)]) <> -1) // [crispy] closing sound
+    );
 
-      // [crispy] check for presence of a 5th episode
-  //    crispy->haved1e5 = (gameversion == exe_ultimate) &&
-  //                       (W_CheckNumForName("m_epi5") != -1) &&
-  //                       (W_CheckNumForName("e5m1") != -1) &&
-  //                       (W_CheckNumForName("wilv40") != -1);
+  // [crispy] check for presence of a 5th episode
+//    crispy->haved1e5 = (gameversion == exe_ultimate) &&
+//                       (W_CheckNumForName("m_epi5") != -1) &&
+//                       (W_CheckNumForName("e5m1") != -1) &&
+//                       (W_CheckNumForName("wilv40") != -1);
 
-  //  [crispy]check For presence Of a 6 th episode
-  //    crispy->haved1e6 = (gameversion == exe_ultimate) &&
-  //                       (W_CheckNumForName("m_epi6") != -1) &&
-  //                       (W_CheckNumForName("e6m1") != -1) &&
-  //                       (W_CheckNumForName("wilv50") != -1);
+//  [crispy]check For presence Of a 6 th episode
+//    crispy->haved1e6 = (gameversion == exe_ultimate) &&
+//                       (W_CheckNumForName("m_epi6") != -1) &&
+//                       (W_CheckNumForName("e6m1") != -1) &&
+//                       (W_CheckNumForName("wilv50") != -1);
 
-      // [crispy] check for presence of E1M10
-  //    crispy->havee1m10 = (gamemode == retail) &&
-  //                       (W_CheckNumForName("e1m10") != -1) &&
-  //                       (W_CheckNumForName("sewers") != -1);
+  // [crispy] check for presence of E1M10
+//    crispy->havee1m10 = (gamemode == retail) &&
+//                       (W_CheckNumForName("e1m10") != -1) &&
+//                       (W_CheckNumForName("sewers") != -1);
 
-      // [crispy] check for presence of MAP33
-  //    crispy->havemap33 = (gamemode == commercial) &&
-  //                       (W_CheckNumForName("map33") != -1) &&
-  //                       (W_CheckNumForName("cwilv32") != -1);
+  // [crispy] check for presence of MAP33
+//    crispy->havemap33 = (gamemode == commercial) &&
+//                       (W_CheckNumForName("map33") != -1) &&
+//                       (W_CheckNumForName("cwilv32") != -1);
 
-      // [crispy] change level name for MAP33 if not already changed
-  //    if (crispy->havemap33 && !DEH_HasStringReplacement(PHUSTR_1))
-  //    {
-  //        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
-  //    }
+  // [crispy] change level name for MAP33 if not already changed
+//    if (crispy->havemap33 && !DEH_HasStringReplacement(PHUSTR_1))
+//    {
+//        DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
+//    }
 
   writeln('NET_Init: Init network subsystem.');
   //    NET_Init (); // TODO: wenn mal nur noch das hier portiert werden muss ...

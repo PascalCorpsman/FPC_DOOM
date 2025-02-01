@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="91">
+    <Units Count="92">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -411,6 +411,10 @@
         <Filename Value="units/p_plats.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit90>
+      <Unit91>
+        <Filename Value="units/i_sdlsound.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit91>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

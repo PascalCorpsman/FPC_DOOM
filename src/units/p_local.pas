@@ -84,13 +84,10 @@ Const
   //
 Const
   MLOOKUNIT = 8;
-  //void	P_PlayerThink (player_t* player);
-
 
   //
   // P_MOBJ
   //
-Const
   ONFLOORZ = INT_MIN;
   ONCEILINGZ = INT_MAX;
 
@@ -309,6 +306,4 @@ Begin
 End;
 
 End.
-
-
 

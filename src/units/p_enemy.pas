@@ -64,23 +64,26 @@ Procedure A_BrainExplode(mo: Pmobj_t);
 Procedure A_SpawnSound(mo: Pmobj_t);
 Procedure A_SpawnFly(mo: Pmobj_t);
 
+Procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 
 Implementation
 
 Uses
-  sounds, tables
+  doomdata, sounds, tables
   , d_player
   , g_game
   , m_fixed
-  , p_pspr, p_map
+  , p_pspr, p_map, p_maputl, p_setup
+  , r_main
   , s_sound
   ;
 
-//var
-//  mobj_t**		braintargets = NULL;
-//int		numbraintargets = 0; // [crispy] initialize
-//int		braintargeton = 0;
-//static int	maxbraintargets; // [crispy] remove braintargets limit
+Var
+  soundtarget: Pmobj_t;
+  //  mobj_t**		braintargets = NULL;
+  //int		numbraintargets = 0; // [crispy] initialize
+  //int		braintargeton = 0;
+  //static int	maxbraintargets; // [crispy] remove braintargets limit
 
 
 Procedure A_OpenShotgun2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -100,7 +103,6 @@ Begin
   If Not assigned(player) Then exit; // [crispy] let pspr action pointers get called from mobj states
   S_StartSound(player^.so, sfx_dbcls); // [crispy] weapon sound source
   A_ReFire(Nil, player, psp); // [crispy] let pspr action pointers get called from mobj states
-
 End;
 
 Procedure A_Explode(thingy: Pmobj_t);
@@ -1459,6 +1461,68 @@ Begin
   //
   //    // remove self (i.e., cube).
   //    P_RemoveMobj (mo);
+End;
+
+//
+// Called by P_NoiseAlert.
+// Recursively traverse adjacent sectors,
+// sound blocking lines cut off traversal.
+//
+
+Procedure P_RecursiveSound(sec: Psector_t; soundblocks: int);
+Var
+  i: int;
+  check: Pline_t;
+  other: Psector_t;
+Begin
+  // wake up all monsters in this sector
+  If (sec^.validcount = validcount)
+    And (sec^.soundtraversed <= soundblocks + 1) Then Begin
+    exit; // already flooded
+  End;
+
+  sec^.validcount := validcount;
+  sec^.soundtraversed := soundblocks + 1;
+  sec^.soundtarget := soundtarget;
+
+  For i := 0 To sec^.linecount - 1 Do Begin
+    check := @sec^.lines[i];
+    If ((check^.flags And ML_TWOSIDED) = 0) Then
+      continue;
+
+    P_LineOpening(check);
+
+    If (openrange <= 0) Then
+      continue; // closed door
+
+    If (sides[check^.sidenum[0]].sector = sec) Then
+      other := sides[check^.sidenum[1]].sector
+    Else
+      other := sides[check^.sidenum[0]].sector;
+
+    If (check^.flags And ML_SOUNDBLOCK) <> 0 Then Begin
+      If (soundblocks = 0) Then
+        P_RecursiveSound(other, 1);
+    End
+    Else
+      P_RecursiveSound(other, soundblocks);
+  End;
+End;
+
+//
+// P_NoiseAlert
+// If a monster yells at a player,
+// it will alert other monsters to the player.
+//
+
+Procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
+Begin
+  // [crispy] monsters are deaf with NOTARGET cheat
+  If assigned(target) And assigned(target^.player) And ((target^.player^.cheats And integer(CF_NOTARGET)) <> 0) Then exit;
+
+  soundtarget := target;
+  validcount := validcount + 1;
+  P_RecursiveSound(emmiter^.subsector^.sector, 0);
 End;
 
 End.

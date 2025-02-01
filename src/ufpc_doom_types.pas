@@ -137,7 +137,7 @@ Type
     //    	boolean haved1e6;
     //    	boolean havee1m10;
     //    	boolean havemap33;
-    //    	boolean havessg;
+    havessg: boolean; // Hat der Spieler zugriff auf die Doppeläufige Schrotflinte ? (true = ja)
     singleplayer: boolean;
     stretchsky: Boolean; // wird in R_InitSkyMap initialisiert
 
@@ -260,6 +260,7 @@ Initialization
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;
+  Crispy.havessg := false; // Wird während dem laden des .wad files initialisiert
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;
 

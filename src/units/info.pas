@@ -117,7 +117,7 @@ Procedure Set_MobInfo(
   mass: int;
   damage: int;
   activesound: sfxenum_t;
-  flags: Int64;
+  flags: Int;
   raisestate: statenum_t
   );
 Begin
@@ -1370,7 +1370,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -1451,7 +1451,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -1505,7 +1505,7 @@ Initialization
     100, // mass
     8, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -1694,7 +1694,7 @@ Initialization
     100, // mass
     8, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2045,7 +2045,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2099,7 +2099,7 @@ Initialization
     100, // mass
     3, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2126,7 +2126,7 @@ Initialization
     100, // mass
     5, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2180,7 +2180,7 @@ Initialization
     100, // mass
     5, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2207,7 +2207,7 @@ Initialization
     100, // mass
     100, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2234,7 +2234,7 @@ Initialization
     100, // mass
     5, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_MISSILE Or MF_DROPOFF Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2261,7 +2261,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_FLIPPABLE Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_FLIPPABLE Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2315,7 +2315,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2342,7 +2342,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2396,7 +2396,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT, // flags
+    int(MF_NOBLOCKMAP Or MF_NOGRAVITY Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2747,7 +2747,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT, // flags
+    int(MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2774,7 +2774,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT, // flags
+    int(MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2828,7 +2828,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT, // flags
+    int(MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 
@@ -2936,7 +2936,7 @@ Initialization
     100, // mass
     0, // damage
     sfx_None, // activesound
-    MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT, // flags
+    int(MF_SPECIAL Or MF_COUNTITEM Or MF_TRANSLUCENT), // flags
     S_NULL // raisestate
     );
 

@@ -20,7 +20,7 @@ Var
   //extern int key_alt_strafeleft;
   key_straferight: int;
   //extern int key_alt_straferight;
-  //extern int key_fire;
+  key_fire: int;
   key_use: int;
   key_strafe: int;
   key_speed: int;
@@ -253,6 +253,7 @@ Begin
   key_up := KEY_UPARROW;
   key_down := KEY_DOWNARROW;
   key_jump := VK_W; // Bei hexen ist der "a", aber der ist ja schon mit dem Strafen vorbelegt -> w macht irgendwie sinn ;)
+  key_fire := VK_CONTROL; //VK_RCONTROL; -> Eine Unterscheidung zwischen den beiden CTRL Tasten ist irgendwie nicht möglich :/
   key_strafeleft := VK_A;
   key_straferight := VK_D;
   key_use := VK_SPACE;

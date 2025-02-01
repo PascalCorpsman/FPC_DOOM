@@ -16,8 +16,8 @@ Procedure P_CalcHeight(player: Pplayer_t);
 Implementation
 
 Uses
-  a11y_weapon_pspr, tables, doomdef, info, sounds
-  , d_player, d_ticcmd, d_event
+  a11y_weapon_pspr, tables, doomdef, info, sounds, doomstat
+  , d_player, d_ticcmd, d_event, d_mode
   , i_timer
   , g_game
   , m_fixed, m_menu
@@ -285,46 +285,42 @@ Begin
 
   // Check for weapon change.
 
-  //    // A special event has no other buttons.
-  //    if (cmd^.buttons & BT_SPECIAL)
-  //	cmd^.buttons = 0;
+  // A special event has no other buttons.
+  If (cmd^.buttons And BT_SPECIAL) <> 0 Then
+    cmd^.buttons := 0;
 
-  //    if (cmd^.buttons & BT_CHANGE)
-  //    {
-  //	// The actual changing of the weapon is done
-  //	//  when the weapon psprite can do it
-  //	//  (read: not in the middle of an attack).
-  //	newweapon = (cmd^.buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT;
-  //
-  //	if (newweapon == wp_fist
-  //	    && player^.weaponowned[wp_chainsaw]
-  //	    && !(player^.readyweapon == wp_chainsaw
-  //		 && player^.powers[pw_strength]))
-  //	{
-  //	    newweapon = wp_chainsaw;
-  //	}
+  If (cmd^.buttons And BT_CHANGE) <> 0 Then Begin
 
-  //	if ( (crispy^.havessg)
-  //	    && newweapon == wp_shotgun
-  //	    && player^.weaponowned[wp_supershotgun]
-  //	    && player^.readyweapon != wp_supershotgun)
-  //	{
-  //	    newweapon = wp_supershotgun;
-  //	}
+    // The actual changing of the weapon is done
+    //  when the weapon psprite can do it
+    //  (read: not in the middle of an attack).
+    newweapon := weapontype_t((cmd^.buttons And BT_WEAPONMASK) Shr BT_WEAPONSHIFT);
 
-  //	if (player^.weaponowned[newweapon]
-  //	    && newweapon != player^.readyweapon)
-  //	{
-  //	    // Do not go to plasma or BFG in shareware,
-  //	    //  even if cheated.
-  //	    if ((newweapon != wp_plasma
-  //		 && newweapon != wp_bfg)
-  //		|| (gamemode != shareware) )
-  //	    {
-  //		player^.pendingweapon = newweapon;
-  //	    }
-  //	}
-  //    }
+    If (newweapon = wp_fist)
+      And (player^.weaponowned[wp_chainsaw])
+      And (Not ((player^.readyweapon = wp_chainsaw)
+      And (player^.powers[integer(pw_strength)] <> 0))) Then Begin
+      newweapon := wp_chainsaw;
+    End;
+
+    If (crispy.havessg)
+      And (newweapon = wp_shotgun)
+      And (player^.weaponowned[wp_supershotgun])
+      And (player^.readyweapon <> wp_supershotgun) Then Begin
+      newweapon := wp_supershotgun;
+    End;
+
+    If (player^.weaponowned[newweapon])
+      And (newweapon <> player^.readyweapon) Then Begin
+
+      // Do not go to plasma or BFG in shareware,
+      //  even if cheated.
+      If (((newweapon <> wp_plasma) And (newweapon <> wp_bfg))
+        Or (gamemode <> shareware)) Then Begin
+        player^.pendingweapon := newweapon;
+      End;
+    End;
+  End;
 
   // check for use
   If (cmd^.buttons And BT_USE) <> 0 Then Begin

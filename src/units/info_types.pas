@@ -1503,7 +1503,7 @@ Type
     mass: int;
     damage: int;
     activesound: sfxenum_t;
-    flags: int64;
+    flags: int;
     raisestate: statenum_t;
     // [crispy] height of the spawnstate's first sprite in pixels
     actualheight: int;

@@ -201,7 +201,6 @@ End;
 
 Function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: int): boolean;
 Begin
-
   // Err...
   // Use the back sides of VERY SPECIAL lines...
   If (side <> 0) Then Begin
@@ -216,7 +215,6 @@ Begin
       End;
     End;
   End;
-
 
   // Switches that other things can activate.
   If (thing^.player = Nil) Then Begin
@@ -570,9 +568,7 @@ Begin
       Raise exception.create('P_UseSpecialLine: ' + inttostr(line^.special) + ' not ported yet.');
     End;
   End;
-
   result := true;
-
 End;
 
 End.

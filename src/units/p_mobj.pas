@@ -508,37 +508,38 @@ End;
 // so that no action pointer is ever called
 
 Var
-  laststate, lastsafestate: statenum_t;
+  laststate: statenum_t = S_NULL;
+  lastsafestate: statenum_t = S_NULL;
 
 Function P_LatestSafeState(state: statenum_t): statenum_t;
 Var
   safestate: statenum_t = S_NULL;
 Begin
-  Raise exception.create('P_LatestSafeState: hier fehlt noch was');
+
   If (state = laststate) Then Begin
     result := lastsafestate;
   End;
 
-  //    for (laststate = state; state != S_NULL; state = states[state].nextstate)
-  //    {
-  //	if (safestate == S_NULL)
-  //	{
-  //	    safestate = state;
-  //	}
-  //
-  //	if (states[state].action.acp1)
-  //	{
-  //	    safestate = S_NULL;
-  //	}
-  //
-  //	// [crispy] a state with -1 tics never changes
-  //	if (states[state].tics == -1 || state == states[state].nextstate)
-  //	{
-  //	    break;
-  //	}
-  //    }
-  //
-  //    return lastsafestate = safestate;
+  laststate := state;
+  While state <> S_NULL Do Begin
+    //    for (laststate = state; state != S_NULL; state = states[state].nextstate)
+    If (safestate = S_NULL) Then Begin
+      safestate := state;
+    End;
+
+    If assigned(states[integer(state)].action.acp1) Then Begin
+      safestate := S_NULL;
+    End;
+
+    // [crispy] a state with -1 tics never changes
+    If (states[integer(state)].tics = -1) Or (state = states[integer(state)].nextstate) Then Begin
+
+      break;
+    End;
+    state := states[integer(state)].nextstate;
+  End;
+  lastsafestate := safestate;
+  result := safestate;
 End;
 
 //
@@ -1099,22 +1100,38 @@ Begin
 End;
 
 Procedure P_SpawnPuffSafe(x, y, z: fixed_t; safe: boolean);
+Var
+  th: Pmobj_t;
 Begin
-  Raise exception.create('P_SpawnPuffSafe');
-  //    mobj_t*	th;
-  //
-  //    z += safe ? (Crispy_SubRandom() << 10) : (P_SubRandom() << 10);
-  //
-  //    th = P_SpawnMobjSafe (x,y,z, MT_PUFF, safe);
-  //    th->momz = FRACUNIT;
-  //    th->tics -= safe ? Crispy_Random()&3 : P_Random()&3;
-  //
-  //    if (th->tics < 1)
-  //	th->tics = 1;
-  //
-  //    // don't make punches spark on the wall
-  //    if (attackrange == MELEERANGE)
-  //	P_SetMobjState (th, safe ? P_LatestSafeState(S_PUFF3) : S_PUFF3);
+
+  If safe Then Begin
+    z := z + (Crispy_SubRandom() Shl 10);
+  End
+  Else Begin
+    z := z + (P_SubRandom() Shl 10);
+  End;
+
+  th := P_SpawnMobjSafe(x, y, z, MT_PUFF, safe);
+  th^.momz := FRACUNIT;
+  If safe Then Begin
+    th^.tics := th^.tics - Crispy_Random() And 3;
+  End
+  Else Begin
+    th^.tics := th^.tics - P_Random() And 3;
+  End;
+
+  If (th^.tics < 1) Then
+    th^.tics := 1;
+
+  // don't make punches spark on the wall
+  If (attackrange = MELEERANGE) Then Begin
+    If safe Then Begin
+      P_SetMobjState(th, P_LatestSafeState(S_PUFF3));
+    End
+    Else Begin
+      P_SetMobjState(th, S_PUFF3);
+    End;
+  End;
 End;
 
 Procedure P_SpawnPuff(x, y, z: fixed_t);
@@ -1127,29 +1144,28 @@ End;
 //
 
 Procedure P_SpawnBlood(x, y, z: fixed_t; damage: int; target: Pmobj_t); // [crispy] pass thing type
+Var
+  th: Pmobj_t;
 Begin
-  Raise exception.create('P_SpawnBlood');
-  //    mobj_t*	th;
-  //
-  //    z += (P_SubRandom() << 10);
-  //    th = P_SpawnMobj (x,y,z, MT_BLOOD);
-  //    th->momz = FRACUNIT*2;
-  //    th->tics -= P_Random()&3;
-  //
-  //    if (th->tics < 1)
-  //	th->tics = 1;
-  //
-  //    if (damage <= 12 && damage >= 9)
-  //	P_SetMobjState (th,S_BLOOD2);
-  //    else if (damage < 9)
-  //	P_SetMobjState (th,S_BLOOD3);
-  //
-  //    // [crispy] connect blood object with the monster that bleeds it
-  //    th->target = target;
-  //
-  //    // [crispy] Spectres bleed spectre blood
-  //    if (crispy->coloredblood == COLOREDBLOOD_ALL)
-  //        th->flags |= (target->flags & MF_SHADOW);
+  z := z + (P_SubRandom() Shl 10);
+  th := P_SpawnMobj(x, y, z, MT_BLOOD);
+  th^.momz := FRACUNIT * 2;
+  th^.tics := th^.tics - P_Random() And 3;
+
+  If (th^.tics < 1) Then
+    th^.tics := 1;
+
+  If (damage <= 12) And (damage >= 9) Then
+    P_SetMobjState(th, S_BLOOD2)
+  Else If (damage < 9) Then
+    P_SetMobjState(th, S_BLOOD3);
+
+  // [crispy] connect blood object with the monster that bleeds it
+  th^.target := target;
+
+  // [crispy] Spectres bleed spectre blood
+  If (crispy.coloredblood = COLOREDBLOOD_ALL) Then
+    th^.flags := th^.flags Or (target^.flags And MF_SHADOW);
 End;
 
 Finalization
@@ -1157,6 +1173,4 @@ Finalization
   FreeAllocations();
 
 End.
-
-
 

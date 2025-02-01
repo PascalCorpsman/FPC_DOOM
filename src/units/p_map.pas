@@ -36,6 +36,7 @@ Var
   spechit: Array Of Pline_t; // [crispy] remove SPECHIT limit
   numspechit: int;
   spechit_max: int; // [crispy] remove SPECHIT limit
+  attackrange: fixed_t;
 
 Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
 
@@ -55,6 +56,7 @@ Function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 Procedure P_SlideMove(mo: Pmobj_t);
 
 Function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
+Function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t): fixed_t;
 
 Implementation
 
@@ -75,7 +77,6 @@ Var
   shootz: fixed_t;
 
   la_damage: int;
-  attackrange: fixed_t;
   aimslope: fixed_t;
 
   bestslidefrac: fixed_t;

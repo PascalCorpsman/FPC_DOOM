@@ -1105,16 +1105,15 @@ Begin
     vis^.colormap[0] := spritelights[MAXLIGHTSCALE - 1];
     vis^.colormap[1] := colormaps;
   End;
-  vis^.brightmap := R_BrightmapForState(psp.state - @states[0]);
+  vis^.brightmap := R_BrightmapForState(psp.state - @states[0]); // WTF: da fehlt wahrscheinlich noch ein div sizeof(states[0])
 
   // [crispy] translucent gun flash sprites
   If (psprnum = ps_flash) Then Begin
-    vis^.mobjflags := vis^.mobjflags Or MF_TRANSLUCENT;
+    vis^.mobjflags := int(vis^.mobjflags Or MF_TRANSLUCENT);
     //#ifdef CRISPY_TRUECOLOR
     //        vis^.blendfunc = I_BlendOverTranmap; // I_BlendAdd;
     //#endif
   End;
-
   // interpolate weapon bobbing
   If (crispy.uncapped <> 0) Then Begin
     Raise exception.create('not ported.');
@@ -1292,6 +1291,4 @@ Finalization
   dispose(laserspot);
 
 End.
-
-
 
