@@ -22,9 +22,16 @@ Var
 
 Procedure S_ParseMusInfo(mapid: String);
 
+Procedure T_MusInfo();
+
 Implementation
 
 Procedure S_ParseMusInfo(mapid: String);
+Begin
+
+End;
+
+Procedure T_MusInfo();
 Begin
 
 End;

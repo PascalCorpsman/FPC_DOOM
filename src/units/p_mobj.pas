@@ -183,40 +183,33 @@ End;
 // P_RemoveMobj
 //
 
-//mapthing_t itemrespawnque[ITEMQUESIZE];
-//int itemrespawntime[ITEMQUESIZE];
-//int iquehead;
-//int iquetail;
-
 Procedure P_RemoveMobj(mobj: Pmobj_t);
 Begin
-  //    if ((mobj->flags & MF_SPECIAL)
-  //	&& !(mobj->flags & MF_DROPPED)
-  //	&& (mobj->type != MT_INV)
-  //	&& (mobj->type != MT_INS))
-  //    {
-  //	itemrespawnque[iquehead] = mobj->spawnpoint;
-  //	itemrespawntime[iquehead] = leveltime;
-  //	iquehead = (iquehead+1)&(ITEMQUESIZE-1);
-  //
-  //	// lose one off the end?
-  //	if (iquehead == iquetail)
-  //	    iquetail = (iquetail+1)&(ITEMQUESIZE-1);
-  //    }
+  If ((mobj^.flags And MF_SPECIAL) <> 0)
+    And ((mobj^.flags And MF_DROPPED) = 0)
+    And (mobj^._type <> MT_INV)
+    And (mobj^._type <> MT_INS) Then Begin
+
+    itemrespawnque[iquehead] := mobj^.spawnpoint;
+    itemrespawntime[iquehead] := leveltime;
+    iquehead := (iquehead + 1) And (ITEMQUESIZE - 1);
+
+    // lose one off the end?
+    If (iquehead = iquetail) Then
+      iquetail := (iquetail + 1) And (ITEMQUESIZE - 1);
+  End;
 
   // unlink from sector and block lists
   P_UnsetThingPosition(mobj);
 
-  //    // [crispy] removed map objects may finish their sounds
-  //    if (crispy->soundfull)
-  //    {
-  //	S_UnlinkSound(mobj);
-  //    }
-  //    else
-  //    {
-  //    // stop any playing sound
-  //    S_StopSound (mobj);
-  //    }
+  // [crispy] removed map objects may finish their sounds
+  If (crispy.soundfull <> 0) Then Begin
+    S_UnlinkSound(mobj);
+  End
+  Else Begin
+    // stop any playing sound
+    S_StopSound(mobj);
+  End;
 
   // free block
   P_RemoveThinker(Pthinker_t(mobj));
@@ -228,6 +221,8 @@ End;
 
 Procedure P_ExplodeMissileSafe(mo: Pmobj_t; safe: boolean);
 Begin
+  Raise exception.create('Port me.');
+
   //    mo->momx = mo->momy = mo->momz = 0;
   //
   //    P_SetMobjState (mo, safe ? P_LatestSafeState(mobjinfo[mo->type].deathstate) : mobjinfo[mo->type].deathstate);

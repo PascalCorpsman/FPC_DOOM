@@ -72,8 +72,8 @@ Uses
   doomdata, sounds, tables
   , d_player
   , g_game
-  , m_fixed
-  , p_pspr, p_map, p_maputl, p_setup
+  , m_fixed, m_random
+  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight
   , r_main
   , s_sound
   ;
@@ -119,6 +119,8 @@ End;
 
 Procedure A_PlayerScream(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   // Default death sound.
 //    int		sound = sfx_pldeth;
 //
@@ -135,6 +137,8 @@ End;
 
 Procedure A_Fall(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   // actor is on ground, it can be walked over
   // actor->flags &= ~MF_SOLID;
 
@@ -147,14 +151,85 @@ Begin
   S_StartSound(actor, sfx_slop);
 End;
 
+
+//
+// P_LookForPlayers
+// If allaround is false, only look 180 degrees in front.
+// Returns true if a player is targeted.
+//
+
+Function P_LookForPlayers(actor: Pmobj_t; allaround: boolean): boolean;
+Begin
+  Raise exception.create('Port me.');
+  //    int		c;
+  //    int		stop;
+  //    player_t*	player;
+  //    angle_t	an;
+  //    fixed_t	dist;
+  //
+  //    c = 0;
+  //    stop = (actor->lastlook-1)&3;
+  //
+  //    for ( ; ; actor->lastlook = (actor->lastlook+1)&3 )
+  //    {
+  //	if (!playeringame[actor->lastlook])
+  //	    continue;
+  //
+  //	if (c++ == 2
+  //	    || actor->lastlook == stop)
+  //	{
+  //	    // done looking
+  //	    return false;
+  //	}
+  //
+  //	player = &players[actor->lastlook];
+  //
+  //	// [crispy] monsters don't look for players with NOTARGET cheat
+  //	if (player->cheats & CF_NOTARGET)
+  //	    continue;
+  //
+  //	if (player->health <= 0)
+  //	    continue;		// dead
+  //
+  //	if (!P_CheckSight (actor, player->mo))
+  //	    continue;		// out of sight
+  //
+  //	if (!allaround)
+  //	{
+  //	    an = R_PointToAngle2 (actor->x,
+  //				  actor->y,
+  //				  player->mo->x,
+  //				  player->mo->y)
+  //		- actor->angle;
+  //
+  //	    if (an > ANG90 && an < ANG270)
+  //	    {
+  //		dist = P_AproxDistance (player->mo->x - actor->x,
+  //					player->mo->y - actor->y);
+  //		// if real close, react anyway
+  //		if (dist > MELEERANGE)
+  //		    continue;	// behind back
+  //	    }
+  //	}
+  //
+  //	actor->target = player->mo;
+  //	return true;
+  //    }
+  //
+  //    return false;
+End;
+
 //
 // A_Look
 // Stay in state until a player is sighted.
 //
 
 Procedure A_Look(actor: Pmobj_t);
+Label
+  seeyou;
 Var
   targ: ^mobj_t;
+  sound: int;
 Begin
 
   actor^.threshold := 0; // any shot will wake up
@@ -164,68 +239,67 @@ Begin
   If assigned(targ) And assigned(targ^.player) And ((targ^.player^.cheats And integer(CF_NOTARGET)) <> 0) Then
     exit;
 
-  // TODO: hier fehlt noch viel !
+  If assigned(targ)
+    And ((targ^.flags And MF_SHOOTABLE) <> 0) Then Begin
 
-  //    if (targ
-  //	&& (targ^.flags & MF_SHOOTABLE) )
-  //    {
-  //	actor^.target = targ;
-  //
-  //	if ( actor^.flags & MF_AMBUSH )
-  //	{
-  //	    if (P_CheckSight (actor, actor^.target))
-  //		goto seeyou;
-  //	}
-  //	else
-  //	    goto seeyou;
-  //    }
-  //
-  //
-  //    if (!P_LookForPlayers (actor, false) )
-  //	return;
-  //
-  //    // go into chase state
-  //  seeyou:
-  //    if (actor^.info^.seesound)
-  //    {
-  //	int		sound;
-  //
-  //	switch (actor^.info^.seesound)
-  //	{
-  //	  case sfx_posit1:
-  //	  case sfx_posit2:
-  //	  case sfx_posit3:
-  //	    sound = sfx_posit1+P_Random()%3;
-  //	    break;
-  //
-  //	  case sfx_bgsit1:
-  //	  case sfx_bgsit2:
-  //	    sound = sfx_bgsit1+P_Random()%2;
-  //	    break;
-  //
-  //	  default:
-  //	    sound = actor^.info^.seesound;
-  //	    break;
-  //	}
-  //
-  //	if (actor^.type==MT_SPIDER
-  //	    || actor^.type == MT_CYBORG)
-  //	{
-  //	    // full volume
-  //	    // [crispy] prevent from adding up volume
-  //	    crispy^.soundfull ? S_StartSoundOnce (NULL, sound) : S_StartSound (NULL, sound);
-  //	}
-  //	else
-  //	    S_StartSound (actor, sound);
-  //
-  //	// [crispy] make seesounds uninterruptible
-  //	if (crispy^.soundfull)
-  //	{
-  //		S_UnlinkSound(actor);
-  //	}
-  //    }
-  //
-  //    P_SetMobjState (actor, actor^.info^.seestate);
+    actor^.target := targ;
+
+    If (actor^.flags And MF_AMBUSH) <> 0 Then Begin
+      If (P_CheckSight(actor, actor^.target)) Then
+        Goto seeyou;
+    End
+    Else
+      Goto seeyou;
+  End;
+
+  If (Not P_LookForPlayers(actor, false)) Then
+    exit;
+
+  // go into chase state
+  seeyou:
+  If (actor^.info^.seesound <> sfx_None) Then Begin
+
+
+
+    Case (actor^.info^.seesound) Of
+
+      sfx_posit1,
+        sfx_posit2,
+        sfx_posit3: Begin
+          sound := integer(sfx_posit1) + P_Random() Mod 3;
+        End;
+
+      sfx_bgsit1,
+        sfx_bgsit2: Begin
+          sound := integer(sfx_bgsit1) + P_Random() Mod 2;
+        End;
+
+    Else Begin
+        sound := integer(actor^.info^.seesound);
+      End;
+    End;
+
+    If (actor^._type = MT_SPIDER)
+      Or (actor^._type = MT_CYBORG) Then Begin
+      // full volume
+      // [crispy] prevent from adding up volume
+      If crispy.soundfull <> 0 Then Begin
+        S_StartSoundOnce(Nil, sfxenum_t(sound));
+      End
+      Else Begin
+        S_StartSound(Nil, sfxenum_t(sound));
+      End;
+    End
+    Else
+      S_StartSound(actor, sfxenum_t(sound));
+
+    // [crispy] make seesounds uninterruptible
+    If (crispy.soundfull <> 0) Then Begin
+      S_UnlinkSound(actor);
+    End;
+  End;
+
+  P_SetMobjState(actor, actor^.info^.seestate);
 End;
 
 //
@@ -236,6 +310,8 @@ End;
 
 Procedure A_Chase(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		delta;
   //
   //    if (actor->reactiontime)
@@ -342,6 +418,8 @@ End;
 
 Procedure A_FaceTarget(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    if (!actor->target)
   //	return;
   //
@@ -358,6 +436,8 @@ End;
 
 Procedure A_PosAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		angle;
   //    int		damage;
   //    int		slope;
@@ -377,6 +457,8 @@ End;
 
 Procedure A_SPosAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    int		i;
   //    int		angle;
   //    int		bangle;
@@ -401,6 +483,8 @@ End;
 
 Procedure A_Scream(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		sound;
   //
   //    switch (actor->info->deathsound)
@@ -443,6 +527,8 @@ End;
 
 Procedure A_VileChase(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int			xl;
   //    int			xh;
   //    int			yl;
@@ -526,6 +612,8 @@ End;
 
 Procedure A_VileTarget(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	fog;
   //
   //    if (!actor->target)
@@ -556,6 +644,8 @@ End;
 
 Procedure A_VileAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	fire;
   //    int		an;
   //
@@ -592,6 +682,8 @@ End;
 
 Procedure A_Fire(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	dest;
   //    mobj_t*     target;
   //    unsigned	an;
@@ -630,6 +722,8 @@ Const
 
 Procedure A_Tracer(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   angle_t	exact;
   //    fixed_t	dist;
   //    fixed_t	slope;
@@ -709,6 +803,8 @@ End;
 
 Procedure A_SkelFist(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    int		damage;
   //
   //    if (!actor->target)
@@ -726,6 +822,8 @@ End;
 
 Procedure A_SkelMissile(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    mobj_t*	mo;
   //
   //    if (!actor->target)
@@ -758,6 +856,8 @@ End;
 
 Procedure A_FatAttack1(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	mo;
   //    mobj_t*     target;
   //    int		an;
@@ -778,6 +878,8 @@ End;
 
 Procedure A_FatAttack2(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    mobj_t*	mo;
   //    mobj_t*     target;
   //    int		an;
@@ -797,6 +899,8 @@ End;
 
 Procedure A_FatAttack3(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    mobj_t*	mo;
   //    mobj_t*     target;
   //    int		an;
@@ -826,6 +930,8 @@ End;
 
 Procedure A_BossDeath(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   thinker_t*	th;
   //    mobj_t*	mo2;
   //    line_t	junk;
@@ -930,6 +1036,8 @@ End;
 
 Procedure A_CPosAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		angle;
   //    int		bangle;
   //    int		damage;
@@ -950,6 +1058,8 @@ End;
 
 Procedure A_CPosRefire(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   // keep firing unless target got out of sight
 //    A_FaceTarget (actor);
 //
@@ -966,6 +1076,8 @@ End;
 
 Procedure A_TroopAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //  int		damage;
   //
   //    if (!actor->target)
@@ -987,6 +1099,8 @@ End;
 
 Procedure A_SargAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    int		damage;
   //
   //    if (!actor->target)
@@ -1010,6 +1124,8 @@ End;
 
 Procedure A_HeadAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		damage;
   //
   //    if (!actor->target)
@@ -1029,6 +1145,8 @@ End;
 
 Procedure A_BruisAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    int		damage;
   //
   //    if (!actor->target)
@@ -1057,6 +1175,8 @@ Const
 
 Procedure A_SkullAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    mobj_t*		dest;
   //    angle_t		an;
   //    int			dist;
@@ -1094,6 +1214,8 @@ End;
 
 Procedure A_SpidRefire(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   // keep firing unless target got out of sight
 //    A_FaceTarget (actor);
 //
@@ -1110,6 +1232,8 @@ End;
 
 Procedure A_BspiAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    if (!actor->target)
   //	return;
   //
@@ -1127,6 +1251,8 @@ End;
 
 Procedure A_CyberAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //  if (!actor->target)
   //	return;
   //
@@ -1140,6 +1266,8 @@ End;
 
 Procedure A_PainAttack(actor: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   if (!actor->target)
   //	return;
   //
@@ -1154,6 +1282,8 @@ End;
 
 Procedure A_PainShootSkull(actor: Pmobj_t; angle: angle_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    fixed_t	x;
   //    fixed_t	y;
   //    fixed_t	z;
@@ -1226,6 +1356,8 @@ End;
 
 Procedure A_KeenDie(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   thinker_t*	th;
   //    mobj_t*	mo2;
   //    line_t	junk;
@@ -1255,6 +1387,8 @@ End;
 
 Procedure A_BrainPain(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   // [crispy] prevent from adding up volume
 //  crispy->soundfull ? S_StartSoundOnce (NULL,sfx_bospn) : S_StartSound (NULL,sfx_bospn);
 
@@ -1262,6 +1396,8 @@ End;
 
 Procedure A_BrainScream(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   int		x;
   //    int		y;
   //    int		z;
@@ -1291,6 +1427,8 @@ End;
 
 Procedure A_BrainAwake(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   thinker_t*	thinker;
   //    mobj_t*	m;
   //
@@ -1340,6 +1478,8 @@ End;
 
 Procedure A_BrainSpit(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	targ;
   //    mobj_t*	newmobj;
   //
@@ -1376,6 +1516,8 @@ End;
 
 Procedure A_BrainExplode(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //    int		x;
   //    int		y;
   //    int		z;
@@ -1405,6 +1547,8 @@ End;
 
 Procedure A_SpawnFly(mo: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   mobj_t*	newmobj;
   //    mobj_t*	fog;
   //    mobj_t*	targ;

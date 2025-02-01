@@ -94,12 +94,6 @@ Const
   // Time interval for item respawning.
   ITEMQUESIZE = 128;
 
-  //extern mapthing_t	itemrespawnque[ITEMQUESIZE];
-  //extern int		itemrespawntime[ITEMQUESIZE];
-  //extern int		iquehead;
-  //extern int		iquetail;
-
-
   //void P_RespawnSpecials (void);
 
   //mobj_t*

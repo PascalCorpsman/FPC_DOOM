@@ -112,7 +112,7 @@ Type
     smoothmap: int;
     //    	int smoothscaling;
     soundfix: int;
-    //    	int soundfull;
+    soundfull: int;
     //    	int soundmono;
     //    	int statsformat;
     translucency: int;
@@ -251,6 +251,7 @@ Initialization
   //    Crispy.truecolor := 1;
   //    #Endif
   Crispy.soundfix := 1;
+  Crispy.soundfull := 0;
   Crispy.translucency := 0;
   Crispy.uncapped := 0;
   //  Crispy.vsync := 1;

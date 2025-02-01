@@ -24,9 +24,13 @@ Procedure P_RemoveThinker(thinker: Pthinker_t);
 Implementation
 
 Uses
-  doomdef
+  doomdef, doomdata, info, sounds, tables
   , g_game
-  , p_user, p_spec
+  , i_timer, i_system
+  , m_fixed
+  , p_user, p_spec, p_mobj, p_local
+  , r_main
+  , s_sound, s_musinfo
   ;
 
 Procedure P_InitThinkers();
@@ -73,8 +77,8 @@ Begin
     End;
     currentthinker := nextthinker;
   End;
-  //     // [crispy] support MUSINFO lump (dynamic music changing)
-  //     T_MusInfo();
+  // [crispy] support MUSINFO lump (dynamic music changing)
+  T_MusInfo();
 End;
 
 //
@@ -82,15 +86,14 @@ End;
 //
 
 Procedure P_RespawnSpecials();
-//    fixed_t		x;
-//    fixed_t		y;
-//    fixed_t		z;
-//
-//    subsector_t*	ss;
-//    mobj_t*		mo;
-//    mapthing_t*		mthing;
-//
-//    int			i;
+Var
+  x, y, z: fixed_t;
+
+  ss: Psubsector_t;
+  mo: Pmobj_t;
+  mthing: pmapthing_t;
+
+  i, j: int;
 Begin
   // only respawn items in deathmatch
   // AX: deathmatch 3 is a Crispy-specific change
@@ -98,49 +101,48 @@ Begin
 
 
   // nothing left to respawn?
-  //    if (iquehead == iquetail)
-  //	return;
-  //
-  //    // wait at least 30 seconds
-  //    if (leveltime - itemrespawntime[iquetail] < 30*TICRATE)
-  //	return;
-  //
-  //    mthing = &itemrespawnque[iquetail];
-  //
-  //    x = mthing->x << FRACBITS;
-  //    y = mthing->y << FRACBITS;
-  //
-  //    // spawn a teleport fog at the new spot
-  //    ss = R_PointInSubsector (x,y);
-  //    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_IFOG);
-  //    S_StartSound (mo, sfx_itmbk);
-  //
-  //    // find which type to spawn
-  //    for (i=0 ; i< NUMMOBJTYPES ; i++)
-  //    {
-  //	if (mthing->type == mobjinfo[i].doomednum)
-  //	    break;
-  //    }
-  //
-  //    if (i >= NUMMOBJTYPES)
-  //    {
-  //        I_Error("P_RespawnSpecials: Failed to find mobj type with doomednum "
-  //                "%d when respawning thing. This would cause a buffer overrun "
-  //                "in vanilla Doom", mthing->type);
-  //    }
-  //
-  //    // spawn it
-  //    if (mobjinfo[i].flags & MF_SPAWNCEILING)
-  //	z = ONCEILINGZ;
-  //    else
-  //	z = ONFLOORZ;
-  //
-  //    mo = P_SpawnMobj (x,y,z, i);
-  //    mo->spawnpoint = *mthing;
-  //    mo->angle = ANG45 * (mthing->angle/45);
-  //
-  //    // pull it from the que
-  //    iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+  If (iquehead = iquetail) Then exit;
+
+  // wait at least 30 seconds
+  If (leveltime - itemrespawntime[iquetail] < 30 * TICRATE) Then exit;
+
+  mthing := @itemrespawnque[iquetail];
+
+  x := mthing^.x Shl FRACBITS;
+  y := mthing^.y Shl FRACBITS;
+
+  // spawn a teleport fog at the new spot
+  ss := R_PointInSubsector(x, y);
+  mo := P_SpawnMobj(x, y, ss^.sector^.floorheight, MT_IFOG);
+  S_StartSound(mo, sfx_itmbk);
+
+  // find which type to spawn
+  j := integer(NUMMOBJTYPES);
+  For j := 0 To integer(NUMMOBJTYPES) - 1 Do Begin
+    If (mthing^._type = mobjinfo[j].doomednum) Then Begin
+      i := j;
+      break;
+    End;
+  End;
+
+  If (i >= integer(NUMMOBJTYPES)) Then Begin
+    I_Error(format('P_RespawnSpecials: Failed to find mobj type with doomednum ' +
+      '%d when respawning thing. This would cause a buffer overrun ' +
+      'in vanilla Doom', [mthing^._type]));
+  End;
+
+  // spawn it
+  If (mobjinfo[i].flags And MF_SPAWNCEILING) <> 0 Then
+    z := ONCEILINGZ
+  Else
+    z := ONFLOORZ;
+
+  mo := P_SpawnMobj(x, y, z, mobjtype_t(i));
+  mo^.spawnpoint := mthing^;
+  mo^.angle := angle_t(ANG45 * (mthing^.angle Div 45));
+
+  // pull it from the que
+  iquetail := (iquetail + 1) And (ITEMQUESIZE - 1);
 End;
 
 Procedure P_Ticker();
