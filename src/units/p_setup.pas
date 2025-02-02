@@ -74,6 +74,15 @@ Var
   // pointer to the current map lump info struct
   maplumpinfo: ^lumpinfo_t;
 
+  // REJECT
+  // For fast sight rejection.
+  // Speeds up enemy AI by skipping detailed
+  //  LineOf Sight calculation.
+  // Without special effect, this could be
+  //  used as a PVS lookup as well.
+  //
+  rejectmatrix: Pbyte;
+
 Function P_GetNumForMap(episode, map: int; critical: boolean): int;
 
 Procedure P_SetupLevel(episode, map, playermask: int; skill: skill_t);
@@ -107,15 +116,6 @@ Const
 
 Var
   totallines: int;
-
-  // REJECT
-  // For fast sight rejection.
-  // Speeds up enemy AI by skipping detailed
-  //  LineOf Sight calculation.
-  // Without special effect, this could be
-  //  used as a PVS lookup as well.
-  //
-  rejectmatrix: Array Of byte;
 
   // [crispy] recalculate seg offsets
   // adapted from prboom-plus/src/p_setup.c:474-482
@@ -833,7 +833,7 @@ Begin
     rejectmatrix := W_CacheLumpNum(lumpnum, PU_LEVEL);
   End
   Else Begin
-    setlength(rejectmatrix, minlength);
+    Getmem(rejectmatrix, minlength * sizeof(rejectmatrix[0]));
     W_ReadLump(lumpnum, @rejectmatrix[0]);
     PadRejectArray(@rejectmatrix[lumplen], minlength - lumplen);
   End;

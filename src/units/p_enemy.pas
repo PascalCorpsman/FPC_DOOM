@@ -73,7 +73,7 @@ Uses
   , d_player
   , g_game
   , m_fixed, m_random
-  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight
+  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local
   , r_main
   , s_sound
   ;
@@ -159,64 +159,72 @@ End;
 //
 
 Function P_LookForPlayers(actor: Pmobj_t; allaround: boolean): boolean;
+Var
+  c: int;
+  stop: int;
+  player: Pplayer_t;
+  an: angle_t;
+  dist: fixed_t;
 Begin
-  Raise exception.create('Port me.');
-  //    int		c;
-  //    int		stop;
-  //    player_t*	player;
-  //    angle_t	an;
-  //    fixed_t	dist;
-  //
-  //    c = 0;
-  //    stop = (actor->lastlook-1)&3;
-  //
-  //    for ( ; ; actor->lastlook = (actor->lastlook+1)&3 )
-  //    {
-  //	if (!playeringame[actor->lastlook])
-  //	    continue;
-  //
-  //	if (c++ == 2
-  //	    || actor->lastlook == stop)
-  //	{
-  //	    // done looking
-  //	    return false;
-  //	}
-  //
-  //	player = &players[actor->lastlook];
-  //
-  //	// [crispy] monsters don't look for players with NOTARGET cheat
-  //	if (player->cheats & CF_NOTARGET)
-  //	    continue;
-  //
-  //	if (player->health <= 0)
-  //	    continue;		// dead
-  //
-  //	if (!P_CheckSight (actor, player->mo))
-  //	    continue;		// out of sight
-  //
-  //	if (!allaround)
-  //	{
-  //	    an = R_PointToAngle2 (actor->x,
-  //				  actor->y,
-  //				  player->mo->x,
-  //				  player->mo->y)
-  //		- actor->angle;
-  //
-  //	    if (an > ANG90 && an < ANG270)
-  //	    {
-  //		dist = P_AproxDistance (player->mo->x - actor->x,
-  //					player->mo->y - actor->y);
-  //		// if real close, react anyway
-  //		if (dist > MELEERANGE)
-  //		    continue;	// behind back
-  //	    }
-  //	}
-  //
-  //	actor->target = player->mo;
-  //	return true;
-  //    }
-  //
-  //    return false;
+
+  c := 0;
+  stop := (actor^.lastlook - 1) And 3;
+
+  Repeat
+    If (Not playeringame[actor^.lastlook]) Then Begin
+      actor^.lastlook := (actor^.lastlook + 1) And 3;
+      continue;
+    End;
+
+    c := c + 1;
+    If (c = 2) Or (actor^.lastlook = stop) Then Begin
+      // done looking
+      result := false;
+      exit;
+    End;
+
+    player := @players[actor^.lastlook];
+
+    // [crispy] monsters don't look for players with NOTARGET cheat
+    If (player^.cheats And integer(CF_NOTARGET)) <> 0 Then Begin
+      actor^.lastlook := (actor^.lastlook + 1) And 3;
+      continue;
+    End;
+
+    If (player^.health <= 0) Then Begin
+      actor^.lastlook := (actor^.lastlook + 1) And 3;
+      continue; // dead
+    End;
+
+    If (Not P_CheckSight(actor, player^.mo)) Then Begin
+      actor^.lastlook := (actor^.lastlook + 1) And 3;
+      continue; // out of sight
+    End;
+
+    If (Not allaround) Then Begin
+      an := angle_t(R_PointToAngle2(actor^.x,
+        actor^.y,
+        player^.mo^.x,
+        player^.mo^.y)
+        - actor^.angle);
+
+      If (an > ANG90) And (an < ANG270) Then Begin
+        dist := P_AproxDistance(player^.mo^.x - actor^.x,
+          player^.mo^.y - actor^.y);
+        // if real close, react anyway
+        If (dist > MELEERANGE) Then Begin
+          actor^.lastlook := (actor^.lastlook + 1) And 3;
+          continue; // behind back
+        End;
+      End;
+    End;
+    actor^.target := player^.mo;
+    result := true;
+    exit;
+    actor^.lastlook := (actor^.lastlook + 1) And 3;
+  Until actor^.lastlook = 0;
+
+  result := false;
 End;
 
 //
