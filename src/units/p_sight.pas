@@ -128,6 +128,7 @@ Begin
 
   If (right < left) Then Begin
     result := 0; // front side
+    exit;
   End;
 
   If (left = right) Then

@@ -165,14 +165,19 @@ Var
   player: Pplayer_t;
   an: angle_t;
   dist: fixed_t;
+  evalHack: Boolean; // Keine Ahnung wie man die For loop aus C korrekt übersetzt, aber mit dem Flag gehts..
 Begin
 
   c := 0;
-  stop := (actor^.lastlook - 1) And 3;
-
+  stop := (actor^.lastlook - 1) And 3; // WTF: dass soll durch alle Spieler iterieren, das ginge aber nur wenn maxplayer = 4 ist !
+  evalHack := true;
   Repeat
+    If Not evalHack Then Begin
+      actor^.lastlook := (actor^.lastlook + 1) And 3; // WTF: dass soll durch alle Spieler iterieren, das ginge aber nur wenn maxplayer = 4 ist !
+    End;
+    evalHack := false;
+
     If (Not playeringame[actor^.lastlook]) Then Begin
-      actor^.lastlook := (actor^.lastlook + 1) And 3;
       continue;
     End;
 
@@ -187,17 +192,14 @@ Begin
 
     // [crispy] monsters don't look for players with NOTARGET cheat
     If (player^.cheats And integer(CF_NOTARGET)) <> 0 Then Begin
-      actor^.lastlook := (actor^.lastlook + 1) And 3;
       continue;
     End;
 
     If (player^.health <= 0) Then Begin
-      actor^.lastlook := (actor^.lastlook + 1) And 3;
       continue; // dead
     End;
 
     If (Not P_CheckSight(actor, player^.mo)) Then Begin
-      actor^.lastlook := (actor^.lastlook + 1) And 3;
       continue; // out of sight
     End;
 
@@ -221,7 +223,6 @@ Begin
     actor^.target := player^.mo;
     result := true;
     exit;
-    actor^.lastlook := (actor^.lastlook + 1) And 3;
   Until actor^.lastlook = 0;
 
   result := false;
@@ -259,7 +260,6 @@ Begin
     Else
       Goto seeyou;
   End;
-
   If (Not P_LookForPlayers(actor, false)) Then
     exit;
 
@@ -318,8 +318,6 @@ Var
   delta: int;
 Begin
 
-  Diese Methode wird unberechtigt aufgerufen, da den Spieler noch gar niemand sehen kann
-  Rauskriegen was dazu führt und es dort fixen !
   Raise exception.create('Port me.');
 
   //
