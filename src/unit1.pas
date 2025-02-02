@@ -56,6 +56,8 @@ Uses
 
 Type
 
+  TKeyBuffer = Array[0..1] Of Boolean;
+
   { TForm1 }
 
   TForm1 = Class(TForm)
@@ -72,6 +74,11 @@ Type
     Procedure Timer1Timer(Sender: TObject);
   private
     { private declarations }
+    fCTRLBuffer: TKeyBuffer;
+    fShiftBuffer: TKeyBuffer;
+    Procedure ClearKeyBuffer(Var Buf: TKeyBuffer);
+    Procedure CheckKeyDown(Var Key: Word; Var buf: TKeyBuffer; BothKey, Index0Key, Index1Key: Word);
+    Procedure CheckKeyUp(Var Key: Word; Var buf: TKeyBuffer; BothKey, Index0Key, Index1Key: Word);
   public
     { public declarations }
     Procedure Go2d();
@@ -87,7 +94,8 @@ Implementation
 {$R *.lfm}
 
 Uses
-  m_argv
+  LCLType, LCLIntf
+  , m_argv
   , d_main, d_event
   , i_video
   , v_video
@@ -102,7 +110,7 @@ Uses
 
 { TForm1 }
 
-Procedure Tform1.Go2d();
+Procedure TForm1.Go2d;
 Begin
   glMatrixMode(GL_PROJECTION);
   glPushMatrix(); // Store The Projection Matrix
@@ -116,7 +124,7 @@ Begin
   OpenGLControlHeight := OpenGLControl1.Height;
 End;
 
-Procedure Tform1.Exit2d();
+Procedure TForm1.Exit2d;
 Begin
   glMatrixMode(GL_PROJECTION);
   glPopMatrix(); // Restore old Projection Matrix
@@ -236,6 +244,8 @@ Procedure TForm1.FormCreate(Sender: TObject);
 Var
   i: Integer;
 Begin
+  ClearKeyBuffer(fCTRLBuffer);
+  ClearKeyBuffer(fShiftBuffer);
   ClientWidth := Scale96ToScreen(ORIGWIDTH * 2);
   ClientHeight := Scale96ToScreen(ORIGHEIGHT * 2);
   Constraints.MinWidth := ORIGWIDTH;
@@ -308,6 +318,9 @@ Var
 Begin
   // See d_event.pas for descriptions
   ev := GetTypedEmptyEvent(ev_keydown);
+  CheckKeyDown(key, fCTRLBuffer, vk_Control, VK_LCONTROL, VK_RCONTROL);
+  CheckKeyDown(key, fShiftBuffer, VK_SHIFT, VK_LSHIFT, VK_RSHIFT);
+  If key = 235 Then key := VK_RMENU; // Auf Linux scheint the Rechte ALT Taste nen komplett anderen wert zu haben ..
   // Siehe i_input.c I_HandleKeyboardEvent
   ev.data1 := Key; // doomkeys.h is made to be equal to lcl
   ev.data2 := Key; // TODO: muss noch richtig gemacht werden ?
@@ -322,6 +335,9 @@ Var
 Begin
   // See d_event.pas for descriptions
   ev := GetTypedEmptyEvent(ev_keyup);
+  CheckKeyUp(key, fCTRLBuffer, vk_Control, VK_LCONTROL, VK_RCONTROL);
+  CheckKeyUp(key, fShiftBuffer, VK_SHIFT, VK_LSHIFT, VK_RSHIFT);
+  If key = 235 Then key := VK_RMENU; // Auf Linux scheint the Rechte ALT Taste nen komplett anderen wert zu haben ..
   // Siehe i_input.c I_HandleKeyboardEvent
   ev.data1 := Key; // doomkeys.h is made to be equal to lcl
   D_PostEvent(ev);
@@ -347,6 +363,57 @@ Begin
       close;
     End;
 {$ENDIF}
+  End;
+End;
+
+Procedure TForm1.ClearKeyBuffer(Var Buf: TKeyBuffer);
+Var
+  i: Integer;
+Begin
+  For i := low(buf) To high(buf) Do Begin
+    buf[i] := false;
+  End;
+End;
+
+Procedure TForm1.CheckKeyDown(Var Key: Word; Var buf: TKeyBuffer; BothKey,
+  Index0Key, Index1Key: Word);
+Begin
+  If key = BothKey Then Begin
+    If GetKeyState(Index1Key) <> 0 Then Begin
+      buf[1] := true;
+      key := Index1Key;
+    End
+    Else Begin
+      buf[0] := true;
+      key := Index0Key;
+    End;
+  End;
+End;
+
+Procedure TForm1.CheckKeyUp(Var Key: Word; Var buf: TKeyBuffer; BothKey,
+  Index0Key, Index1Key: Word);
+Begin
+  If key = BothKey Then Begin
+    // Nur eine Taste ist gedrückt, dann muss es die jeweils andere sein !
+    If Not buf[1] Then Begin
+      buf[0] := false;
+      key := Index0Key;
+      exit;
+    End;
+    If Not buf[0] Then Begin
+      buf[1] := false;
+      key := Index1Key;
+      exit;
+    End;
+    // Beide Tasten waren gedrückt, welche ist nun Los gelassen worden ?
+    If GetKeyState(Index1Key) <> 0 Then Begin
+      buf[0] := false;
+      key := Index0Key;
+    End
+    Else Begin
+      buf[1] := false;
+      key := Index1Key;
+    End;
   End;
 End;
 

@@ -22,7 +22,7 @@ Uses
   doomstat, doomdata
   , d_mode
   , p_setup, p_local, p_maputl
-  , r_main
+  , r_main, r_defs
   ;
 
 Var
@@ -137,135 +137,158 @@ Begin
 End;
 
 //
+// P_InterceptVector2
+// Returns the fractional intercept point
+// along the first divline.
+// This is only called by the addthings and addlines traversers.
+//
+
+Function P_InterceptVector2(v2: Pdivline_t; v1: Pdivline_t): fixed_t;
+Var
+  frac: fixed_t;
+  num: fixed_t;
+  den: fixed_t;
+
+Begin
+  den := FixedMul(SarLongint(v1^.dy, 8), v2^.dx) - FixedMul(SarLongint(v1^.dx, 8), v2^.dy);
+  If (den = 0) Then Begin
+    result := 0;
+    exit;
+    //	I_Error ("P_InterceptVector: parallel");
+  End;
+  num := FixedMul(SarLongint(v1^.x - v2^.x, 8), v1^.dy) +
+    FixedMul(SarLongint(v2^.y - v1^.y, 8), v1^.dx);
+  frac := FixedDiv(num, den);
+
+  result := frac;
+End;
+
+//
 // P_CrossSubsector
 // Returns true
 //  if strace crosses the given subsector successfully.
 //
 
 Function P_CrossSubsector(num: int): boolean;
+Var
+  seg: Pseg_t;
+  line: Pline_t;
+  s1, s2, count: int;
+  sub: Psubsector_t;
+  front, back: Psector_t;
+  opentop, openbottom: fixed_t;
+  divl: divline_t;
+  v1, v2: ^vertex_t;
+  frac: fixed_t;
+  slope: fixed_t;
 Begin
-  Raise exception.create('Port me.');
-  //    seg_t*		seg;
-  //    line_t*		line;
-  //    int			s1;
-  //    int			s2;
-  //    int			count;
-  //    subsector_t*	sub;
-  //    sector_t*		front;
-  //    sector_t*		back;
-  //    fixed_t		opentop;
-  //    fixed_t		openbottom;
-  //    divline_t		divl;
-  //    vertex_t*		v1;
-  //    vertex_t*		v2;
-  //    fixed_t		frac;
-  //    fixed_t		slope;
-  //
   //#ifdef RANGECHECK
   //    if (num>=numsubsectors)
   //	I_Error ("P_CrossSubsector: ss %i with numss = %i",
   //		 num,
   //		 numsubsectors);
   //#endif
-  //
-  //    sub = &subsectors[num];
-  //
-  //    // check lines
-  //    count = sub->numlines;
-  //    seg = &segs[sub->firstline];
-  //
-  //    for ( ; count ; seg++, count--)
-  //    {
-  //	line = seg->linedef;
-  //
-  //	// allready checked other side?
-  //	if (line->validcount == validcount)
-  //	    continue;
-  //
-  //	line->validcount = validcount;
-  //
-  //	v1 = line->v1;
-  //	v2 = line->v2;
-  //	s1 = P_DivlineSide (v1->x,v1->y, &strace);
-  //	s2 = P_DivlineSide (v2->x, v2->y, &strace);
-  //
-  //	// line isn't crossed?
-  //	if (s1 == s2)
-  //	    continue;
-  //
-  //	divl.x = v1->x;
-  //	divl.y = v1->y;
-  //	divl.dx = v2->x - v1->x;
-  //	divl.dy = v2->y - v1->y;
-  //	s1 = P_DivlineSide (strace.x, strace.y, &divl);
-  //	s2 = P_DivlineSide (t2x, t2y, &divl);
-  //
-  //	// line isn't crossed?
-  //	if (s1 == s2)
-  //	    continue;
-  //
-  //        // Backsector may be NULL if this is an "impassible
-  //        // glass" hack line.
-  //
-  //        if (line->backsector == NULL)
-  //        {
-  //            return false;
-  //        }
-  //
-  //	// stop because it is not two sided anyway
-  //	// might do this after updating validcount?
-  //	if ( !(line->flags & ML_TWOSIDED) )
-  //	    return false;
-  //
-  //	// crosses a two sided line
-  //	front = seg->frontsector;
-  //	back = seg->backsector;
-  //
-  //	// no wall to block sight with?
-  //	if (front->floorheight == back->floorheight
-  //	    && front->ceilingheight == back->ceilingheight)
-  //	    continue;
-  //
-  //	// possible occluder
-  //	// because of ceiling height differences
-  //	if (front->ceilingheight < back->ceilingheight)
-  //	    opentop = front->ceilingheight;
-  //	else
-  //	    opentop = back->ceilingheight;
-  //
-  //	// because of ceiling height differences
-  //	if (front->floorheight > back->floorheight)
-  //	    openbottom = front->floorheight;
-  //	else
-  //	    openbottom = back->floorheight;
-  //
-  //	// quick test for totally closed doors
-  //	if (openbottom >= opentop)
-  //	    return false;		// stop
-  //
-  //	frac = P_InterceptVector2 (&strace, &divl);
-  //
-  //	if (front->floorheight != back->floorheight)
-  //	{
-  //	    slope = FixedDiv (openbottom - sightzstart , frac);
-  //	    if (slope > bottomslope)
-  //		bottomslope = slope;
-  //	}
-  //
-  //	if (front->ceilingheight != back->ceilingheight)
-  //	{
-  //	    slope = FixedDiv (opentop - sightzstart , frac);
-  //	    if (slope < topslope)
-  //		topslope = slope;
-  //	}
-  //
-  //	if (topslope <= bottomslope)
-  //	    return false;		// stop
-  //    }
-  //    // passed the subsector ok
-  //    return true;
-End;
 
+  sub := @subsectors[num];
+
+  // check lines
+  For count := 0 To sub^.numlines - 1 Do Begin
+    seg := @segs[sub^.firstline + count];
+    line := seg^.linedef;
+
+    // allready checked other side?
+    If (line^.validcount = validcount) Then
+      continue;
+
+
+    line^.validcount := validcount;
+
+    v1 := line^.v1;
+    v2 := line^.v2;
+    s1 := P_DivlineSide(v1^.x, v1^.y, @strace);
+    s2 := P_DivlineSide(v2^.x, v2^.y, @strace);
+
+    // line isn't crossed?
+    If (s1 = s2) Then
+      continue;
+
+    divl.x := v1^.x;
+    divl.y := v1^.y;
+    divl.dx := v2^.x - v1^.x;
+    divl.dy := v2^.y - v1^.y;
+    s1 := P_DivlineSide(strace.x, strace.y, @divl);
+    s2 := P_DivlineSide(t2x, t2y, @divl);
+
+    // line isn't crossed?
+    If (s1 = s2) Then
+      continue;
+
+    // Backsector may be NULL if this is an "impassible
+    // glass" hack line.
+
+    If (line^.backsector = Nil) Then Begin
+      result := false;
+      exit;
+    End;
+
+    // stop because it is not two sided anyway
+    // might do this after updating validcount?
+    If ((line^.flags And ML_TWOSIDED) = 0) Then Begin
+      result := false;
+      exit;
+    End;
+
+    // crosses a two sided line
+    front := seg^.frontsector;
+    back := seg^.backsector;
+
+    // no wall to block sight with?
+    If (front^.floorheight = back^.floorheight)
+      And (front^.ceilingheight = back^.ceilingheight) Then
+      continue;
+
+    // possible occluder
+    // because of ceiling height differences
+    If (front^.ceilingheight < back^.ceilingheight) Then
+      opentop := front^.ceilingheight
+    Else
+      opentop := back^.ceilingheight;
+
+    // because of ceiling height differences
+    If (front^.floorheight > back^.floorheight) Then
+      openbottom := front^.floorheight
+    Else
+      openbottom := back^.floorheight;
+
+    // quick test for totally closed doors
+    If (openbottom >= opentop) Then Begin
+      result := false; // stop
+      exit;
+    End;
+
+    frac := P_InterceptVector2(@strace, @divl);
+
+    If (front^.floorheight <> back^.floorheight) Then Begin
+
+      slope := FixedDiv(openbottom - sightzstart, frac);
+      If (slope > bottomslope) Then
+        bottomslope := slope;
+    End;
+
+    If (front^.ceilingheight <> back^.ceilingheight) Then Begin
+      slope := FixedDiv(opentop - sightzstart, frac);
+      If (slope < topslope) Then
+        topslope := slope;
+    End;
+
+    If (topslope <= bottomslope) Then Begin
+      result := false; // stop
+      exit;
+    End;
+  End;
+  // passed the subsector ok
+  result := true;
+End;
 
 //
 // P_CrossBSPNode
@@ -277,11 +300,8 @@ Function P_CrossBSPNode(bspnum: int): boolean;
 Var
   bsp: Pnode_t;
   side: int;
-
 Begin
-
   If (bspnum And NF_SUBSECTOR) <> 0 Then Begin
-
     If (bspnum = -1) Then Begin
       result := P_CrossSubsector(0);
       exit;

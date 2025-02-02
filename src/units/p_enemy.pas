@@ -266,9 +266,6 @@ Begin
   // go into chase state
   seeyou:
   If (actor^.info^.seesound <> sfx_None) Then Begin
-
-
-
     Case (actor^.info^.seesound) Of
 
       sfx_posit1,
@@ -317,10 +314,14 @@ End;
 //
 
 Procedure A_Chase(actor: Pmobj_t);
+Var
+  delta: int;
 Begin
+
+  Diese Methode wird unberechtigt aufgerufen, da den Spieler noch gar niemand sehen kann
+  Rauskriegen was dazu führt und es dort fixen !
   Raise exception.create('Port me.');
 
-  //   int		delta;
   //
   //    if (actor->reactiontime)
   //	actor->reactiontime--;

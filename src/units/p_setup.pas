@@ -833,6 +833,7 @@ Begin
     rejectmatrix := W_CacheLumpNum(lumpnum, PU_LEVEL);
   End
   Else Begin
+    Raise exception.create('Das müsste so zwar gehen, aber der Speicher wird ja nirgends mehr frei gegeben!');
     Getmem(rejectmatrix, minlength * sizeof(rejectmatrix[0]));
     W_ReadLump(lumpnum, @rejectmatrix[0]);
     PadRejectArray(@rejectmatrix[lumplen], minlength - lumplen);
