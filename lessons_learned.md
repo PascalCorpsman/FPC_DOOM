@@ -150,7 +150,7 @@ end;
 
 ## Pointers
 
-### gett a slice of an array
+### get a slice of an array
 
 ```cpp
 int i[10];
@@ -231,6 +231,7 @@ begin
 ### TBytes is not PByte
 
 When dealing with array's of byte do not use the TBytes datatype, use PByte instead !
+Reason for this, is that FPC "knows" the size of the array thats behind of TBytes (by reading the int in the negative address of the first element). A C PByte does not have stored this information, therefore the lenght information will be invalid!
 
 
 <!---
