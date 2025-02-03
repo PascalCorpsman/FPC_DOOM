@@ -13,6 +13,9 @@ Procedure I_Error(Error: String);
 Procedure I_Quit(); // Wenn Aufgerufen beendet sich die Anwending ohne weiteres Nachfragen
 Procedure I_GetMemoryValue(offset: unsigned_int; value: pointer; size: int);
 
+
+Procedure I_Tactile(_on: int; off: int; total: int);
+
 Implementation
 
 Uses config, Forms;
@@ -46,6 +49,13 @@ End;
 Procedure I_GetMemoryValue(offset: unsigned_int; value: pointer; size: int);
 Begin
   Raise Exception.create('I_GetMemoryValue');
+End;
+
+// Tactile feedback function, probably used for the Logitech Cyberman
+
+Procedure I_Tactile(_on: int; off: int; total: int);
+Begin
+  // not implemented in Crispy DOOM
 End;
 
 Procedure I_PrintDivider();

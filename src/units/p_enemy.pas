@@ -486,42 +486,40 @@ Begin
 End;
 
 Procedure A_Scream(actor: Pmobj_t);
+Var
+  sound: int;
 Begin
-  Raise exception.create('Port me.');
+  Case (actor^.info^.deathsound) Of
+    sfx_None: exit;
+    sfx_podth1,
+      sfx_podth2,
+      sfx_podth3: Begin
+        sound := integer(sfx_podth1) + P_Random() And 3;
+      End;
 
-  //   int		sound;
-  //
-  //    switch (actor->info->deathsound)
-  //    {
-  //      case 0:
-  //	return;
-  //
-  //      case sfx_podth1:
-  //      case sfx_podth2:
-  //      case sfx_podth3:
-  //	sound = sfx_podth1 + P_Random ()%3;
-  //	break;
-  //
-  //      case sfx_bgdth1:
-  //      case sfx_bgdth2:
-  //	sound = sfx_bgdth1 + P_Random ()%2;
-  //	break;
-  //
-  //      default:
-  //	sound = actor->info->deathsound;
-  //	break;
-  //    }
-  //
-  //    // Check for bosses.
-  //    if (actor->type==MT_SPIDER
-  //	|| actor->type == MT_CYBORG)
-  //    {
-  //	// full volume
-  //	// [crispy] prevent from adding up volume
-  //	crispy->soundfull ? S_StartSoundOnce (NULL, sound) : S_StartSound (NULL, sound);
-  //    }
-  //    else
-  //	S_StartSound (actor, sound);
+    sfx_bgdth1,
+      sfx_bgdth2: Begin
+        sound := integer(sfx_bgdth1) + P_Random() And 2;
+      End;
+  Else Begin
+      sound := integer(actor^.info^.deathsound);
+    End;
+  End;
+
+  // Check for bosses.
+  If (actor^._type = MT_SPIDER)
+    Or (actor^._type = MT_CYBORG) Then Begin
+    // full volume
+    // [crispy] prevent from adding up volume
+    If crispy.soundfull <> 0 Then Begin
+      S_StartSoundOnce(Nil, sfxenum_t(sound));
+    End
+    Else Begin
+      S_StartSound(Nil, sfxenum_t(sound));
+    End;
+  End
+  Else
+    S_StartSound(actor, sfxenum_t(sound));
 End;
 
 //

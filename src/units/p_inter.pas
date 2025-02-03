@@ -20,6 +20,121 @@ Procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
 Implementation
 
+Uses
+  tables, doomstat, info
+  , am_map
+  , d_mode, d_player
+  , i_system
+  , g_game
+  , m_fixed, m_random
+  , p_mobj, p_local, p_pspr
+  , r_main
+  ;
+
+//
+// KillMobj
+//
+
+Procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
+Var
+  item: mobjtype_t;
+  mo: Pmobj_t;
+Begin
+  target^.flags := target^.flags And int(Not (MF_SHOOTABLE Or MF_FLOAT Or MF_SKULLFLY));
+
+  If (target^._type <> MT_SKULL) Then
+    target^.flags := target^.flags And Not MF_NOGRAVITY;
+
+  target^.flags := target^.flags Or (MF_CORPSE Or MF_DROPOFF);
+  target^.height := SarLongint(target^.height, 2);
+
+  If assigned(source) And assigned(source^.player) Then Begin
+
+    // count for intermission
+    If (target^.flags And MF_COUNTKILL) <> 0 Then
+      source^.player^.killcount := source^.player^.killcount + 1;
+
+    If assigned(target^.player) Then
+      source^.player^.frags[(target^.player - @players) Div sizeof(players[0])] :=
+        source^.player^.frags[(target^.player - @players) Div sizeof(players[0])] + 1;
+  End
+  Else If (Not netgame) And ((target^.flags And MF_COUNTKILL) <> 0) Then Begin
+    // count all monster deaths,
+    // even those caused by other monsters
+    players[0].killcount := players[0].killcount + 1;
+  End;
+
+  If assigned(target^.player) Then Begin
+
+    // count environment kills against you
+    If (source = Nil) Then
+      target^.player^.frags[(target^.player - @players) Div sizeof(players[0])] :=
+        target^.player^.frags[(target^.player - @players) Div sizeof(players[0])] + 1;
+
+    target^.flags := target^.flags And Not MF_SOLID;
+    target^.player^.playerstate := PST_DEAD;
+    P_DropWeapon(target^.player);
+    // [crispy] center view when dying
+    target^.player^.centering := true;
+    // [JN] & [crispy] Reset the yellow bonus palette when the player dies
+    target^.player^.bonuscount := 0;
+    // [JN] & [crispy] Remove the effect of the inverted palette when the player dies
+    If target^.player^.powers[integer(pw_infrared)] <> 0 Then Begin
+      target^.player^.fixedcolormap := 1;
+    End
+    Else Begin
+      target^.player^.fixedcolormap := 0;
+    End;
+
+    If (target^.player = @players[consoleplayer])
+      And (automapactive)
+      And (Not demoplayback) Then Begin // [crispy] killough 11/98: don't switch out in demos, though
+      // don't die in auto map,
+      // switch view prior to dying
+      AM_Stop();
+    End;
+  End;
+
+  // [crispy] Lost Soul, Pain Elemental and Barrel explosions are translucent
+  If (target^._type = MT_SKULL) Or (
+    target^._type = MT_PAIN) Or (
+    target^._type = MT_BARREL) Then
+    target^.flags := int(target^.flags Or MF_TRANSLUCENT);
+
+  If (target^.health < -target^.info^.spawnhealth)
+    And (target^.info^.xdeathstate <> S_NULL) Then Begin
+    P_SetMobjState(target, target^.info^.xdeathstate);
+  End
+  Else
+    P_SetMobjState(target, target^.info^.deathstate);
+  target^.tics := target^.tics - P_Random() And 3;
+
+  // [crispy] randomly flip corpse, blood and death animation sprites
+  If (target^.flags And MF_FLIPPABLE) <> 0 Then Begin
+    target^.health := (target^.health And int(Not (1))) - (Crispy_Random() And 1);
+  End;
+
+  If (target^.tics < 1) Then
+    target^.tics := 1;
+
+  // I_StartSound (&actor^.r, actor^.info^.deathsound);
+
+  // In Chex Quest, monsters don't drop items.
+  If (gameversion = exe_chex) Then exit;
+
+  // Drop stuff.
+  // This determines the kind of object spawned
+  // during the death frame of a thing.
+  If (target^.info^.droppeditem <> MT_NULL) Then Begin // [crispy] drop generalization
+    item := target^.info^.droppeditem;
+  End
+  Else
+    exit;
+
+  mo := P_SpawnMobj(target^.x, target^.y, ONFLOORZ, item);
+  mo^.flags := mo^.flags Or MF_DROPPED; // special versions of items
+End;
+
 //
 // P_DamageMobj
 // Damages both enemies and players
@@ -33,148 +148,144 @@ Implementation
 //
 
 Procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: int);
+Var
+  ang: unsigned;
+  saved: int;
+  player: Pplayer_t;
+  thrust: fixed_t;
+  temp: int;
 Begin
-  Raise exception.create('Port me.');
-  //    unsigned	ang;
-  //    int		saved;
-  //    player_t*	player;
-  //    fixed_t	thrust;
-  //    int		temp;
-  //
-  //    if ( !(target->flags & MF_SHOOTABLE) )
-  //	return;	// shouldn't happen...
-  //
-  //    if (target->health <= 0)
-  //	return;
-  //
-  //    if ( target->flags & MF_SKULLFLY )
-  //    {
-  //	target->momx = target->momy = target->momz = 0;
-  //    }
-  //
-  //    player = target->player;
-  //    if (player && gameskill == sk_baby)
-  //	damage >>= 1; 	// take half damage in trainer mode
-  //
-  //
-  //    // Some close combat weapons should not
-  //    // inflict thrust and push the victim out of reach,
-  //    // thus kick away unless using the chainsaw.
-  //    if (inflictor
-  //	&& !(target->flags & MF_NOCLIP)
-  //	&& (!source
-  //	    || !source->player
-  //	    || source->player->readyweapon != wp_chainsaw))
-  //    {
-  //	ang = R_PointToAngle2 ( inflictor->x,
-  //				inflictor->y,
-  //				target->x,
-  //				target->y);
-  //
-  //	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
-  //
-  //	// make fall forwards sometimes
-  //	if ( damage < 40
-  //	     && damage > target->health
-  //	     && target->z - inflictor->z > 64*FRACUNIT
-  //	     && (P_Random ()&1) )
-  //	{
-  //	    ang += ANG180;
-  //	    thrust *= 4;
-  //	}
-  //
-  //	ang >>= ANGLETOFINESHIFT;
-  //	target->momx += FixedMul (thrust, finecosine[ang]);
-  //	target->momy += FixedMul (thrust, finesine[ang]);
-  //    }
-  //
-  //    // player specific
-  //    if (player)
-  //    {
-  //	// end of game hell hack
-  //	if (target->subsector->sector->special == 11
-  //	    && damage >= target->health)
-  //	{
-  //	    damage = target->health - 1;
-  //	}
-  //
-  //
-  //	// Below certain threshold,
-  //	// ignore damage in GOD mode, or with INVUL power.
-  //	if ( damage < 1000
-  //	     && ( (player->cheats&CF_GODMODE)
-  //		  || player->powers[pw_invulnerability] ) )
-  //	{
-  //	    return;
-  //	}
-  //
-  //	if (player->armortype)
-  //	{
-  //	    if (player->armortype == 1)
-  //		saved = damage/3;
-  //	    else
-  //		saved = damage/2;
-  //
-  //	    if (player->armorpoints <= saved)
-  //	    {
-  //		// armor is used up
-  //		saved = player->armorpoints;
-  //		player->armortype = 0;
-  //	    }
-  //	    player->armorpoints -= saved;
-  //	    damage -= saved;
-  //	}
-  //	player->health -= damage; 	// mirror mobj health here for Dave
-  //	// [crispy] negative player health
-  //	player->neghealth = player->health;
-  //	if (player->neghealth < -99)
-  //	    player->neghealth = -99;
-  //	if (player->health < 0)
-  //	    player->health = 0;
-  //
-  //	player->attacker = source;
-  //	player->damagecount += damage;	// add damage after armor / invuln
-  //
-  //	if (player->damagecount > 100)
-  //	    player->damagecount = 100;	// teleport stomp does 10k points...
-  //
-  //	temp = damage < 100 ? damage : 100;
-  //
-  //	if (player == &players[consoleplayer])
-  //	    I_Tactile (40,10,40+temp*2);
-  //    }
-  //
-  //    // do the damage
-  //    target->health -= damage;
-  //    if (target->health <= 0)
-  //    {
-  //	P_KillMobj (source, target);
-  //	return;
-  //    }
-  //
-  //    if ( (P_Random () < target->info->painchance)
-  //	 && !(target->flags&MF_SKULLFLY) )
-  //    {
-  //	target->flags |= MF_JUSTHIT;	// fight back!
-  //
-  //	P_SetMobjState (target, target->info->painstate);
-  //    }
-  //
-  //    target->reactiontime = 0;		// we're awake now...
-  //
-  //    if ( (!target->threshold || target->type == MT_VILE)
-  //	 && source && (source != target || gameversion < exe_doom_1_5)
-  //	 && source->type != MT_VILE)
-  //    {
-  //	// if not intent on another player,
-  //	// chase after this one
-  //	target->target = source;
-  //	target->threshold = BASETHRESHOLD;
-  //	if (target->state == &states[target->info->spawnstate]
-  //	    && target->info->seestate != S_NULL)
-  //	    P_SetMobjState (target, target->info->seestate);
-  //    }
+  If ((target^.flags And MF_SHOOTABLE) = 0) Then exit; // shouldn't happen...
 
+  If (target^.health <= 0) Then exit;
+
+
+  If (target^.flags And MF_SKULLFLY) <> 0 Then Begin
+    target^.momx := 0;
+    target^.momy := 0;
+    target^.momz := 0;
+  End;
+
+  player := target^.player;
+  If assigned(player) And (gameskill = sk_baby) Then Begin
+    damage := damage Shr 1; // take half damage in trainer mode
+  End;
+
+
+  // Some close combat weapons should not
+  // inflict thrust and push the victim out of reach,
+  // thus kick away unless using the chainsaw.
+  If assigned(inflictor)
+    And ((target^.flags And MF_NOCLIP) = 0)
+    And ((source = Nil)
+    Or (source^.player = Nil)
+    Or (source^.player^.readyweapon <> wp_chainsaw)) Then Begin
+    ang := R_PointToAngle2(inflictor^.x, inflictor^.y,
+      target^.x, target^.y);
+
+    thrust := damage * (FRACUNIT Shr 3) * 100 Div target^.info^.mass;
+
+    // make fall forwards sometimes
+    If (damage < 40)
+      And (damage > target^.health)
+      And (target^.z - inflictor^.z > 64 * FRACUNIT)
+      And ((P_Random() And 1) <> 0) Then Begin
+      ang := angle_t(ang + ANG180);
+      thrust := thrust * 4;
+    End;
+
+    ang := ang Shr ANGLETOFINESHIFT;
+    target^.momx := target^.momx + FixedMul(thrust, finecosine[ang]);
+    target^.momy := target^.momy + FixedMul(thrust, finesine[ang]);
+  End;
+
+  // player specific
+  If assigned(player) Then Begin
+
+    // end of game hell hack
+    If (target^.subsector^.sector^.special = 11)
+      And (damage >= target^.health) Then Begin
+      damage := target^.health - 1;
+    End;
+
+
+    // Below certain threshold,
+    // ignore damage in GOD mode, or with INVUL power.
+    If (damage < 1000)
+      And (((player^.cheats And integer(CF_GODMODE)) <> 0)
+      Or (player^.powers[integer(pw_invulnerability)] <> 0))
+    Then Begin
+      exit;
+    End;
+
+    If (player^.armortype <> 0) Then Begin
+
+      If (player^.armortype = 1) Then
+        saved := damage Div 3
+      Else
+        saved := damage Div 2;
+
+      If (player^.armorpoints <= saved) Then Begin
+        // armor is used up
+        saved := player^.armorpoints;
+        player^.armortype := 0;
+      End;
+      player^.armorpoints := player^.armorpoints - saved;
+      damage := damage - saved;
+    End;
+    player^.health := player^.health - damage; // mirror mobj health here for Dave
+    // [crispy] negative player health
+    player^.neghealth := player^.health;
+    If (player^.neghealth < -99) Then
+      player^.neghealth := -99;
+    If (player^.health < 0) Then
+      player^.health := 0;
+
+    player^.attacker := source;
+    player^.damagecount := player^.damagecount + damage; // add damage after armor / invuln
+
+    If (player^.damagecount > 100) Then
+      player^.damagecount := 100; // teleport stomp does 10k points...
+    If damage < 100 Then Begin
+      temp := damage;
+    End
+    Else Begin
+      temp := 100;
+    End;
+
+    If (player = @players[consoleplayer]) Then
+      I_Tactile(40, 10, 40 + temp * 2);
+  End;
+
+  // do the damage
+  target^.health := target^.health - damage;
+  If (target^.health <= 0) Then Begin
+    P_KillMobj(source, target);
+    exit;
+  End;
+
+  If ((P_Random() < target^.info^.painchance))
+    And ((target^.flags And MF_SKULLFLY) = 0) Then Begin
+
+    target^.flags := target^.flags Or MF_JUSTHIT; // fight back!
+
+    P_SetMobjState(target, target^.info^.painstate);
+  End;
+
+  target^.reactiontime := 0; // we're awake now...
+
+  If (((target^.threshold = 0) Or (target^._type = MT_VILE))
+    And assigned(source) And ((source <> target) Or (gameversion < exe_doom_1_5))
+    And (source^._type <> MT_VILE)) Then Begin
+
+    // if not intent on another player,
+    // chase after this one
+    target^.target := source;
+    target^.threshold := BASETHRESHOLD;
+    If (target^.state = @states[integer(target^.info^.spawnstate)])
+    And (target^.info^.seestate <> S_NULL) Then
+      P_SetMobjState(target, target^.info^.seestate);
+  End;
 End;
 
 //

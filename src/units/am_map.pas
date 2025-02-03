@@ -63,6 +63,7 @@ Function AM_Responder(Const ev: Pevent_t): boolean;
 
 Procedure AM_Drawer();
 Procedure AM_ResetIDDTcheat();
+Procedure AM_Stop();
 
 Implementation
 

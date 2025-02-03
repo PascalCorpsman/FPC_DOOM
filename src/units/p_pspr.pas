@@ -43,6 +43,8 @@ Procedure P_SetupPsprites(player: Pplayer_t);
 
 Procedure P_MovePsprites(player: Pplayer_t);
 
+Procedure P_DropWeapon(player: Pplayer_t);
+
 Implementation
 
 Uses
@@ -241,7 +243,7 @@ Begin
   P_SetPsprite(player, ps_weapon, newstate);
   If (Not crispy.fistisquit) Or
     ((player^.readyweapon <> wp_fist) And (crispy.fistisquit))
-  Then Begin
+    Then Begin
     P_NoiseAlert(player^.mo, player^.mo);
   End;
 End;
@@ -835,6 +837,18 @@ Begin
 
   player^.psprites[ps_flash].sx2 := psp^.sx2;
   player^.psprites[ps_flash].sy2 := psp^.sy2;
+End;
+
+//
+// P_DropWeapon
+// Player died, so put the weapon away.
+//
+
+Procedure P_DropWeapon(player: Pplayer_t);
+Begin
+  P_SetPsprite(player,
+    ps_weapon,
+    weaponinfo[integer(player^.readyweapon)].downstate);
 End;
 
 End.
