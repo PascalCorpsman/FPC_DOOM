@@ -111,15 +111,15 @@ Const
   //  #define GOTSHELLS	"Picked up 4 shotgun shells."
   //  #define GOTSHELLBOX	"Picked up a box of shotgun shells."
   //  #define GOTBACKPACK	"Picked up a backpack full of ammo!"
-  //
-  //  #define GOTBFG9000	"You got the BFG9000!  Oh, yes."
-  //  #define GOTCHAINGUN	"You got the chaingun!"
-  //  #define GOTCHAINSAW	"A chainsaw!  Find some meat!"
-  //  #define GOTLAUNCHER	"You got the rocket launcher!"
-  //  #define GOTPLASMA	"You got the plasma gun!"
-  //  #define GOTSHOTGUN	"You got the shotgun!"
-  //  #define GOTSHOTGUN2	"You got the super shotgun!"
-  //
+
+  GOTBFG9000 = 'You got the BFG9000!  Oh, yes.';
+  GOTCHAINGUN = 'You got the chaingun!';
+  GOTCHAINSAW = 'A chainsaw!  Find some meat!';
+  GOTLAUNCHER = 'You got the rocket launcher!';
+  GOTPLASMA = 'You got the plasma gun!';
+  GOTSHOTGUN = 'You got the shotgun!';
+  GOTSHOTGUN2 = 'You got the super shotgun!';
+
   //  // [NS] Beta pickups.
   //  #define BETA_BONUS3	"Picked up an evil sceptre."
   //  #define BETA_BONUS4	"Picked up an unholy bible."

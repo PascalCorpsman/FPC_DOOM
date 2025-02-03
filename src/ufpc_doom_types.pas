@@ -146,7 +146,7 @@ Type
     //    	boolean autohealth;
     //    	boolean fast;
     //    	boolean keysloc;
-    //    	boolean moreammo;
+    moreammo: boolean;
     //    	boolean pistolstart;
 
     //    	char *havenerve;
@@ -266,6 +266,7 @@ Initialization
   Crispy.havessg := false; // Wird während dem laden des .wad files initialisiert
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;
+  Crispy.moreammo := false;
 
   FillChar(critical_s, sizeof(critical_s), 0);
 

@@ -49,7 +49,7 @@ Implementation
 
 Uses
   doomdef, sounds, a11y_weapon_pspr, info, tables, doomstat
-  , d_items, d_event, deh_misc, d_mode
+  , d_items, d_event, deh_misc, d_mode, d_player
   , m_fixed, m_random
   , p_mobj, p_tick, p_enemy, p_local, p_map
   , r_things
@@ -304,37 +304,61 @@ Begin
   psp^.sy := WEAPONTOP + FixedMul(player^.bob, finesine[angle]);
 End;
 
+//
+// P_BringUpWeapon
+// Starts bringing the pending weapon up
+// from the bottom of the screen.
+// Uses player
+//
+
+Procedure P_BringUpWeapon(player: Pplayer_t);
+Var
+  newstate: statenum_t;
+Begin
+  If (player^.pendingweapon = wp_nochange) Then Begin
+    player^.pendingweapon := player^.readyweapon;
+  End;
+
+  If (player^.pendingweapon = wp_chainsaw) Then Begin
+    S_StartSound(player^.mo, sfx_sawup); // [crispy] intentionally not weapon sound source
+  End;
+
+  newstate := weaponinfo[integer(player^.pendingweapon)].upstate;
+
+  player^.pendingweapon := wp_nochange;
+  player^.psprites[ps_weapon].sy := WEAPONBOTTOM;
+
+  P_SetPsprite(player, ps_weapon, newstate);
+End;
+
 Procedure A_Lower(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    psp->sy += LOWERSPEED;
-  //
-  //    // Is already down.
-  //    if (psp->sy < WEAPONBOTTOM )
-  //	return;
-  //
-  //    // Player is dead.
-  //    if (player->playerstate == PST_DEAD)
-  //    {
-  //	psp->sy = WEAPONBOTTOM;
-  //
-  //	// don't bring weapon back up
-  //	return;
-  //    }
-  //
-  //    // The old weapon has been lowered off the screen,
-  //    // so change the weapon and start raising it
-  //    if (!player->health)
-  //    {
-  //	// Player is dead, so keep the weapon off screen.
-  //	P_SetPsprite (player,  ps_weapon, S_NULL);
-  //	return;
-  //    }
-  //
-  //    player->readyweapon = player->pendingweapon;
-  //
-  //    P_BringUpWeapon (player);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  psp^.sy := psp^.sy + LOWERSPEED;
+
+  // Is already down.
+  If (psp^.sy < WEAPONBOTTOM) Then exit;
+
+  // Player is dead.
+  If (player^.playerstate = PST_DEAD) Then Begin
+    psp^.sy := WEAPONBOTTOM;
+
+    // don't bring weapon back up
+    exit;
+  End;
+
+  // The old weapon has been lowered off the screen,
+  // so change the weapon and start raising it
+  If (player^.health = 0) Then Begin
+
+    // Player is dead, so keep the weapon off screen.
+    P_SetPsprite(player, ps_weapon, S_NULL);
+    exit;
+  End;
+
+  player^.readyweapon := player^.pendingweapon;
+
+  P_BringUpWeapon(player);
 End;
 
 Procedure A_Raise(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -717,33 +741,6 @@ Begin
   //
   //	P_DamageMobj (linetarget, mo->target,mo->target, damage);
   //    }
-End;
-
-//
-// P_BringUpWeapon
-// Starts bringing the pending weapon up
-// from the bottom of the screen.
-// Uses player
-//
-
-Procedure P_BringUpWeapon(player: Pplayer_t);
-Var
-  newstate: statenum_t;
-Begin
-  If (player^.pendingweapon = wp_nochange) Then Begin
-    player^.pendingweapon := player^.readyweapon;
-  End;
-
-  If (player^.pendingweapon = wp_chainsaw) Then Begin
-    S_StartSound(player^.mo, sfx_sawup); // [crispy] intentionally not weapon sound source
-  End;
-
-  newstate := weaponinfo[integer(player^.pendingweapon)].upstate;
-
-  player^.pendingweapon := wp_nochange;
-  player^.psprites[ps_weapon].sy := WEAPONBOTTOM;
-
-  P_SetPsprite(player, ps_weapon, newstate);
 End;
 
 //
