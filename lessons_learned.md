@@ -4,6 +4,26 @@ This is a small collection of the "most" made mistakes during porting crispy DOO
 
 If you want to test the code snippets right away, you can use this [online compiler](https://www.onlinegdb.com/online_c_compiler).
 
+### return
+
+The return statement in c is also the exit statement.
+
+```cpp
+if (x == 2)
+return 1;
+return 0;
+```
+Translates to this:
+
+```pascal
+// Pascal
+if (x = 2) then begin
+  result := 1;
+  exit;
+end;
+result := 0;
+```
+
 ### Assignments of variables
 
 The position of the ++ does matter in c, when further processed (this is also relevant for loops)!
