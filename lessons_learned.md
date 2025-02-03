@@ -276,7 +276,7 @@ Translates to this:
     height: short;
     leftoffset: short; // pixels to the left of origin
     topoffset: short; // pixels below the origin
-    columnofs: P_int; // only [width] used
+    columnofs: array[0 .. 65535] of int; // only [width] used <- this is actually wrong but disables the upper range check and thats what we want here.
   End; 
 ```
 <!---
