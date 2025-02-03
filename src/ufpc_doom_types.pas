@@ -130,6 +130,7 @@ Type
     //    	int demowarp;
     //    	int fps;
 
+    fistisquit: Boolean; // By Corpsman, if true, the fist can be fired without making noises (= waking up other enemies) ;)
     flashinghom: Boolean;
     fliplevels: boolean;
     flipweapons: Boolean;
@@ -258,6 +259,7 @@ Initialization
   //  Crispy.widescreen := 1; // match screen by default
   Crispy.cleanscreenshot := 0;
   Crispy.screenshotmsg := 0;
+  Crispy.fistisquit := false;
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;

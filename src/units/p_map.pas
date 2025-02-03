@@ -65,7 +65,7 @@ Uses
   , d_mode, deh_misc
   , i_video, i_system
   , m_random, m_bbox
-  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch, p_tick
+  , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch, p_tick, p_enemy
   , r_things, r_main, r_sky
   , s_sound
   ;
@@ -529,6 +529,10 @@ Begin
     P_SpawnPuff(x, y, z)
   Else
     P_SpawnBlood(x, y, z, la_damage, th); // [crispy] pass thing type
+
+  If Crispy.fistisquit Then Begin // When fist is quit we need to wake up all the others when a unit on the map is shooting
+    P_NoiseAlert(shootthing, shootthing);
+  End;
 
   If (la_damage <> 0) Then
     P_DamageMobj(th, shootthing, shootthing, la_damage);
