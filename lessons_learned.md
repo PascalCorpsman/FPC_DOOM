@@ -254,6 +254,31 @@ When dealing with array's of byte do not use the TBytes datatype, use PByte inst
 Reason for this, is that FPC "knows" the size of the array thats behind of TBytes (by reading the int in the negative address of the first element). A C PByte does not have stored this information, therefore the lenght information will be invalid!
 
 
+### invalid array type declaration
+
+The datatype patch_t in DOOM has a field columnofs, which is declared as array of eight elements in code. This is not true, the columnofs holds width element. When porting this to FPC you get a out of bound error, when accessing to the nineth element.
+
+```cpp
+typedef PACKED_STRUCT (
+{
+    short		width;		// bounding box size
+    short		height;
+    short		leftoffset;	// pixels to the left of origin
+    short		topoffset;	// pixels below the origin
+    int			columnofs[8];	// only [width] used
+    // the [0] is &columnofs[width]
+}) patch_t;
+```
+Translates to this:
+```pascal
+  patch_t = Packed Record
+    width: short; // bounding box size
+    height: short;
+    leftoffset: short; // pixels to the left of origin
+    topoffset: short; // pixels below the origin
+    columnofs: P_int; // only [width] used
+  End; 
+```
 <!---
 Backlog:
 
