@@ -151,7 +151,6 @@ Begin
   S_StartSound(actor, sfx_slop);
 End;
 
-
 //
 // P_LookForPlayers
 // If allaround is false, only look 180 degrees in front.
@@ -167,7 +166,6 @@ Var
   dist: fixed_t;
   evalHack: Boolean; // Keine Ahnung wie man die For loop aus C korrekt übersetzt, aber mit dem Flag gehts..
 Begin
-
   c := 0;
   stop := (actor^.lastlook - 1) And 3; // WTF: dass soll durch alle Spieler iterieren, das ginge aber nur wenn maxplayer = 4 ist !
   evalHack := true;
@@ -317,7 +315,6 @@ Procedure A_Chase(actor: Pmobj_t);
 Var
   delta: int;
 Begin
-
   Raise exception.create('Port me.');
 
   //

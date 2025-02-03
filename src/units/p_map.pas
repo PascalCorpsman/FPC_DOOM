@@ -847,7 +847,7 @@ Begin
   End;
 
   // check for special pickup
-  If (thing^.flags And MF_SPECIAL) = 0 Then Begin
+  If (thing^.flags And MF_SPECIAL) <> 0 Then Begin
     solid := (thing^.flags And MF_SOLID) <> 0;
     If (tmflags And MF_PICKUP) <> 0 Then Begin
       // can remove thing

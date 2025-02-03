@@ -300,6 +300,7 @@ End;
 
 Procedure A_Lower(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //    psp->sy += LOWERSPEED;
   //
@@ -350,6 +351,7 @@ End;
 
 Procedure A_Punch(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //     angle_t	angle;
   //    int		damage;
   //    int		slope;
@@ -499,6 +501,7 @@ End;
 
 Procedure A_FireShotgun(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //   int		i;
   //
   //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
@@ -521,6 +524,7 @@ End;
 
 Procedure A_FireShotgun2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //   int		i;
   //    angle_t	angle;
   //    int		damage;
@@ -564,6 +568,7 @@ End;
 
 Procedure A_FireCGun(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //    S_StartSound (player->so, sfx_pistol); // [crispy] weapon sound source
   //
@@ -588,6 +593,7 @@ End;
 
 Procedure A_GunFlash(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //    P_SetMobjState (player->mo, S_PLAY_ATK2);
   //    P_SetPsprite (player,ps_flash,weaponinfo[player->readyweapon].flashstate);
@@ -595,6 +601,7 @@ End;
 
 Procedure A_FireMissile(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //  if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //  DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
   //  P_SpawnPlayerMissile (player->mo, MT_ROCKET);
@@ -602,6 +609,7 @@ End;
 
 Procedure A_Saw(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //    angle_t	angle;
   //    int		damage;
   //    int		slope;
@@ -646,6 +654,7 @@ End;
 
 Procedure A_FirePlasma(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //  if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
   //
@@ -664,6 +673,7 @@ End;
 
 Procedure A_FireBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //      if (!player) return; // [crispy] let pspr action pointers get called from mobj states
   //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo,
   //                 deh_bfg_cells_per_shot);
@@ -672,6 +682,7 @@ End;
 
 Procedure A_BFGSpray(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  raise Exception.Create('Port me.');
   //    int			i;
   //    int			j;
   //    int			damage;

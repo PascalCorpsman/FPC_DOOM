@@ -34,6 +34,7 @@ Implementation
 
 Procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: int);
 Begin
+  Raise exception.create('Port me.');
   //    unsigned	ang;
   //    int		saved;
   //    player_t*	player;
@@ -182,6 +183,8 @@ End;
 
 Procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 Begin
+  Raise exception.create('Port me.');
+
   //   player_t*	player;
   //    int		i;
   //    fixed_t	delta;

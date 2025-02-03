@@ -21,6 +21,7 @@ Var
   key_straferight: int;
   //extern int key_alt_straferight;
   key_fire: int;
+  key_alt_fire: int;
   key_use: int;
   key_strafe: int;
   key_speed: int;
@@ -254,6 +255,7 @@ Begin
   key_down := KEY_DOWNARROW;
   key_jump := VK_W; // Bei hexen ist der "a", aber der ist ja schon mit dem Strafen vorbelegt -> w macht irgendwie sinn ;)
   key_fire := VK_RCONTROL;
+  key_alt_fire := VK_LCONTROL; // Fun Fact, Crispy doom hat im Code nur R-Control reagiert aber auch auf L-Control..
   key_strafeleft := VK_A;
   key_straferight := VK_D;
   key_use := VK_SPACE;

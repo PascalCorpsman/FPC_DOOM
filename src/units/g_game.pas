@@ -1511,7 +1511,8 @@ Begin
   // buttons
   //    cmd->chatchar = HU_dequeueChatChar();
 
-  If (gamekeydown[key_fire] {|| mousebuttons[mousebfire]
+  If (gamekeydown[key_fire] Or
+    gamekeydown[key_alt_fire] {|| mousebuttons[mousebfire]
     || joybuttons[joybfire]}) Then
     cmd.buttons := cmd.buttons Or BT_ATTACK;
 
