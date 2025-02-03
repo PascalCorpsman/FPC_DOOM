@@ -296,7 +296,7 @@ Begin
 {$IFDEF Windows}
   // compose a proper command line from loose file paths passed as arguments
   // to allow for loading WADs and DEHACKED patches by drag-and-drop
-  M_AddLooseFiles();
+//  M_AddLooseFiles();
 {$ENDIF}
 
   M_FindResponseFile();

@@ -107,14 +107,14 @@ Begin
 
   // Search the registry and find where IWADs have been installed.
 
-  CheckUninstallStrings();
-  CheckInstallRootPaths();
-  CheckSteamEdition();
-  CheckDOSDefaults();
+  //CheckUninstallStrings();
+  //CheckInstallRootPaths();
+  //CheckSteamEdition();
+  //CheckDOSDefaults();
 
   // Check for GUS patches installed with the BFG edition!
 
-  CheckSteamGUSPatches();
+  //CheckSteamGUSPatches();
 
 {$ELSE}
   //    AddXdgDirs();

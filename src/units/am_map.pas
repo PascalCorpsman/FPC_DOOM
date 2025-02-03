@@ -171,8 +171,8 @@ Const
   //    );
 
   thintriangle_guy: Array Of mline_t = (
-    (a: (x: trunc(-0.5 * RR); y: trunc(-0.7 * RR)); b: (x: trunc(RR); y: trunc(0))),
-    (a: (x: trunc(RR); y: trunc(0)); b: (x: trunc(-0.5 * RR); y: trunc(0.7 * RR))),
+    (a: (x: trunc(-0.5 * RR); y: trunc(-0.7 * RR)); b: (x: RR; y: 0)),
+    (a: (x: RR; y: 0); b: (x: trunc(-0.5 * RR); y: trunc(0.7 * RR))),
     (a: (x: trunc(-0.5 * RR); y: trunc(0.7 * RR)); b: (x: trunc(-0.5 * RR); y: trunc(-0.7 * RR)))
     );
 
