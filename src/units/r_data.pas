@@ -188,8 +188,8 @@ Begin
          (playpal[i * 3 + 0] Shl 0)
       Or (playpal[i * 3 + 1] Shl 8)
       Or (playpal[i * 3 + 2] Shl 16)
-      Or ($FF Shl 24)   // 100% Opak = nicht Transparent
-      ;
+      Or ($FF Shl 24) // 100% Opak = nicht Transparent
+    ;
   End;
   // TODO: Theoretisch werden hier auch noch irgend welche Lightings erzeugt ..
 End;
@@ -252,7 +252,6 @@ Var
   width, height: int;
   patch: ppatch_t;
   LumpHeader: Array[0..7] Of Char;
-  Pint: ^integer;
   ofs: unsigned_int;
 Begin
   result := false;
@@ -275,15 +274,13 @@ Begin
     // check the column directory for extra security. All columns
     // must begin after the column directory, and none of them must
     // point past the end of the patch.
-    Pint := @patch^.columnofs[0];
     For x := 0 To width - 1 Do Begin
-      ofs := pint^;
+      ofs := patch^.columnofs[x];
       // Need one byte for an empty column (but there's patches that don't know that!)
       If (ofs < width * 4 + 8) Or (ofs >= size) Then Begin
         result := false;
         break;
       End;
-      inc(Pint);
     End;
   End;
 End;
@@ -300,7 +297,6 @@ Var
   colofs, colofs2: Array Of Unsigned; // killough 4/9/98: make 32-bit
   csize: int = 0; // killough 10/98
   err: int = 0; // killough 10/98
-  cofs: P_int;
   limit: unsigned;
   pat: int;
   col: ^column_t;
@@ -341,14 +337,11 @@ Begin
 
     If (x2 > texture^.width) Then
       x2 := texture^.width;
-    cofs := @realpatch^.columnofs[0];
-
     While x < x2 Do Begin
 
       patchcount[x] := patchcount[x] + 1;
       collump[x] := patch^.patch;
-      //      colofs[x] := realpatch^.columnofs[x - x1] + 3;
-      colofs[x] := cofs[x - x1] + 3; // Das Muss so, weil sonst der Array Range Checker durch dreht :/
+      colofs[x] := realpatch^.columnofs[x - x1] + 3;
       inc(x);
     End;
   End;
@@ -379,8 +372,6 @@ Begin
       x1 := patch^.originx;
       x2 := x1 + realpatch^.width;
 
-      cofs := @realpatch^.columnofs[0];
-
       If (x2 > texture^.width) Then x2 := texture^.width;
       If (x1 < 0) Then x1 := 0;
       index := 0;
@@ -388,7 +379,7 @@ Begin
         // [crispy] generate composites for all columns
 //		if (patchcount[x] > 1) // Only multipatched columns
         Begin
-          col := pointer(realpatch) + cofs[index];
+          col := pointer(realpatch) + realpatch^.columnofs[index];
           inc(index);
           base := pointer(col);
 
@@ -1025,7 +1016,6 @@ Var
   abstop, reltop: int;
   relative: Boolean;
   len: unsigned; // killough 12/98
-  cofs: P_int;
 Begin
   texture := @textures[texnum];
   setlength(block, texturecompositesize[texnum]);
@@ -1063,7 +1053,7 @@ Begin
 
     If (x2 > texture^.width) Then
       x2 := texture^.width;
-    cofs := @realpatch^.columnofs[0];
+
     While x < x2 Do Begin
       // Column does not have multiple patches?
       // [crispy] generate composites for single-patched columns as well
@@ -1071,8 +1061,7 @@ Begin
       if (collump[x] >= 0) then
    continue;
       *)
-//      patchcol := @cofs[x - x1];
-      patchcol := pointer(realpatch) + cofs[x - x1];
+      patchcol := pointer(realpatch) + realpatch^.columnofs[x - x1];
       If collump[x] >= 0 Then Begin
         R_DrawColumnInCache(patchcol,
           @block[colofs[x]],

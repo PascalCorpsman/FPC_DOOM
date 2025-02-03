@@ -118,7 +118,6 @@ Var
   source: PByte;
   row, index: integer;
   count: Byte;
-  Pint: ^integer;
   sc: byte;
 Begin
   // 1. Den Patch in einen Internen "nicht" gestretchten Puffer entpacken
@@ -129,10 +128,8 @@ Begin
   FillChar(PatchBuffer[0], patch^.width * patch^.height * sizeof(TPatchBuffer), 0);
   // 1.2 Das eigentliche Rendern in den Puffer
   col := 0;
-  Pint := @patch^.columnofs[0];
   While col < patch^.width Do Begin
-    column := Pointer(patch) + pint^;
-    inc(Pint);
+    column := Pointer(patch) + patch^.columnofs[col];
     row := 0;
     While column^.topdelta <> $FF Do Begin
       source := pointer(column) + 3;
@@ -182,7 +179,6 @@ Var
   source: PByte;
   row, index: integer;
   count: Byte;
-  Pint: ^integer;
   sc: byte;
 Begin
   y := y - patch^.topoffset;
@@ -195,10 +191,8 @@ Begin
 {$ENDIF}
   w := patch^.width;
   col := 0;
-  Pint := @patch^.columnofs[0];
   While col < w Do Begin
-    column := Pointer(patch) + pint^;
-    inc(Pint);
+    column := Pointer(patch) + patch^.columnofs[col];
     row := 0;
     While column^.topdelta <> $FF Do Begin
       source := pointer(column) + 3;

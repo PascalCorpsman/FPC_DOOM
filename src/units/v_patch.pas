@@ -20,8 +20,7 @@ Type
     height: short;
     leftoffset: short; // pixels to the left of origin
     topoffset: short; // pixels below the origin
-    columnofs: Array[0..7] Of int; // only [width] used -- WTF why is this only 8 elements, when width elements are stored in ?
-    // the [0] is &columnofs[width]
+    columnofs: Array[0..65535] Of Int; // Eigentlich sind nur width Elemente Gültig, aber da sich das immer ändert schalten wir so die Boundary Check funktion aus ..
   End;
   Ppatch_t = ^patch_t;
   PPpatch_t = ^Ppatch_t; // Das ist eigentlich ein Array of Ppatch_t

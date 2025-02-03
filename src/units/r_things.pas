@@ -667,7 +667,6 @@ Var
   texturecolumn: int;
   frac: fixed_t;
   patch: Ppatch_t;
-  Pint: ^integer;
 Begin
   patch := W_CacheLumpNum(vis^.patch + firstspritelump, PU_CACHE);
 
@@ -724,8 +723,7 @@ Begin
     //	    continue;
     //	}
     //#endif
-    Pint := @patch^.columnofs[0];
-    column := pointer(patch) + Pint[texturecolumn];
+    column := pointer(patch) + patch^.columnofs[texturecolumn];
     R_DrawMaskedColumn(column);
     frac := frac + vis^.xiscale;
   End;
