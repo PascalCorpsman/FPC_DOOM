@@ -408,8 +408,8 @@ Const
   //  #define STSTR_NOMUS		"IMPOSSIBLE SELECTION"
   //  #define STSTR_DQDON		"Degreelessness Mode On"
   //  #define STSTR_DQDOFF	"Degreelessness Mode Off"
-  //
-  //  #define STSTR_KFAADDED	"Very Happy Ammo Added"
+
+  STSTR_KFAADDED = 'Very Happy Ammo Added';
   //  #define STSTR_FAADDED	"Ammo (no keys) Added"
 
   STSTR_NCON = 'No Clipping Mode ON';
@@ -822,4 +822,5 @@ Const
 Implementation
 
 End.
+
 
