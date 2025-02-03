@@ -251,12 +251,12 @@ begin
 ### TBytes is not PByte
 
 When dealing with array's of byte do not use the TBytes datatype, use PByte instead !
-Reason for this, is that FPC "knows" the size of the array thats behind of TBytes (by reading the int in the negative address of the first element). A C PByte does not have stored this information, therefore the lenght information will be invalid!
+Reason for this, is that FPC "knows" the size of the array thats behind of TBytes (by reading the int in the negative address of the first element). A C PByte does not have stored this information, therefore the length information will be invalid!
 
 
 ### invalid array type declaration
 
-The datatype patch_t in DOOM has a field columnofs, which is declared as array of eight elements in code. This is not true, the columnofs holds width element. When porting this to FPC you get a out of bound error, when accessing to the nineth element.
+The datatype patch_t in DOOM has a field columnofs, which is declared as array of eight elements in code. This is not true, the columnofs holds width elements. When porting this to FPC you get a out of bound error, when accessing to the nineth element.
 
 ```cpp
 typedef PACKED_STRUCT (
@@ -276,7 +276,7 @@ Translates to this:
     height: short;
     leftoffset: short; // pixels to the left of origin
     topoffset: short; // pixels below the origin
-    columnofs: array[0 .. 65535] of int; // only [width] used <- this is actually wrong but disables the upper range check and thats what we want here.
+    columnofs: array[0 .. 65535] of int; // only [width] used <- this is actually wrong but disables the upper range check for all DOOM usecases and thats what we want here.
   End; 
 ```
 <!---
