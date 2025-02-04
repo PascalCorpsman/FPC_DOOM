@@ -143,6 +143,17 @@ Var
 
   oldgamestate: gamestate_t; // WTF: die gibt es in D_Display auch als Static variable ...
   dclicks: int = 0;
+  weapon_keys: Array[0..7] Of p_int =
+  (
+    @key_weapon1,
+    @key_weapon2,
+    @key_weapon3,
+    @key_weapon4,
+    @key_weapon5,
+    @key_weapon6,
+    @key_weapon7,
+    @key_weapon8
+    );
 
 Procedure G_ClearSavename();
 Begin
@@ -1537,20 +1548,16 @@ Begin
   //    }
   //    else
   //    {
-  //        // Check weapon keys.
-  //
-  //        for (i=0; i<arrlen(weapon_keys); ++i)
-  //        {
-  //            int key = *weapon_keys[i];
-  //
-  //            if (gamekeydown[key])
-  //            {
-  //                cmd->buttons |= BT_CHANGE;
-  //                cmd->buttons |= i<<BT_WEAPONSHIFT;
-  //                break;
-  //            }
-  //        }
-  //    }
+
+  // Check weapon keys.
+
+  For i := 0 To high(weapon_keys) Do Begin
+    If (gamekeydown[weapon_keys[i]^]) Then Begin
+      cmd.buttons := cmd.buttons Or BT_CHANGE;
+      cmd.buttons := cmd.buttons Or i Shl BT_WEAPONSHIFT;
+      break;
+    End;
+  End;
 
   next_weapon := 0;
 

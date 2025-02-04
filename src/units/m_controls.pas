@@ -57,16 +57,16 @@ Var
   //
   //extern int key_multi_msg;
   //extern int key_multi_msgplayer[8];
-  //
-  //extern int key_weapon1;
-  //extern int key_weapon2;
-  //extern int key_weapon3;
-  //extern int key_weapon4;
-  //extern int key_weapon5;
-  //extern int key_weapon6;
-  //extern int key_weapon7;
-  //extern int key_weapon8;
-  //
+
+  key_weapon1: int;
+  key_weapon2: int;
+  key_weapon3: int;
+  key_weapon4: int;
+  key_weapon5: int;
+  key_weapon6: int;
+  key_weapon7: int;
+  key_weapon8: int;
+
   //extern int key_arti_quartz;
   //extern int key_arti_urn;
   //extern int key_arti_bomb;
@@ -247,6 +247,14 @@ Begin
   key_map_overlay := VK_O; // [crispy]
   key_map_rotate := VK_R; // [crispy]
 
+  key_weapon1 := VK_1;
+  key_weapon2 := VK_2;
+  key_weapon3 := VK_3;
+  key_weapon4 := VK_4;
+  key_weapon5 := VK_5;
+  key_weapon6 := VK_6;
+  key_weapon7 := VK_7;
+  key_weapon8 := VK_8;
 
   key_speed := KEY_RSHIFT;
   key_right := KEY_RIGHTARROW;

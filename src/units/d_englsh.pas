@@ -406,11 +406,11 @@ Const
   //
   //  #define STSTR_MUS		"Music Change"
   //  #define STSTR_NOMUS		"IMPOSSIBLE SELECTION"
-  //  #define STSTR_DQDON		"Degreelessness Mode On"
-  //  #define STSTR_DQDOFF	"Degreelessness Mode Off"
+  STSTR_DQDON = 'Degreelessness Mode On';
+  STSTR_DQDOFF = 'Degreelessness Mode Off';
 
   STSTR_KFAADDED = 'Very Happy Ammo Added';
-  //  #define STSTR_FAADDED	"Ammo (no keys) Added"
+  STSTR_FAADDED = 'Ammo (no keys) Added';
 
   STSTR_NCON = 'No Clipping Mode ON';
   STSTR_NCOFF = 'No Clipping Mode OFF';
@@ -822,5 +822,4 @@ Const
 Implementation
 
 End.
-
 

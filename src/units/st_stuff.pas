@@ -17,9 +17,12 @@ Const
   ST_HEIGHT = 32;
   CRISPY_HUD = 12;
 
+  //cheatseq_t cheat_mus = CHEAT("idmus", 2);
+  cheat_god: cheatseq_t = (sequence: 'iddqd'; parameter_chars: 0);
+  cheat_ammo: cheatseq_t = (sequence: 'idkfa'; parameter_chars: 0);
+  cheat_ammonokey: cheatseq_t = (sequence: 'idfa'; parameter_chars: 0);
   cheat_noclip: cheatseq_t = (sequence: 'idspispopd'; parameter_chars: 0);
   cheat_commercial_noclip: cheatseq_t = (sequence: 'idclip'; parameter_chars: 0);
-  cheat_ammo: cheatseq_t = (sequence: 'idkfa'; parameter_chars: 0);
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
@@ -38,12 +41,13 @@ Procedure ST_refreshBackground(force: boolean);
 Implementation
 
 Uses
-  info_types, doomstat
+  info_types, doomstat, doomdata, tables, sounds
   , am_map
   , d_items, d_player, d_englsh, deh_misc, d_mode
   , g_game
-  , m_menu
-  , st_lib
+  , m_menu, m_fixed
+  , p_mobj
+  , st_lib, s_sound
   , v_patch, v_video
   ;
 
@@ -572,7 +576,6 @@ Begin
   result := 1;
 End;
 
-
 // [crispy] give or take backpack
 
 Procedure GiveBackpack(give: boolean);
@@ -614,6 +617,8 @@ End;
 Function ST_Responder(Const ev: Pevent_t): boolean;
 Var
   i: int;
+  mt: mapthing_t;
+  an: angle_t;
 Begin
   result := false;
   // Filter automap on/off.
@@ -633,180 +638,172 @@ Begin
   End
     // if a user keypress...
   Else If (ev^._type = ev_keydown) Then Begin
+    If (Not netgame) And (gameskill <> sk_nightmare) Then Begin
+      // 'dqd' cheat for toggleable god mode
+      If (cht_CheckCheatSP(cheat_god, chr(ev^.data2)) <> 0) Then Begin
+        // [crispy] dead players are first respawned at the current position
+        If (plyr^.playerstate = PST_DEAD) Then Begin
+          FillChar(mt, sizeof(mt), 0);
+          mt.x := SarLongint(plyr^.mo^.x, FRACBITS);
+          mt.y := SarLongint(plyr^.mo^.y, FRACBITS);
+          mt.angle := angle_t((plyr^.mo^.angle + ANG45 Div 2) * uint64_t(45) Div ANG45);
+          mt._type := consoleplayer + 1;
+          P_SpawnPlayer(mt);
 
-    //    if (!netgame && gameskill != sk_nightmare)
-    //    {
-    //      // 'dqd' cheat for toggleable god mode
-    //      if (cht_CheckCheatSP(&cheat_god, ev->data2))
-    //      {
-    //	// [crispy] dead players are first respawned at the current position
-    //	mapthing_t mt = {0};
-    //	if (plyr->playerstate == PST_DEAD)
-    //	{
-    //	    signed int an;
-    //	    extern void P_SpawnPlayer (mapthing_t* mthing);
-    //
-    //	    mt.x = plyr->mo->x >> FRACBITS;
-    //	    mt.y = plyr->mo->y >> FRACBITS;
-    //	    mt.angle = (plyr->mo->angle + ANG45/2)*(uint64_t)45/ANG45;
-    //	    mt.type = consoleplayer + 1;
-    //	    P_SpawnPlayer(&mt);
-    //
-    //	    // [crispy] spawn a teleport fog
-    //	    an = plyr->mo->angle >> ANGLETOFINESHIFT;
-    //	    P_SpawnMobj(plyr->mo->x+20*finecosine[an], plyr->mo->y+20*finesine[an], plyr->mo->z, MT_TFOG);
-    //	    S_StartSound(plyr, sfx_slop);
-    //
-    //	    // Fix reviving as "zombie" if god mode was already enabled
-    //	    if (plyr->mo)
-    //	        plyr->mo->health = deh_god_mode_health;
-    //	    plyr->health = deh_god_mode_health;
-    //	}
-    //
-    //	plyr->cheats ^= CF_GODMODE;
-    //	if (plyr->cheats & CF_GODMODE)
-    //	{
-    //	  if (plyr->mo)
-    //	    plyr->mo->health = deh_god_mode_health;
-    //
-    //	  plyr->health = deh_god_mode_health;
-    //	  plyr->message = DEH_String(STSTR_DQDON);
-    //	}
-    //	else
-    //	  plyr->message = DEH_String(STSTR_DQDOFF);
-    //
-    //	// [crispy] eat key press when respawning
-    //	if (mt.type)
-    //	    return true;
-    //      }
-    //      // 'fa' cheat for killer fucking arsenal
-    //      else if (cht_CheckCheatSP(&cheat_ammonokey, ev->data2))
-    //      {
-    //	plyr->armorpoints = deh_idfa_armor;
-    //	plyr->armortype = deh_idfa_armor_class;
-    //
-    //	// [crispy] give backpack
-    //	GiveBackpack(true);
-    //
-    //	for (i=0;i<NUMWEAPONS;i++)
-    //	 if (WeaponAvailable(i)) // [crispy] only give available weapons
-    //	  plyr->weaponowned[i] = true;
-    //
-    //	for (i=0;i<NUMAMMO;i++)
-    //	  plyr->ammo[i] = plyr->maxammo[i];
-    //
-    //	// [crispy] trigger evil grin now
-    //	plyr->bonuscount += 2;
-    //
-    //	plyr->message = DEH_String(STSTR_FAADDED);
-    // End
-    // 'kfa' cheat for key full ammo
-  // Else
-    If (cht_CheckCheatSP(cheat_ammo, chr(ev^.data2)) <> 0) Then Begin
+          // [crispy] spawn a teleport fog
+          an := plyr^.mo^.angle Shr ANGLETOFINESHIFT;
+          P_SpawnMobj(plyr^.mo^.x + 20 * finecosine[an], plyr^.mo^.y + 20 * finesine[an], plyr^.mo^.z, MT_TFOG);
+          S_StartSound(plyr, sfx_slop);
 
-      plyr^.armorpoints := deh_idkfa_armor;
-      plyr^.armortype := deh_idkfa_armor_class;
+          // Fix reviving as "zombie" if god mode was already enabled
+          If assigned(plyr^.mo) Then
+            plyr^.mo^.health := deh_god_mode_health;
+          plyr^.health := deh_god_mode_health;
+        End;
 
-      // [crispy] give backpack
-      GiveBackpack(true);
+        plyr^.cheats := plyr^.cheats Xor integer(CF_GODMODE);
+        If (plyr^.cheats And integer(CF_GODMODE)) <> 0 Then Begin
+          If assigned(plyr^.mo) Then
+            plyr^.mo^.health := deh_god_mode_health;
 
-      For i := 0 To integer(NUMWEAPONS) - 1 Do
-        If (WeaponAvailable(i)) Then // [crispy] only give available weapons
-          plyr^.weaponowned[weapontype_t(i)] := true;
+          plyr^.health := deh_god_mode_health;
+          plyr^.message := STSTR_DQDON;
+        End
+        Else
+          plyr^.message := STSTR_DQDOFF;
 
-      For i := 0 To integer(NUMAMMO) - 1 Do
-        plyr^.ammo[i] := plyr^.maxammo[i];
+        // [crispy] eat key press when respawning
+        If (mt._type <> 0) Then Begin
+          result := true;
+          exit;
+        End;
+      End
+        // 'fa' cheat for killer fucking arsenal
+      Else If (cht_CheckCheatSP(cheat_ammonokey, chr(ev^.data2)) <> 0) Then Begin
+        plyr^.armorpoints := deh_idfa_armor;
+        plyr^.armortype := deh_idfa_armor_class;
 
-      For i := 0 To integer(NUMCARDS) - 1 Do
-        plyr^.cards[card_t(i)] := true;
+        // [crispy] give backpack
+        GiveBackpack(true);
 
-      // [crispy] trigger evil grin now
-      plyr^.bonuscount := plyr^.bonuscount + 2;
+        For i := 0 To integer(NUMWEAPONS) - 1 Do
+          If (WeaponAvailable(i)) Then // [crispy] only give available weapons
+            plyr^.weaponowned[weapontype_t(i)] := true;
 
-      plyr^.message := STSTR_KFAADDED;
-    End
-      //      // 'mus' cheat for changing music
-      //      else if (cht_CheckCheat(&cheat_mus, ev->data2))
-      //      {
-      //
-      //	char	buf[3];
-      //	int		musnum;
-      //
-      //	plyr->message = DEH_String(STSTR_MUS);
-      //	cht_GetParam(&cheat_mus, buf);
-      //
-      //        // Note: The original v1.9 had a bug that tried to play back
-      //        // the Doom II music regardless of gamemode.  This was fixed
-      //        // in the Ultimate Doom executable so that it would work for
-      //        // the Doom 1 music as well.
-      //
-      //	// [crispy] restart current music if IDMUS00 is entered
-      //	if (buf[0] == '0' && buf[1] == '0')
-      //	{
-      //	  S_ChangeMusic(0, 2);
-      //	  // [crispy] eat key press, i.e. don't change weapon upon music change
-      //	  return true;
-      //	}
-      //	else
-      //	// [JN] Fixed: using a proper IDMUS selection for shareware
-      //	// and registered game versions.
-      //	if (gamemode == commercial /* || gameversion < exe_ultimate */ )
-      //	{
-      //	  musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
-      //
-      //	  /*
-      //	  if (((buf[0]-'0')*10 + buf[1]-'0') > 35
-      //       && gameversion >= exe_doom_1_8)
-      //	  */
-      //	  // [crispy] prevent crash with IDMUS00
-      //	  if (musnum < mus_runnin || musnum >= NUMMUSIC)
-      //	    plyr->message = DEH_String(STSTR_NOMUS);
-      //	  else
-      //	  {
-      //	    S_ChangeMusic(musnum, 1);
-      //	    // [crispy] eat key press, i.e. don't change weapon upon music change
-      //	    return true;
-      //	  }
-      //	}
-      //	else
-      //	{
-      //	  musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
-      //
-      //	  /*
-      //	  if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
-      //	  */
-      //	  // [crispy] prevent crash with IDMUS0x or IDMUSx0
-      //	  if (musnum < mus_e1m1 || musnum >= mus_runnin ||
-      //	      // [crispy] support dedicated music tracks for the 4th episode
-      //	      S_music[musnum].lumpnum == -1)
-      //	    plyr->message = DEH_String(STSTR_NOMUS);
-      //	  else
-      //	  {
-      //	    S_ChangeMusic(musnum, 1);
-      //	    // [crispy] eat key press, i.e. don't change weapon upon music change
-      //	    return true;
-      //	  }
-      //	}
-      //      }
-      //      // [crispy] eat up the first digit typed after a cheat expecting two parameters
-      //      else if (cht_CheckCheat(&cheat_mus1, ev->data2))
-      //      {
-      //	char buf[2];
-      //
-      //	cht_GetParam(&cheat_mus1, buf);
-      //
-      //	return isdigit(buf[0]);
-      //      }
-      //      // [crispy] allow both idspispopd and idclip cheats in all gamemissions
-    Else If (cht_CheckCheatSP(cheat_noclip, chr(ev^.data2)) <> 0)
-      Or (cht_CheckCheatSP(cheat_commercial_noclip, chr(ev^.data2)) <> 0)
-      Then Begin
-      plyr^.cheats := plyr^.cheats Xor integer(CF_NOCLIP);
-      If (plyr^.cheats And integer(CF_NOCLIP)) <> 0 Then
-        plyr^.message := STSTR_NCON
-      Else
-        plyr^.message := STSTR_NCOFF;
-    End
+        For i := 0 To integer(NUMAMMO) - 1 Do
+          plyr^.ammo[i] := plyr^.maxammo[i];
+
+        // [crispy] trigger evil grin now
+        plyr^.bonuscount := plyr^.bonuscount + 2;
+
+        plyr^.message := STSTR_FAADDED;
+      End
+        // 'kfa' cheat for key full ammo
+      Else If (cht_CheckCheatSP(cheat_ammo, chr(ev^.data2)) <> 0) Then Begin
+
+        plyr^.armorpoints := deh_idkfa_armor;
+        plyr^.armortype := deh_idkfa_armor_class;
+
+        // [crispy] give backpack
+        GiveBackpack(true);
+
+        For i := 0 To integer(NUMWEAPONS) - 1 Do
+          If (WeaponAvailable(i)) Then // [crispy] only give available weapons
+            plyr^.weaponowned[weapontype_t(i)] := true;
+
+        For i := 0 To integer(NUMAMMO) - 1 Do
+          plyr^.ammo[i] := plyr^.maxammo[i];
+
+        For i := 0 To integer(NUMCARDS) - 1 Do
+          plyr^.cards[card_t(i)] := true;
+
+        // [crispy] trigger evil grin now
+        plyr^.bonuscount := plyr^.bonuscount + 2;
+
+        plyr^.message := STSTR_KFAADDED;
+      End
+        //      // 'mus' cheat for changing music
+        //      else if (cht_CheckCheat(&cheat_mus, ev->data2))
+        //      {
+        //
+        //	char	buf[3];
+        //	int		musnum;
+        //
+        //	plyr->message = DEH_String(STSTR_MUS);
+        //	cht_GetParam(&cheat_mus, buf);
+        //
+        //        // Note: The original v1.9 had a bug that tried to play back
+        //        // the Doom II music regardless of gamemode.  This was fixed
+        //        // in the Ultimate Doom executable so that it would work for
+        //        // the Doom 1 music as well.
+        //
+        //	// [crispy] restart current music if IDMUS00 is entered
+        //	if (buf[0] == '0' && buf[1] == '0')
+        //	{
+        //	  S_ChangeMusic(0, 2);
+        //	  // [crispy] eat key press, i.e. don't change weapon upon music change
+        //	  return true;
+        //	}
+        //	else
+        //	// [JN] Fixed: using a proper IDMUS selection for shareware
+        //	// and registered game versions.
+        //	if (gamemode == commercial /* || gameversion < exe_ultimate */ )
+        //	{
+        //	  musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
+        //
+        //	  /*
+        //	  if (((buf[0]-'0')*10 + buf[1]-'0') > 35
+        //       && gameversion >= exe_doom_1_8)
+        //	  */
+        //	  // [crispy] prevent crash with IDMUS00
+        //	  if (musnum < mus_runnin || musnum >= NUMMUSIC)
+        //	    plyr->message = DEH_String(STSTR_NOMUS);
+        //	  else
+        //	  {
+        //	    S_ChangeMusic(musnum, 1);
+        //	    // [crispy] eat key press, i.e. don't change weapon upon music change
+        //	    return true;
+        //	  }
+        //	}
+        //	else
+        //	{
+        //	  musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
+        //
+        //	  /*
+        //	  if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
+        //	  */
+        //	  // [crispy] prevent crash with IDMUS0x or IDMUSx0
+        //	  if (musnum < mus_e1m1 || musnum >= mus_runnin ||
+        //	      // [crispy] support dedicated music tracks for the 4th episode
+        //	      S_music[musnum].lumpnum == -1)
+        //	    plyr->message = DEH_String(STSTR_NOMUS);
+        //	  else
+        //	  {
+        //	    S_ChangeMusic(musnum, 1);
+        //	    // [crispy] eat key press, i.e. don't change weapon upon music change
+        //	    return true;
+        //	  }
+        //	}
+        //      }
+        //      // [crispy] eat up the first digit typed after a cheat expecting two parameters
+        //      else if (cht_CheckCheat(&cheat_mus1, ev->data2))
+        //      {
+        //	char buf[2];
+        //
+        //	cht_GetParam(&cheat_mus1, buf);
+        //
+        //	return isdigit(buf[0]);
+        //      }
+        //      // [crispy] allow both idspispopd and idclip cheats in all gamemissions
+      Else If (cht_CheckCheatSP(cheat_noclip, chr(ev^.data2)) <> 0)
+        Or (cht_CheckCheatSP(cheat_commercial_noclip, chr(ev^.data2)) <> 0)
+        Then Begin
+        plyr^.cheats := plyr^.cheats Xor integer(CF_NOCLIP);
+        If (plyr^.cheats And integer(CF_NOCLIP)) <> 0 Then
+          plyr^.message := STSTR_NCON
+        Else
+          plyr^.message := STSTR_NCOFF;
+      End;
       //      // 'behold?' power-up cheats
     //      for (i=0;i<6;i++)
     //      {
@@ -1046,8 +1043,9 @@ Begin
     //	    plyr->message = msg;
     //	}
     //      }
-    //    }
-      ;
+
+    End;
+
 
     //// [crispy] now follow "harmless" Crispy Doom specific cheats
     //
