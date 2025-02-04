@@ -92,7 +92,10 @@ Var
   Header: TWadHeader;
   i: Integer;
 Begin
-  If WadFilename = filename Then exit; // Wir versuchen 2 mal das Selbe File zu laden
+  If WadFilename = filename Then Begin
+    result := true;
+    exit; // Wir versuchen 2 mal das Selbe File zu laden
+  End;
   If assigned(WadMem) Then Begin
     Raise exception.Create('Error, es ist bereits ein .wad geladen');
   End;
@@ -133,6 +136,7 @@ Begin
   For i := 0 To high(Lumps) Do Begin
     lumpinfo[i].wad_file := filename;
     lumpinfo[i].name := UpperCase(Lumps[i].name);
+    lumpinfo[i].size := Lumps[i].size;
     Lumps[i].name := LowerCase(Lumps[i].name);
     Lumps[i].size := Lumps[i].size;
   End;
