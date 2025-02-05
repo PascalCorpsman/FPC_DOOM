@@ -1,10 +1,10 @@
 object Form1: TForm1
   Left = 332
-  Height = 442
+  Height = 505
   Top = 117
   Width = 320
   Caption = 'Form1'
-  ClientHeight = 442
+  ClientHeight = 505
   ClientWidth = 320
   Position = poScreenCenter
   LCLVersion = '4.99.0.0'
@@ -21,7 +21,7 @@ object Form1: TForm1
   end
   object StringGrid1: TStringGrid
     Left = 8
-    Height = 328
+    Height = 368
     Top = 72
     Width = 304
     Anchors = [akTop, akLeft, akRight, akBottom]
@@ -43,16 +43,16 @@ object Form1: TForm1
         Title.Caption = 'Action'
       end>
     FixedCols = 0
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goRowSelect, goSmoothScroll]
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
     TabOrder = 1
     OnDblClick = StringGrid1DblClick
     OnButtonClick = StringGrid1ButtonClick
   end
   object Edit1: TEdit
-    Left = 96
+    Left = 72
     Height = 26
-    Top = 40
-    Width = 216
+    Top = 38
+    Width = 64
     TabOrder = 2
     Text = 'Edit1'
     OnChange = Edit1Change
@@ -67,7 +67,7 @@ object Form1: TForm1
   object Button2: TButton
     Left = 8
     Height = 25
-    Top = 408
+    Top = 471
     Width = 304
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Close'
@@ -94,10 +94,26 @@ object Form1: TForm1
     Visible = False
     OnClick = Button4Click
   end
+  object Edit2: TEdit
+    Left = 200
+    Height = 26
+    Top = 38
+    Width = 64
+    TabOrder = 6
+    Text = 'Edit2'
+    OnChange = Edit2Change
+  end
+  object Label2: TLabel
+    Left = 8
+    Height = 16
+    Top = 448
+    Width = 41
+    Caption = 'Label2'
+  end
   object OpenDialog1: TOpenDialog
     DefaultExt = '.wad'
     Filter = 'Wad file|*.wad|All files|*.*'
-    Left = 64
-    Top = 16
+    Left = 80
+    Top = 184
   end
 end

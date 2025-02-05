@@ -1,7 +1,7 @@
 (******************************************************************************)
 (* WAD_Viewer                                                      04.02.2025 *)
 (*                                                                            *)
-(* Version     : 0.01                                                         *)
+(* Version     : 0.02                                                         *)
 (*                                                                            *)
 (* Author      : Uwe Schächterle (Corpsman)                                   *)
 (*                                                                            *)
@@ -24,6 +24,7 @@
 (* Known Issues: none                                                         *)
 (*                                                                            *)
 (* History     : 0.01 - Initial version                                       *)
+(*               0.02 - Export Lump as RAW                                    *)
 (*                                                                            *)
 (******************************************************************************)
 Unit Unit1;
@@ -45,7 +46,9 @@ Type
     Button3: TButton;
     Button4: TButton;
     Edit1: TEdit;
+    Edit2: TEdit;
     Label1: TLabel;
+    Label2: TLabel;
     OpenDialog1: TOpenDialog;
     StringGrid1: TStringGrid;
     Procedure Button1Click(Sender: TObject);
@@ -53,6 +56,7 @@ Type
     Procedure Button3Click(Sender: TObject);
     Procedure Button4Click(Sender: TObject);
     Procedure Edit1Change(Sender: TObject);
+    Procedure Edit2Change(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure StringGrid1ButtonClick(Sender: TObject; aCol, aRow: Integer);
     Procedure StringGrid1DblClick(Sender: TObject);
@@ -77,6 +81,7 @@ Uses
   unit2, unit3
   , w_wad
   , uWAD_viewer
+  , ufpc_doom_types
   ;
 
 Const
@@ -90,8 +95,8 @@ Const
 
 Procedure TForm1.Button1Click(Sender: TObject);
 Begin
-  //LoadWadFile('Doom2.wad'); // TODO: Debug- remove
-  //exit; // TODO: Debug- remove
+  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
+  exit; // TODO: Debug- remove
 
   // Select .wad file
   If OpenDialog1.Execute Then Begin
@@ -120,33 +125,70 @@ End;
 
 Procedure TForm1.Edit1Change(Sender: TObject);
 Var
-  i: Integer;
+  c, i: Integer;
   s: String;
 Begin
   StringGrid1.BeginUpdate;
+  edit2.text := '';
   If Edit1.text = '' Then Begin
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
       StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
     End;
+    c := StringGrid1.RowCount - 1;
   End
   Else Begin
     s := UpperCase(edit1.text);
+    c := 0;
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
       If pos(s, StringGrid1.Cells[IndexLumpName, i]) = 0 Then Begin
         StringGrid1.RowHeights[i] := 0;
       End
       Else Begin
         StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
+        c := c + 1;
       End;
     End;
   End;
   StringGrid1.EndUpdate();
+  label2.caption := format('%d of %d lumps', [c, StringGrid1.RowCount - 1]);
+End;
+
+Procedure TForm1.Edit2Change(Sender: TObject);
+Var
+  c, i: Integer;
+  s: String;
+Begin
+  StringGrid1.BeginUpdate;
+  edit1.text := '';
+  If Edit2.text = '' Then Begin
+    For i := 1 To StringGrid1.RowCount - 1 Do Begin
+      StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
+      c := StringGrid1.RowCount - 1;
+    End;
+  End
+  Else Begin
+    s := UpperCase(edit2.text);
+    c := 0;
+    For i := 1 To StringGrid1.RowCount - 1 Do Begin
+      If pos(s, UpperCase(StringGrid1.Cells[IndexLumpType, i])) = 0 Then Begin
+        StringGrid1.RowHeights[i] := 0;
+      End
+      Else Begin
+        StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
+        c := c + 1;
+      End;
+    End;
+  End;
+  StringGrid1.EndUpdate();
+  label2.caption := format('%d of %d lumps', [c, StringGrid1.RowCount - 1]);
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
 Begin
   edit1.text := '';
-  caption := 'Wad viewer, ver. 0.01';
+  edit2.text := '';
+  label2.caption := '';
+  caption := 'Wad viewer, ver. 0.02';
 End;
 
 Procedure TForm1.StringGrid1ButtonClick(Sender: TObject; aCol, aRow: Integer);
@@ -187,7 +229,8 @@ End;
 
 Procedure TForm1.LoadWadFile(Const Filename: String);
 Var
-  i: Integer;
+  s, i: Integer;
+
 Begin
   If Not W_AddFile(Filename) Then Begin
     showmessage('Error, could not load: ' + Filename);
@@ -195,6 +238,9 @@ Begin
   InitColorPallete;
   StringGrid1.RowCount := length(lumpinfo) + 1;
   For i := 0 To high(lumpinfo) Do Begin
+    If i = 470 - 1 Then Begin
+      nop();
+    End;
     StringGrid1.Cells[IndexIndex, i + 1] := Inttostr(i + 1);
     StringGrid1.Cells[IndexLumpName, i + 1] := lumpinfo[i].name;
     StringGrid1.Cells[IndexLumpSize, i + 1] := inttostr(lumpinfo[i].size);
@@ -202,6 +248,24 @@ Begin
   End;
 
   StringGrid1.AutoSizeColumns;
+
+  s := StringGrid1.Left;
+  For i := 0 To IndexLumpName - 1 Do Begin
+    s := s + StringGrid1.ColWidths[i]
+  End;
+  edit1.Left := s;
+  edit1.Width := StringGrid1.ColWidths[IndexLumpName];
+
+  s := StringGrid1.Left;
+  For i := 0 To IndexLumpType - 1 Do Begin
+    s := s + StringGrid1.ColWidths[i]
+  End;
+  edit2.Left := S;
+  edit2.Width := StringGrid1.ColWidths[IndexLumpType];
+  edit1.text := '';
+  edit2.text := '';
+  label2.caption := format('%d lumps', [StringGrid1.RowCount - 1]);
+
 End;
 
 End.

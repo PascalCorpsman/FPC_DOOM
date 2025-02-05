@@ -7,25 +7,25 @@ object Form2: TForm2
   ClientHeight = 240
   ClientWidth = 318
   Position = poScreenCenter
-  LCLVersion = '3.99.0.0'
+  LCLVersion = '4.99.0.0'
   OnCreate = FormCreate
   object Label1: TLabel
     Left = 8
-    Height = 15
+    Height = 16
     Top = 10
-    Width = 64
+    Width = 70
     Caption = 'Lump name'
   end
   object Label2: TLabel
     Left = 87
-    Height = 15
+    Height = 16
     Top = 10
-    Width = 34
+    Width = 41
     Caption = 'Label2'
   end
   object RadioGroup1: TRadioGroup
     Left = 8
-    Height = 57
+    Height = 160
     Top = 32
     Width = 296
     AutoFill = True
@@ -37,21 +37,21 @@ object Form2: TForm2
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 37
-    ClientWidth = 292
-    ItemIndex = 0
-    Items.Strings = (
-      'patch_t'
-    )
+    ClientHeight = 143
+    ClientWidth = 294
     TabOrder = 0
   end
   object Button1: TButton
     Left = 8
     Height = 25
-    Top = 104
+    Top = 200
     Width = 296
     Caption = 'Do'
     TabOrder = 1
     OnClick = Button1Click
+  end
+  object SaveDialog1: TSaveDialog
+    Left = 176
+    Top = 32
   end
 end

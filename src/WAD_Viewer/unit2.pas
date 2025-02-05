@@ -30,15 +30,15 @@ Type
     Label1: TLabel;
     Label2: TLabel;
     RadioGroup1: TRadioGroup;
+    SaveDialog1: TSaveDialog;
     Procedure Button1Click(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
   private
     Procedure LoadAndShowPatch(Const Lump: String);
-
+    Procedure LoadAndShowSound(Const Lump: String);
+    Procedure ExportAsRaw(Const Lump: String);
   public
-
     Procedure SelectDatatypeByString(Const Datatype: String);
-
   End;
 
 Var
@@ -48,7 +48,7 @@ Implementation
 
 {$R *.lfm}
 
-Uses Unit3, uWAD_viewer;
+Uses Unit3, Unit4, uWAD_viewer, w_wad;
 
 { TForm2 }
 
@@ -61,12 +61,19 @@ Begin
   If s = LumpTypeToString(ltPatch) Then Begin
     LoadAndShowPatch(label2.caption);
   End;
+  If s = LumpTypeToString(ltSound) Then Begin
+    LoadAndShowSound(label2.caption);
+  End;
+  If s = LumpTypeToString(ltExportAsRaw) Then Begin
+    ExportAsRaw(label2.caption);
+  End;
 End;
 
 Procedure TForm2.FormCreate(Sender: TObject);
 Var
   i: Integer;
 Begin
+  caption := 'Select action';
   RadioGroup1.items.Clear;
   For i := 1 To integer(ltCount) - 1 Do Begin // ltUnknown wird ausgelassen
     RadioGroup1.items.Add(
@@ -83,6 +90,30 @@ Begin
   End
   Else Begin
     showmessage('Error, "' + lump + '" does not seem to be a valild patch_t');
+  End;
+End;
+
+Procedure TForm2.LoadAndShowSound(Const Lump: String);
+Begin
+  If form4.LoadSoundLump(Lump) Then Begin
+    form4.ShowModal;
+  End
+  Else Begin
+    showmessage('Error, "' + lump + '" does not seem to be a valild sound');
+  End;
+End;
+
+Procedure TForm2.ExportAsRaw(Const Lump: String);
+Var
+  m: TMemoryStream;
+  p: PByte;
+Begin
+  If SaveDialog1.Execute Then Begin
+    m := TMemoryStream.Create;
+    p := W_CacheLumpName(lump, 0);
+    m.Write(p^, W_LumpLength(W_GetNumForName(lump)));
+    m.SaveToFile(SaveDialog1.FileName);
+    m.free;
   End;
 End;
 

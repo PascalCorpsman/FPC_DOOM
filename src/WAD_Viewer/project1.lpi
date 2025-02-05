@@ -82,6 +82,17 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="uWAD_viewer"/>
       </Unit>
+      <Unit>
+        <Filename Value="unit4.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form4"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Unit4"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Sample\Sound\uwave.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -92,7 +103,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\units;.."/>
+      <OtherUnitFiles Value="..\units;..;..\..\Sample\Sound"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

@@ -25,6 +25,8 @@ Type
   TLumpType = (
     ltUnknown, // Muss immer der 1. sein
     ltPatch,
+    ltSound,
+    ltExportAsRaw,
     ltCount // Muss immer der letzte sein !
     );
 
@@ -42,19 +44,31 @@ Uses v_patch;
 Function GuessLumpTypeByPointer(Const p: Pointer): TLumpType;
 Var
   patch: ^patch_t;
+  pui16: ^UInt16;
+
 Begin
   result := ltUnknown;
   If Not assigned(p) Then exit;
 
   // Check auf patch_t
   patch := p;
-  // Heuristik zum Erkennen ob der Lump ein patch_t sein könnte oder nicht ..
-  If (patch^.width > 640) Or (patch^.width <= 0) Or
-    (patch^.height > 400) Or (patch^.height <= 0) Then Begin
+  If (patch^.width <= 640) And (patch^.width > 0) And
+    (patch^.height <= 400) And (patch^.height > 0) Then Begin
+    // TODO: Theoretisch könnte hier noch die gesammte Colmun geschichte abgeklappert werden und geschaut ob sich das wirklich alles sauber auflösen lässt.
+    result := ltPatch;
     exit;
   End;
-  result := ltPatch;
-  // TODO: Theoretisch könnte hier noch die gesammte Colmun geschichte abgeklappert werden und geschaut ob sich das wirklich alles sauber auflösen lässt.
+
+  // Check for sound
+  pui16 := P;
+  If pui16^ = $0003 Then Begin
+    inc(pui16);
+    If (pui16^ = 11025) Or (pui16^ = 22050) Then Begin
+      result := ltSound;
+      exit;
+    End;
+  End;
+
 End;
 
 Function LumpTypeToString(value: TLumpType): String;
@@ -63,6 +77,8 @@ Begin
   Case value Of
     ltUnknown: result := 'Unknown';
     ltPatch: result := 'patch_t';
+    ltSound: Result := 'Sound';
+    ltExportAsRaw: result := 'Export as RAW';
   Else Begin
       Raise exception.create('LumpTypeToString, missing type in case!');
     End;
