@@ -64,19 +64,32 @@ Var
 
 Implementation
 
-Uses i_system;
+Uses
+  FileUtil
+  , i_system
+  ;
 
 Type
+
+  // Das Format wie es in der .wad Datei liegt, darf nicht geändert werden !
   TLump = Packed Record
     filepos: int;
     size: int;
-    name: Array[0..7] Of char; // Der wird als lowercase initialisiert !
+    name: Array[0..7] Of char;
+  End;
+
+  // Das Interne Format arbeitet mit Pointern, so dass evtl. nachgeladene lumps identisch behandelt werden können ;)
+  TLumpData = Record
+    DataPos: PByte;
+    Size: int;
+    Name: String; // Der wird als lowercase initialisiert !
   End;
 
 Var
   WadFilename: String = '';
   WadMem: Array Of Byte = Nil; // Das .Wad File als Array im Speicher ohne weiteren Schnickschnack
-  Lumps: Array Of TLump = Nil; // Liste aller Lumps und ihrer Positionen in WadMem
+  Lumps: Array Of TLumpData = Nil; // Liste aller Lumps und ihrer Positionen in WadMem
+  PatchLumps: Array Of Array Of Byte = Nil; // Puffer für nachträglich rein gepatchte Lumps
 
 Type
   TWadHeader = Packed Record
@@ -86,11 +99,46 @@ Type
     infotableofs: int;
   End;
 
+  (*
+   * Lädt einen lump aus dem Lumps Ordner und Patcht ihn in die Lump liste
+   * so als wäre er schon immer da gewesen ;) Die DOOM Engine hat keine Chance
+   * einen Unterschied zu erkennen.
+   *)
+
+Procedure PatchLump(LumpFile: String);
+Var
+  LumpName: String;
+  LumpIndex: lumpindex_t;
+  m: TMemoryStream;
+Begin
+  LumpName := ExtractFileName(LumpFile);
+  LumpName := copy(LumpName, 1, pos('.', LumpName) - 1);
+  LumpIndex := W_CheckNumForName(LumpName);
+  If LumpIndex = -1 Then Begin
+    writeln('Could not patch: ' + LumpFile + ', lump does not exist in wad file.');
+    exit;
+  End;
+  // Anlegen eines Datenpuffers für den "ersatz" lump
+  setlength(PatchLumps, high(PatchLumps) + 2);
+  m := TMemoryStream.Create;
+  m.LoadFromFile(LumpFile);
+  setlength(PatchLumps[high(PatchLumps)], m.Size);
+  m.Read(PatchLumps[high(PatchLumps)][0], m.Size);
+  // Ersetzen des Originals mit der Gepatchten / geladenen Version ;)
+  lumpinfo[LumpIndex].wad_file := LumpFile;
+  lumpinfo[LumpIndex].size := m.size;
+  Lumps[LumpIndex].DataPos := @PatchLumps[high(PatchLumps)][0];
+  Lumps[LumpIndex].size := m.size;
+  m.free;
+End;
+
 Function W_AddFile(filename: String): Boolean;
 Var
   m: TMemoryStream;
   Header: TWadHeader;
   i: Integer;
+  FileLumps: Array Of TLump;
+  sl: TStringList;
 Begin
   If WadFilename = filename Then Begin
     result := true;
@@ -128,19 +176,34 @@ Begin
     m.free;
     I_Error(format('Error: Vanilla limit for lumps in a WAD is 4046, PWAD %s has %d', [filename, header.numlumps]));
   End;
+  FileLumps := Nil;
+  setlength(FileLumps, Header.numlumps);
   setlength(Lumps, Header.numlumps);
   m.Position := Header.infotableofs;
-  m.Read(lumps[0], sizeof(TLump) * Header.numlumps);
-  // Alle auf Lowercase, dann muss das nicht jedes mal gemacht werden, wenn zugrgriffen wird
+  m.Read(FileLumps[0], sizeof(TLump) * Header.numlumps);
   setlength(lumpinfo, length(Lumps));
   For i := 0 To high(Lumps) Do Begin
     lumpinfo[i].wad_file := filename;
-    lumpinfo[i].name := UpperCase(Lumps[i].name);
-    lumpinfo[i].size := Lumps[i].size;
-    Lumps[i].name := LowerCase(Lumps[i].name);
-    Lumps[i].size := Lumps[i].size;
+    lumpinfo[i].name := UpperCase(FileLumps[i].name);
+    lumpinfo[i].size := FileLumps[i].size;
+    Lumps[i].name := LowerCase(FileLumps[i].name);
+    Lumps[i].DataPos := @WadMem[FileLumps[i].filepos];
+    Lumps[i].size := FileLumps[i].size;
   End;
+  setlength(FileLumps, 0);
   m.free;
+  (*
+   * ggf nachladen / ersetzen der Lumps durch "externe" Hacks ;)
+   *)
+  For i := 0 To high(PatchLumps) Do
+    setlength(PatchLumps[i], 0);
+  setlength(PatchLumps, 0);
+  sl := findallfiles('lumps', '*.lump', false);
+  For i := 0 To sl.Count - 1 Do Begin
+    PatchLump(sl[i]);
+  End;
+  sl.free;
+
   result := true;
 End;
 
@@ -252,12 +315,15 @@ End;
 Procedure W_ReadLump(lump: lumpindex_t; dest: Pointer);
 Var
   i: integer;
-  p: PByte;
+  dest_p, source_p: PByte;
 Begin
-  p := dest;
+  dest_p := dest;
+  source_p := Lumps[lump].DataPos;
+  // TODO: Das könnte man auch mittels move machen ...
   For i := 0 To Lumps[lump].size - 1 Do Begin
-    p^ := WadMem[Lumps[lump].filepos + i];
-    inc(p);
+    dest_p^ := source_p^;
+    inc(dest_p);
+    inc(source_p);
   End;
 End;
 
@@ -280,7 +346,7 @@ Begin
   result := Nil;
   index := W_CheckNumForName(name);
   If index >= 0 Then Begin
-    result := @WadMem[Lumps[index].filepos];
+    result := Lumps[index].DataPos;
   End;
 End;
 
@@ -288,7 +354,7 @@ Function W_CacheLumpNum(lumpnum: lumpindex_t; tag: int): Pointer;
 Begin
   result := Nil;
   If (lumpnum >= 0) And (lumpnum <= High(Lumps)) Then Begin
-    result := @WadMem[Lumps[lumpnum].filepos];
+    result := Lumps[lumpnum].DataPos;
   End
   Else Begin
     I_Error(format('W_CacheLumpNum: %i >= numlumps', [lumpnum]));
@@ -364,6 +430,15 @@ Function W_IsIWADLump(Const lump: lumpinfo_t): Boolean;
 Begin
   result := lump.wad_file = lumpinfo[0].wad_file;
 End;
+
+Var
+  i: integer;
+Finalization
+
+  For i := 0 To high(PatchLumps) Do Begin
+    setlength(PatchLumps[i], 0);
+  End;
+  setlength(PatchLumps, 0);
 
 End.
 

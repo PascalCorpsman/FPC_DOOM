@@ -264,8 +264,10 @@ Begin
       // Re-map color indices from wall texture column
       //  using a lighting/special effects LUT.
       // [crispy] brightmaps
-      source := dc_source[(frac Shr FRACBITS) And heightmask];
-      dest^ := dc_colormap[dc_brightmap[source]][source];
+      If frac >= 0 Then Begin // Fix for to big patches
+        source := dc_source[(frac Shr FRACBITS) And heightmask];
+        dest^ := dc_colormap[dc_brightmap[source]][source];
+      End;
       inc(dest, SCREENWIDTH);
       frac := frac + fracstep;
       count := count - 1;
