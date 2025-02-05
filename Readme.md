@@ -57,3 +57,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.01.30) enable forward walking and falling ![](documentation/walking.gif) <br> still no strafe / clipping or interaction with the map
 - (2025.02.01) enable interaction with doors ![](documentation/open_door.gif)
 - (2025.02.03) able to shoot barrels ![](documentation/shoot_barrel.gif)
+- (2025.02.05) First version of .wad viewer ![](documentation/WAD_Viewer_001.png)

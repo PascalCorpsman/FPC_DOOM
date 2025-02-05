@@ -90,8 +90,8 @@ Const
 
 Procedure TForm1.Button1Click(Sender: TObject);
 Begin
-  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
-  exit; // TODO: Debug- remove
+  //LoadWadFile('Doom2.wad'); // TODO: Debug- remove
+  //exit; // TODO: Debug- remove
 
   // Select .wad file
   If OpenDialog1.Execute Then Begin
