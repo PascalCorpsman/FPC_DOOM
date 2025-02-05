@@ -202,7 +202,6 @@ Begin
   End;
 
   StringGrid1.AutoSizeColumns;
-
 End;
 
 End.
