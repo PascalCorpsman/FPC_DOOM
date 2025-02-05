@@ -1,0 +1,103 @@
+object Form1: TForm1
+  Left = 332
+  Height = 442
+  Top = 117
+  Width = 320
+  Caption = 'Form1'
+  ClientHeight = 442
+  ClientWidth = 320
+  Position = poScreenCenter
+  LCLVersion = '3.99.0.0'
+  OnCreate = FormCreate
+  object Button1: TButton
+    Left = 8
+    Height = 25
+    Top = 8
+    Width = 304
+    Anchors = [akTop, akLeft, akRight]
+    Caption = 'Select .wad file'
+    TabOrder = 0
+    OnClick = Button1Click
+  end
+  object StringGrid1: TStringGrid
+    Left = 8
+    Height = 328
+    Top = 72
+    Width = 304
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Columns = <    
+      item
+        Title.Caption = 'Index'
+      end    
+      item
+        Title.Caption = 'Name'
+      end    
+      item
+        Title.Caption = 'Size'
+      end    
+      item
+        Title.Caption = 'Type'
+      end    
+      item
+        ButtonStyle = cbsButtonColumn
+        Title.Caption = 'Action'
+      end>
+    FixedCols = 0
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goRowSelect, goSmoothScroll]
+    TabOrder = 1
+    OnDblClick = StringGrid1DblClick
+    OnButtonClick = StringGrid1ButtonClick
+  end
+  object Edit1: TEdit
+    Left = 96
+    Height = 23
+    Top = 40
+    Width = 216
+    TabOrder = 2
+    Text = 'Edit1'
+    OnChange = Edit1Change
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 15
+    Top = 48
+    Width = 26
+    Caption = 'Filter'
+  end
+  object Button2: TButton
+    Left = 8
+    Height = 25
+    Top = 408
+    Width = 304
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Close'
+    TabOrder = 3
+    OnClick = Button2Click
+  end
+  object Button3: TButton
+    Left = 192
+    Height = 25
+    Top = 216
+    Width = 75
+    Caption = 'Save'
+    TabOrder = 4
+    Visible = False
+    OnClick = Button3Click
+  end
+  object Button4: TButton
+    Left = 192
+    Height = 25
+    Top = 184
+    Width = 75
+    Caption = 'Load'
+    TabOrder = 5
+    Visible = False
+    OnClick = Button4Click
+  end
+  object OpenDialog1: TOpenDialog
+    DefaultExt = '.wad'
+    Filter = 'Wad file|*.wad|All files|*.*'
+    Left = 64
+    Top = 16
+  end
+end

@@ -1,0 +1,93 @@
+object Form3: TForm3
+  Left = 333
+  Height = 495
+  Top = 601
+  Width = 667
+  Caption = 'Form3'
+  ClientHeight = 495
+  ClientWidth = 667
+  Position = poScreenCenter
+  LCLVersion = '3.99.0.0'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object Image1: TImage
+    Left = 8
+    Height = 400
+    Top = 80
+    Width = 640
+    PopupMenu = PopupMenu1
+    Proportional = True
+    Stretch = True
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 15
+    Top = 32
+    Width = 60
+    Caption = 'Dimension:'
+  end
+  object Label2: TLabel
+    Left = 80
+    Height = 15
+    Top = 32
+    Width = 34
+    Caption = 'Label2'
+  end
+  object Label3: TLabel
+    Left = 8
+    Height = 15
+    Top = 9
+    Width = 35
+    Caption = 'Name:'
+  end
+  object Label4: TLabel
+    Left = 80
+    Height = 15
+    Top = 9
+    Width = 34
+    Caption = 'Label4'
+  end
+  object Button1: TButton
+    Left = 416
+    Height = 25
+    Top = 9
+    Width = 232
+    Caption = 'Convert .bmp to lump with same name'
+    TabOrder = 0
+    OnClick = Button1Click
+  end
+  object Label5: TLabel
+    Left = 8
+    Height = 15
+    Top = 53
+    Width = 32
+    Caption = 'Offset'
+  end
+  object Label6: TLabel
+    Left = 80
+    Height = 15
+    Top = 53
+    Width = 34
+    Caption = 'Label6'
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 148
+    Top = 151
+    object MenuItem1: TMenuItem
+      Caption = 'Export'
+      OnClick = MenuItem1Click
+    end
+  end
+  object SaveDialog1: TSaveDialog
+    DefaultExt = '.bmp'
+    Filter = 'Windows Bitmap|*.bmp|All|*.*'
+    Left = 264
+    Top = 151
+  end
+  object OpenDialog1: TOpenDialog
+    DefaultExt = '.bmp'
+    Filter = 'Windows Bitmap|*.bmp|All|*.*'
+    Left = 472
+    Top = 48
+  end
+end
