@@ -10,7 +10,9 @@ Uses
   , d_mode
   ;
 
-
+Const
+  // so that the individual game logic and sound driver code agree
+  NORM_PITCH = 127;
 
 
 Procedure I_InitSound(mission: GameMission_t);
@@ -18,7 +20,7 @@ Procedure I_InitSound(mission: GameMission_t);
 Function I_GetSfxLumpNum(sfxinfo: Psfxinfo_t): int;
 //Procedure I_UpdateSound();
 //Procedure I_UpdateSoundParams(channel: int; vol: int; sep: int);
-//Function I_StartSound(Var sfxinfo: sfxinfo_t; channel: int; vol: int; sep: int; pitch: int): int;
+Function I_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int; sep: int; pitch: int): int;
 //Procedure I_StopSound(channel: int);
 //Function I_SoundIsPlaying(channel: int): boolean;
 //Procedure I_PrecacheSounds(Var sounds: sfxinfo_t; num_sounds: int);
@@ -76,6 +78,7 @@ End;
 
 Procedure I_InitSound(mission: GameMission_t);
 Begin
+  nop();
   //   boolean nosound, nosfx, nomusic, nomusicpacks;
   //
   //    //!
@@ -162,6 +165,12 @@ Begin
   //    {
   //        return 0;
   //    }
+End;
+
+Function I_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int; sep: int;
+  pitch: int): int;
+Begin
+  //hier weiter
 End;
 
 Procedure I_InitMusic();

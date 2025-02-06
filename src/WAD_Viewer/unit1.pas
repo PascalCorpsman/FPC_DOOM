@@ -1,7 +1,7 @@
 (******************************************************************************)
 (* WAD_Viewer                                                      04.02.2025 *)
 (*                                                                            *)
-(* Version     : 0.02                                                         *)
+(* Version     : 0.03                                                         *)
 (*                                                                            *)
 (* Author      : Uwe Schächterle (Corpsman)                                   *)
 (*                                                                            *)
@@ -25,6 +25,8 @@
 (*                                                                            *)
 (* History     : 0.01 - Initial version                                       *)
 (*               0.02 - Export Lump as RAW                                    *)
+(*               0.03 - Preview sfx lumps                                     *)
+(*                      Preview map                                           *)
 (*                                                                            *)
 (******************************************************************************)
 Unit Unit1;
@@ -58,16 +60,13 @@ Type
     Procedure Edit1Change(Sender: TObject);
     Procedure Edit2Change(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
+    Procedure FormDestroy(Sender: TObject);
     Procedure StringGrid1ButtonClick(Sender: TObject; aCol, aRow: Integer);
     Procedure StringGrid1DblClick(Sender: TObject);
   private
-
-
     Procedure InitColorPallete;
-
   public
     Procedure LoadWadFile(Const Filename: String);
-
   End;
 
 Var
@@ -78,6 +77,7 @@ Implementation
 {$R *.lfm}
 
 Uses
+  bass,
   unit2, unit3
   , w_wad
   , uWAD_viewer
@@ -95,8 +95,8 @@ Const
 
 Procedure TForm1.Button1Click(Sender: TObject);
 Begin
-  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
-  exit; // TODO: Debug- remove
+  //LoadWadFile('Doom2.wad'); // TODO: Debug- remove
+  //exit; // TODO: Debug- remove
 
   // Select .wad file
   If OpenDialog1.Execute Then Begin
@@ -188,7 +188,20 @@ Begin
   edit1.text := '';
   edit2.text := '';
   label2.caption := '';
-  caption := 'Wad viewer, ver. 0.02';
+  caption := 'Wad viewer, ver. 0.03';
+  If (BASS_GetVersion() Shr 16) <> Bassversion Then Begin
+    showmessage('Unable to init the Bass Library ver. :' + BASSVERSIONTEXT);
+    halt;
+  End;
+  If (Not Bass_init(-1, 44100, 0, {$IFDEF Windows}0{$ELSE}Nil{$ENDIF}, Nil)) Then Begin
+    showmessage('Unable to init sound device, playsound option will be disabled.');
+    halt;
+  End;
+End;
+
+Procedure TForm1.FormDestroy(Sender: TObject);
+Begin
+  Bass_Free;
 End;
 
 Procedure TForm1.StringGrid1ButtonClick(Sender: TObject; aCol, aRow: Integer);
@@ -238,13 +251,13 @@ Begin
   InitColorPallete;
   StringGrid1.RowCount := length(lumpinfo) + 1;
   For i := 0 To high(lumpinfo) Do Begin
-    If i = 470 - 1 Then Begin
+    If i = 497 - 1 Then Begin
       nop();
     End;
     StringGrid1.Cells[IndexIndex, i + 1] := Inttostr(i + 1);
     StringGrid1.Cells[IndexLumpName, i + 1] := lumpinfo[i].name;
     StringGrid1.Cells[IndexLumpSize, i + 1] := inttostr(lumpinfo[i].size);
-    StringGrid1.Cells[IndexLumpType, i + 1] := LumpTypeToString(GuessLumpTypeByPointer(W_CacheLumpNum(i, 0)));
+    StringGrid1.Cells[IndexLumpType, i + 1] := LumpTypeToString(GuessLumpTypeByPointer(W_CacheLumpNum(i, 0), lumpinfo[i].name));
   End;
 
   StringGrid1.AutoSizeColumns;

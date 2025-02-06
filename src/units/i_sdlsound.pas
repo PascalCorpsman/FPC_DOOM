@@ -16,7 +16,8 @@ Function I_SDL_InitSound(mission: GameMission_t): boolean;
 Implementation
 
 Uses
-  w_wad
+  bass
+  , w_wad
   ;
 
 Var
@@ -57,19 +58,18 @@ Begin
   //    {
   //        channels_playing[i] = NULL;
   //    }
-  //
-  //    if (SDL_Init(SDL_INIT_AUDIO) < 0)
-  //    {
-  //        fprintf(stderr, "Unable to set up sound.\n");
-  //        return false;
-  //    }
-  //
-  //    if (Mix_OpenAudioDevice(snd_samplerate, AUDIO_S16SYS, 2, GetSliceSize(), NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE) < 0)
-  //    {
-  //        fprintf(stderr, "Error initialising SDL_mixer: %s\n", Mix_GetError());
-  //        return false;
-  //    }
-  //
+
+  If (BASS_GetVersion() Shr 16) <> Bassversion Then Begin
+    writeln(stderr, 'Unable to set up sound.');
+    result := false;
+  End;
+  If (Not Bass_init(-1, 44100, 0, {$IFDEF Windows}0{$ELSE}Nil{$ENDIF}, Nil)) Then Begin
+    writeln(stderr, format('Error initialising SDL_mixer: %d', [BASS_ErrorGetCode()]));
+    result := false;
+  End;
+
+  Bass ist initialisiert, es fehlt nun der "Manager" zum Abspielen
+
   //    ExpandSoundData = ExpandSoundData_SDL;
   //
   //    Mix_QuerySpec(&mixer_freq, &mixer_format, &mixer_channels);

@@ -330,7 +330,7 @@ Begin
   s_sfx[high(s_sfx)].pitch := -1;
   s_sfx[high(s_sfx)].volume := -1;
   s_sfx[high(s_sfx)].usefulness := 0;
-  s_sfx[high(s_sfx)].lumpnum := 0;
+  s_sfx[high(s_sfx)].lumpnum := -1;
   s_sfx[high(s_sfx)].numchannels := -1;
 //  s_sfx[high(s_sfx)].driver_data := Nil;
 End;
@@ -345,7 +345,7 @@ Begin
   s_sfx[high(s_sfx)].pitch := pitch;
   s_sfx[high(s_sfx)].volume := volume;
   s_sfx[high(s_sfx)].usefulness := 0;
-  s_sfx[high(s_sfx)].lumpnum := 0;
+  s_sfx[high(s_sfx)].lumpnum := -1;
   s_sfx[high(s_sfx)].numchannels := -1;
 //  s_sfx[high(s_sfx)].driver_data := Nil;
 End;

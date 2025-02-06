@@ -26,6 +26,8 @@ Type
     ltUnknown, // Muss immer der 1. sein
     ltPatch,
     ltSound,
+    ltMusic,
+    ltMap,
     ltExportAsRaw,
     ltCount // Muss immer der letzte sein !
     );
@@ -33,7 +35,7 @@ Type
 Var
   Doom8BitTo24RGBBit: Array[0..255] Of UInt32;
 
-Function GuessLumpTypeByPointer(Const p: Pointer): TLumpType;
+Function GuessLumpTypeByPointer(Const p: Pointer; LumpName: String): TLumpType;
 
 Function LumpTypeToString(value: TLumpType): String;
 
@@ -41,11 +43,18 @@ Implementation
 
 Uses v_patch;
 
-Function GuessLumpTypeByPointer(Const p: Pointer): TLumpType;
+Function GuessLumpTypeByPointer(Const p: Pointer; LumpName: String): TLumpType;
+Const
+  MusHeader =
+    ord('M') Shl 0
+    Or ord('U') Shl 8
+    Or ord('S') Shl 16
+    Or $1A Shl 24;
 Var
   patch: ^patch_t;
   pui16: ^UInt16;
-
+  pmus: ^Integer;
+  s, t: String;
 Begin
   result := ltUnknown;
   If Not assigned(p) Then exit;
@@ -68,7 +77,37 @@ Begin
       exit;
     End;
   End;
+  // Check for Music
+  pmus := p;
+  If pmus^ = MusHeader Then Begin
+    result := ltMusic;
+    exit;
+  End;
 
+  // Check for Map
+  // Commercial Maps
+  LumpName := uppercase(LumpName);
+  If pos('MAP', LumpName) = 1 Then Begin
+    s := Copy(LumpName, 4, length(LumpName));
+    If strtointdef(s, -1) In [0..99] Then Begin
+      result := ltMap;
+      exit;
+    End;
+  End;
+  // Demo Maps Pattern E<num>M<num>
+  If pos('E', LumpName) = 1 Then Begin
+    s := copy(LumpName, 2, length(LumpName));
+    If pos('M', s) <> 0 Then Begin
+      t := copy(s, 1, pos('M', s) - 1);
+      If StrToIntDef(t, -1) >= 0 Then Begin
+        t := copy(s, pos('M', s) + 1, length(s));
+        If StrToIntDef(t, -1) >= 0 Then Begin
+          result := ltMap;
+          exit;
+        End;
+      End;
+    End;
+  End;
 End;
 
 Function LumpTypeToString(value: TLumpType): String;
@@ -78,6 +117,8 @@ Begin
     ltUnknown: result := 'Unknown';
     ltPatch: result := 'patch_t';
     ltSound: Result := 'Sound';
+    ltMusic: result := 'Music';
+    ltMap: Result := 'Map';
     ltExportAsRaw: result := 'Export as RAW';
   Else Begin
       Raise exception.create('LumpTypeToString, missing type in case!');

@@ -253,7 +253,7 @@ Begin
 
   //  assignfile(f, 'Blub.txt');
   //  Rewrite(f);
-  If GuessLumpTypeByPointer(p) <> ltPatch Then exit;
+  If GuessLumpTypeByPointer(p, '') <> ltPatch Then exit;
   LumpImage.Width := p^.width;
   LumpImage.Height := p^.height;
   //  writeln(f, p^.width);
