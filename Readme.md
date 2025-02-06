@@ -24,10 +24,19 @@ ports, but that version only supports DirectX and therefore only supports Window
 - install [Lazarus-IDE](https://www.lazarus-ide.org/)
 - install package LazOpenGLContext (is shipped with lazarus)
 - download [dglOpenGL.pas](https://github.com/saschawillems/dglopengl) and store it in the units folder
+- download [bass](https://www.un4seen.com) and store bass.pas in the units folder
 
+  o Windows users:
+    - copy bass.dll into root folder  
+  
+  o Linux users:
+    - copy libbass.so to /usr/lib 
+    - chmod o+r it 
+  
 ## What needs to be done to play the game
 - get a valid .wad file and copy it where the binary is beeing created (or use this [shareware](https://www.doomworld.com/3ddownloads/ports/shareware_doom_iwad.zip) version)
 - wait until this repository has have enough progress to be a playable game (see section [progress](#progress))
+- Download and install bass (see above)
 - start the application
 
 ## Lessons learned ?
