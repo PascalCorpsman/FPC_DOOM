@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="93">
+    <Units Count="95">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -420,13 +420,25 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="BASS"/>
       </Unit92>
+      <Unit93>
+        <Filename Value="ufpc_doom_bass.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit93>
+      <Unit94>
+        <Filename Value="../Sample/Sound/uwave.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit94>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
+    <Target>
+      <Filename Value="fpc_doom"/>
+    </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../Graphik;../../DatenSteuerung;../Sample/OpenGL;units;../Sample/DatenSteuerung;../Sample/Sound/Bass"/>
+      <OtherUnitFiles Value="../../Graphik;../../DatenSteuerung;../Sample/OpenGL;units;../Sample/DatenSteuerung;../Sample/Sound/Bass;../Sample/Sound"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -438,7 +450,6 @@
         <IOChecks Value="True"/>
         <RangeChecks Value="True"/>
         <OverflowChecks Value="True"/>
-        <StackChecks Value="True"/>
       </Checks>
       <VerifyObjMethodCallValidity Value="True"/>
     </CodeGeneration>

@@ -167,10 +167,39 @@ Begin
   //    }
 End;
 
+Procedure CheckVolumeSeparation(Var vol, sep: int);
+Begin
+  //    if (*sep < 0)
+  //    {
+  //        *sep = 0;
+  //    }
+  //    else if (*sep > 254)
+  //    {
+  //        *sep = 254;
+  //    }
+  //
+  //    if (*vol < 0)
+  //    {
+  //        *vol = 0;
+  //    }
+  //    else if (*vol > 127)
+  //    {
+  //        *vol = 127;
+  //    }
+End;
+
 Function I_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int; sep: int;
   pitch: int): int;
 Begin
-  //hier weiter
+  //  if (sound_module != NULL)
+  //      {
+  CheckVolumeSeparation(vol, sep);
+  result := {sound_module->} I_SDL_StartSound(sfxinfo, channel, vol, sep, pitch);
+  //      }
+  //      else
+  //      {
+  //          return 0;
+  //      }
 End;
 
 Procedure I_InitMusic();

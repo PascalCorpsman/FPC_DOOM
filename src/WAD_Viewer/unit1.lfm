@@ -7,7 +7,7 @@ object Form1: TForm1
   ClientHeight = 505
   ClientWidth = 320
   Position = poScreenCenter
-  LCLVersion = '3.99.0.0'
+  LCLVersion = '4.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   object Button1: TButton
@@ -51,7 +51,7 @@ object Form1: TForm1
   end
   object Edit1: TEdit
     Left = 72
-    Height = 23
+    Height = 26
     Top = 38
     Width = 64
     TabOrder = 2
@@ -60,9 +60,9 @@ object Form1: TForm1
   end
   object Label1: TLabel
     Left = 8
-    Height = 15
+    Height = 16
     Top = 48
-    Width = 26
+    Width = 31
     Caption = 'Filter'
   end
   object Button2: TButton
@@ -97,7 +97,7 @@ object Form1: TForm1
   end
   object Edit2: TEdit
     Left = 200
-    Height = 23
+    Height = 26
     Top = 38
     Width = 64
     TabOrder = 6
@@ -106,9 +106,9 @@ object Form1: TForm1
   end
   object Label2: TLabel
     Left = 8
-    Height = 15
-    Top = 448
-    Width = 34
+    Height = 16
+    Top = 447
+    Width = 41
     Anchors = [akLeft, akBottom]
     Caption = 'Label2'
   end

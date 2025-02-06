@@ -12,11 +12,12 @@ Uses
 
 Function I_SDL_GetSfxLumpNum(sfx: Psfxinfo_t): int;
 Function I_SDL_InitSound(mission: GameMission_t): boolean;
+Function I_SDL_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int; sep: int; pitch: int): int;
 
 Implementation
 
 Uses
-  bass
+  bass, ufpc_doom_bass
   , w_wad
   ;
 
@@ -67,40 +68,48 @@ Begin
     writeln(stderr, format('Error initialising SDL_mixer: %d', [BASS_ErrorGetCode()]));
     result := false;
   End;
+  If assigned(BassSoundManager) Then BassSoundManager.free;
+  BassSoundManager := TBassSoundManager.Create();
 
-  Bass ist initialisiert, es fehlt nun der "Manager" zum Abspielen
+  //  Bass ist initialisiert, es fehlt nun der "Manager" zum Abspielen
 
-  //    ExpandSoundData = ExpandSoundData_SDL;
-  //
-  //    Mix_QuerySpec(&mixer_freq, &mixer_format, &mixer_channels);
-  //
-  //#ifdef HAVE_LIBSAMPLERATE
-  //    if (use_libsamplerate != 0)
-  //    {
-  //        if (SRC_ConversionMode() < 0)
-  //        {
-  //            I_Error("I_SDL_InitSound: Invalid value for use_libsamplerate: %i",
-  //                    use_libsamplerate);
-  //        }
-  //
-  //        ExpandSoundData = ExpandSoundData_SRC;
-  //    }
-  //#else
-  //    if (use_libsamplerate != 0)
-  //    {
-  //        fprintf(stderr, "I_SDL_InitSound: use_libsamplerate=%i, but "
-  //                        "libsamplerate support not compiled in.\n",
-  //                        use_libsamplerate);
-  //    }
-  //#endif
-  //
-  //    Mix_AllocateChannels(NUM_CHANNELS);
-  //
-  //    SDL_PauseAudio(0);
-  //
-  //    sound_initialized = true;
+    //    ExpandSoundData = ExpandSoundData_SDL;
+    //
+    //    Mix_QuerySpec(&mixer_freq, &mixer_format, &mixer_channels);
+    //
+    //#ifdef HAVE_LIBSAMPLERATE
+    //    if (use_libsamplerate != 0)
+    //    {
+    //        if (SRC_ConversionMode() < 0)
+    //        {
+    //            I_Error("I_SDL_InitSound: Invalid value for use_libsamplerate: %i",
+    //                    use_libsamplerate);
+    //        }
+    //
+    //        ExpandSoundData = ExpandSoundData_SRC;
+    //    }
+    //#else
+    //    if (use_libsamplerate != 0)
+    //    {
+    //        fprintf(stderr, "I_SDL_InitSound: use_libsamplerate=%i, but "
+    //                        "libsamplerate support not compiled in.\n",
+    //                        use_libsamplerate);
+    //    }
+    //#endif
+    //
+    //    Mix_AllocateChannels(NUM_CHANNELS);
+    //
+    //    SDL_PauseAudio(0);
+    //
+    //    sound_initialized = true;
 
   result := true;
+End;
+
+Function I_SDL_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int;
+  sep: int; pitch: int): int;
+Begin
+  BassSoundManager.StartSound(sfxinfo);
 End;
 
 End.
