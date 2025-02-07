@@ -48,6 +48,7 @@ Uses
   , s_sound, st_stuff
   , v_video
   , w_wad, w_main
+  , v_snow
   , z_zone
   ;
 
@@ -838,14 +839,13 @@ Begin
   End;
 
   //    // [crispy] Snow
-  //    if (crispy->snowflakes)
-  //    {
-  //	V_SnowDraw();
-  //
-  //	// [crispy] force redraw of status bar and border
-  //	viewactivestate = false;
-  //	inhelpscreensstate = true;
-  //    }
+  If (crispy.snowflakes <> 0) Then Begin
+    V_SnowDraw();
+
+    // [crispy] force redraw of status bar and border
+    viewactivestate := false;
+    inhelpscreensstate := true;
+  End;
 
   //    // [crispy] draw neither pause pic nor menu when taking a clean screenshot
   //    if (crispy->cleanscreenshot)
@@ -859,14 +859,13 @@ Begin
       y := 4
     Else
       y := (viewwindowy Shr crispy.hires) + 4;
-    V_DrawPatchDirect((viewwindowx Shr crispy.hires) + ((scaledviewwidth Shr crispy.hires) - 68) Div 2, y,
+    V_DrawPatchDirect((viewwindowx {Shr crispy.hires}) + ((scaledviewwidth {Shr crispy.hires}) - 68) Div 2, y,
       W_CacheLumpName('M_PAUSE', PU_CACHE));
   End;
 
-
   // menus go directly to the screen
   M_Drawer(); // menu is drawn even on top of everything
-  // NetUpdate(); // send out any new accumulation
+  NetUpdate(); // send out any new accumulation
 
   result := wipe;
 End;

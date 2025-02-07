@@ -9,6 +9,9 @@ Uses
   , sounds, info_types
   ;
 
+Var
+  musicVolume: integer = 8;
+
 Procedure S_StartSound(origin_p: Pointer; sfx_id: sfxenum_t);
 Procedure S_StartSoundOptional(origin_p: Pointer; sfx_id: sfxenum_t; old_sfx_id: sfxenum_t);
 Procedure S_StartMusic(m_id: musicenum_t);

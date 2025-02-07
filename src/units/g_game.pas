@@ -880,40 +880,39 @@ Begin
     // check for special buttons
     For i := 0 To MAXPLAYERS - 1 Do Begin
       If (playeringame[i]) Then Begin
-        //	    if (players[i].cmd.buttons & BT_SPECIAL)
-        //	    {
-        //		switch (players[i].cmd.buttons & BT_SPECIALMASK)
-        //		{
-        //		  case BTS_PAUSE:
-        //		    paused ^= 1;
-        //		    if (paused)
-        //			S_PauseSound ();
-        //		    else
-        //		    // [crispy] Fixed bug when music was hearable with zero volume
-        //		    if (musicVolume)
-        //			S_ResumeSound ();
-        //		    break;
-        //
-        //		  case BTS_SAVEGAME:
-        //		    // [crispy] never override savegames by demo playback
-        //		    if (demoplayback)
-        //			break;
-        //		    if (!savedescription[0])
-        //                    {
-        //                        M_StringCopy(savedescription, "NET GAME",
-        //                                     sizeof(savedescription));
-        //                    }
-        //
-        //		    savegameslot =
-        //			(players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
-        //		    gameaction = ga_savegame;
-        //		    // [crispy] un-pause immediately after saving
-        //		    // (impossible to send save and pause specials within the same tic)
-        //		    if (demorecording && paused)
-        //			sendpause = true;
-        //		    break;
-        //		}
-        //	    }
+        If (players[i].cmd.buttons And BT_SPECIAL) <> 0 Then Begin
+
+          Case (players[i].cmd.buttons And BT_SPECIALMASK) Of
+
+            BTS_PAUSE: Begin
+                paused := paused Xor 1;
+                If (paused <> 0) Then
+                  S_PauseSound()
+                    // [crispy] Fixed bug when music was hearable with zero volume
+                Else If (musicVolume <> 0) Then
+                  S_ResumeSound();
+              End;
+
+            //		  case BTS_SAVEGAME:
+            //		    // [crispy] never override savegames by demo playback
+            //		    if (demoplayback)
+            //			break;
+            //		    if (!savedescription[0])
+            //                    {
+            //                        M_StringCopy(savedescription, "NET GAME",
+            //                                     sizeof(savedescription));
+            //                    }
+            //
+            //		    savegameslot =
+            //			(players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
+            //		    gameaction = ga_savegame;
+            //		    // [crispy] un-pause immediately after saving
+            //		    // (impossible to send save and pause specials within the same tic)
+            //		    if (demorecording && paused)
+            //			sendpause = true;
+            //		    break;
+          End;
+        End;
       End;
     End;
   End;
@@ -1962,17 +1961,15 @@ Begin
     cmd.lookfly := look;
   End;
 
-  //    // special buttons
-  //    // [crispy] suppress pause when a new game is started
-  //    if (sendpause && gameaction != ga_newgame)
-  //    {
-  //	sendpause = false;
-  //	// [crispy] ignore un-pausing in menus during demo recording
-  //	if (!(menuactive && demorecording && paused) && gameaction != ga_loadgame)
-  //	{
-  //	cmd->buttons = BT_SPECIAL | BTS_PAUSE;
-  //	}
-  //    }
+  // special buttons
+  // [crispy] suppress pause when a new game is started
+  If (sendpause) And (gameaction <> ga_newgame) Then Begin
+    sendpause := false;
+    // [crispy] ignore un-pausing in menus during demo recording
+    If (Not ((menuactive) And (demorecording) And (paused <> 0)) And (gameaction <> ga_loadgame)) Then Begin
+      cmd.buttons := BT_SPECIAL Or BTS_PAUSE;
+    End;
+  End;
 
   //    if (sendsave)
   //    {

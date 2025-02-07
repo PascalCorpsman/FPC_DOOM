@@ -9,6 +9,8 @@ Uses
 
 Procedure V_SnowUpdate();
 
+Procedure V_SnowDraw();
+
 Implementation
 
 Procedure V_SnowUpdate();
@@ -35,6 +37,23 @@ Begin
   //            snowflakes[i].x = snowflakes[i].x - SCREENWIDTH;
   //        if (snowflakes[i].x < 0)
   //            snowflakes[i].x = SCREENWIDTH + snowflakes[i].x;
+  //    }
+End;
+
+Procedure V_SnowDraw();
+Begin
+  Raise Exception.Create('Port me.');
+  //    size_t i;
+  //
+  //    for (i = 0; i < snowflakes_num; i++)
+  //    {
+  //        int video_offset;
+  //
+  //        if (snowflakes[i].y < 0)
+  //            continue;
+  //
+  //        video_offset = snowflakes[i].x + snowflakes[i].y * SCREENWIDTH;
+  //        I_VideoBuffer[video_offset] = snowflakes_color;
   //    }
 End;
 

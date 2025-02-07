@@ -54,7 +54,7 @@ Var
   //extern int key_invdrop;
   //
   //extern int key_message_refresh;
-  //extern int key_pause;
+  key_pause: int;
   //
   //extern int key_multi_msg;
   //extern int key_multi_msgplayer[8];
@@ -247,6 +247,8 @@ Begin
   key_map_clearmark := VK_C;
   key_map_overlay := VK_O; // [crispy]
   key_map_rotate := VK_R; // [crispy]
+
+  key_pause := VK_PAUSE;
 
   key_weapon1 := VK_1;
   key_weapon2 := VK_2;
