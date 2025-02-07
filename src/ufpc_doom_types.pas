@@ -11,6 +11,11 @@ Const
   INT_MIN = -2147483648; // = low(int); ?
   INT_MAX = 2147483647; // = high(int); ?
 
+  BOBFACTOR_FULL = 0;
+  BOBFACTOR_75 = 1;
+  BOBFACTOR_OFF = 2;
+  NUM_BOBFACTORS = 3;
+
   BRIGHTMAPS_OFF = 0;
   BRIGHTMAPS_TEXTURES = 1;
   BRIGHTMAPS_SPRITES = 2;
@@ -36,6 +41,11 @@ Const
   FREEAIM_BOTH = 2;
   NUM_FREEAIMS = 3;
 
+  CENTERWEAPON_OFF = 0;
+  CENTERWEAPON_CENTER = 1;
+  CENTERWEAPON_BOB = 2;
+  NUM_CENTERWEAPON = 3;
+
   COLOREDHUD_OFF = 0;
   COLOREDHUD_BAR = 1;
   COLOREDHUD_TEXT = 2;
@@ -46,6 +56,16 @@ Const
   COLOREDBLOOD_BLOOD = 1;
   COLOREDBLOOD_ALL = 2;
   NUM_COLOREDBLOOD = 3;
+
+  SECRETMESSAGE_OFF = 0;
+  SECRETMESSAGE_ON = 1;
+  SECRETMESSAGE_COUNT = 2;
+  NUM_SECRETMESSAGE = 3;
+
+  JUMP_OFF = 0;
+  JUMP_LOW = 1;
+  JUMP_HIGH = 2;
+  NUM_JUMPS = 3;
 
 Type
   TProcedure = Procedure();
@@ -78,10 +98,10 @@ Type
     automapoverlay: int; // 0, ?
     automaprotate: int;
     //    	int automapstats;
-    bobfactor: int; // 0,1,2
-    brightmaps: int;
+    bobfactor: int; // BOBFACTOR_FULL, BOBFACTOR_75, BOBFACTOR_OFF,
+    brightmaps: int; // BRIGHTMAPS_OFF, BRIGHTMAPS_TEXTURES, BRIGHTMAPS_SPRITES, BRIGHTMAPS_BOTH
     btusetimer: int; // ?
-    centerweapon: int;
+    centerweapon: int; // CENTERWEAPON_OFF, CENTERWEAPON_CENTER, CENTERWEAPON_BOB
     coloredblood: int; // COLOREDBLOOD_OFF .. COLOREDBLOOD_ALL
     coloredhud: int; // COLOREDHUD_OFF .. COLOREDHUD_BOTH
     crosshair: int; // CROSSHAIR_OFF .. CROSSHAIR_PROJECTED
@@ -100,14 +120,14 @@ Type
     //    	int freelook_hh;
     //    	int gamma;
     hires: Int; // 0, 1, 2 Alles über 2 macht eigentlich keinen Sinn mehr, Bei werten > 2 muss MAXWIDTH und MAXHEIGHT aus i_video.pas angepasst werden, sonst knallts beim start !
-    jump: int; // 0, 1 -> ist aber nur im Singleplayer erlaubt !
+    jump: int; // JUMP_OFF, JUMP_LOW, JUMP_HIGH -> ist aber nur im Singleplayer erlaubt !
     //    	int leveltime;
     mouselook: int; // ?
     //    	int neghealth;
     overunder: int; // ?
     pitch: int; // ?
     //    	int playercoords;
-    secretmessage: int;
+    secretmessage: int; // SECRETMESSAGE_OFF, SECRETMESSAGE_ON, SECRETMESSAGE_COUNT
     //    	int smoothlight;
     smoothmap: int;
     //    	int smoothscaling;
@@ -222,10 +242,10 @@ Initialization
 
   Crispy.automapoverlay := 0;
   Crispy.automaprotate := 0;
-  Crispy.bobfactor := 0;
-  Crispy.brightmaps := 0;
+  Crispy.bobfactor := BOBFACTOR_FULL;
+  Crispy.brightmaps := BRIGHTMAPS_OFF;
   Crispy.btusetimer := 0;
-  Crispy.centerweapon := 0;
+  Crispy.centerweapon := CENTERWEAPON_OFF;
   Crispy.coloredblood := COLOREDBLOOD_OFF;
   Crispy.coloredhud := COLOREDHUD_OFF;
   Crispy.crosshair := CROSSHAIR_OFF;
@@ -238,13 +258,13 @@ Initialization
   Crispy.freelook := 0;
 
   Crispy.hires := 1;
-  Crispy.jump := 0;
+  Crispy.jump := JUMP_OFF;
   Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
   Crispy.overunder := 0;
   Crispy.pitch := 0;
-  Crispy.secretmessage := 0;
+  Crispy.secretmessage := SECRETMESSAGE_OFF;
   Crispy.smoothmap := 0;
   //  Crispy.smoothscaling := 1;
   //    #ifdef CRISPY_TRUECOLOR

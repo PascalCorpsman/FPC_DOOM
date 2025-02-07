@@ -40,7 +40,8 @@ Const
   //  #define KEY_EQUALS	0x3d
   //  #define KEY_MINUS	0x2d
   //
-  KEY_RSHIFT = VK_SHIFT;
+  KEY_RSHIFT = VK_LSHIFT;
+  KEY_LSHIFT = VK_RSHIFT;
   //  #define KEY_RCTRL	(0x80+0x1d)
   KEY_RALT = 0; // Gibts in Lazarus überhaubt den ALT KEy ?
   //

@@ -316,7 +316,7 @@ Begin
     // [crispy] if the player dies and the game has been loaded or saved
     // in the mean time, reload that savegame instead of restarting the level
     // when "Run" is pressed upon resurrection
-    If (true {crispy->singleplayer }) And (savename <> '') And (speedkeydown()) Then Begin
+    If (crispy.singleplayer) And (savename <> '') And (speedkeydown()) Then Begin
       gameaction := ga_loadgame;
     End
     Else Begin
@@ -1114,11 +1114,10 @@ End;
 
 Function speedkeydown(): boolean;
 Begin
-  // TODO: Fehlt noch
-//   return (key_speed < NUMKEYS && gamekeydown[key_speed]) ||
-//           (joybspeed < MAX_JOY_BUTTONS && joybuttons[joybspeed]) ||
-//           (mousebspeed < MAX_MOUSE_BUTTONS && mousebuttons[mousebspeed]);
-  result := false;
+  result := ((key_speed < NUMKEYS) And (gamekeydown[key_speed])) Or
+    ((key_speed < NUMKEYS) And (gamekeydown[key_alt_speed])) { ||
+  (joybspeed < MAX_JOY_BUTTONS && joybuttons[joybspeed]) ||
+  (mousebspeed < MAX_MOUSE_BUTTONS && mousebuttons[mousebspeed])};
 End;
 
 //

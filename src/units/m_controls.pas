@@ -25,6 +25,7 @@ Var
   key_use: int;
   key_strafe: int;
   key_speed: int;
+  key_alt_speed: int;
   //extern int key_demospeed;  // [crispy]
   //
   key_jump: int;
@@ -257,6 +258,7 @@ Begin
   key_weapon8 := VK_8;
 
   key_speed := KEY_RSHIFT;
+  key_alt_speed := KEY_LSHIFT;
   key_right := KEY_RIGHTARROW;
   key_left := KEY_LEFTARROW;
   key_up := KEY_UPARROW;

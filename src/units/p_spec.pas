@@ -246,8 +246,8 @@ Implementation
 
 Uses
   doomstat, doomdata, sounds
-  , d_loop, d_mode
-  , i_timer, i_system
+  , d_loop, d_mode, d_englsh
+  , i_timer, i_system, i_sound
   , g_game
   , m_menu
   , p_tick, p_setup, p_floor, p_switch, p_doors, p_plats, p_lights, p_ceilng, p_mobj, p_inter
@@ -259,6 +259,9 @@ Uses
   ;
 
 Const
+
+  HUSTR_SECRETFOUND = 'A secret is revealed!'; // WTF: Warum ist das nicht in d_englsh
+
   //
   //      Animating line specials
   //
@@ -605,7 +608,8 @@ Const
 Var
   sector: Psector_t;
   //    extern int showMessages;
-
+  sfx_id: sfxenum_t;
+  str_count: String;
 Begin
   sector := player^.mo^.subsector^.sector;
 
@@ -644,28 +648,36 @@ Begin
         //	}
       End;
     9: Begin
-        Raise exception.create('Port me.');
-        //	// SECRET SECTOR
-        //	player^.secretcount++;
-        //	// [crispy] show centered "Secret Revealed!" message
-        //	if (showMessages && crispy^.secretmessage && player == &players[consoleplayer])
-        //	{
-        //	    int sfx_id;
-        //	    static char str_count[32];
-        //
-        //	    M_snprintf(str_count, sizeof(str_count), "Secret %d of %d revealed!", player^.secretcount, totalsecret);
-        //
-        //	    // [crispy] play DSSECRET if available
-        //	    sfx_id = I_GetSfxLumpNum(&S_sfx[sfx_secret]) != -1 ? sfx_secret :
-        //	             I_GetSfxLumpNum(&S_sfx[sfx_itmbk]) != -1 ? sfx_itmbk : -1;
-        //
-        //	    player^.centermessage = (crispy^.secretmessage == SECRETMESSAGE_COUNT) ? str_count : HUSTR_SECRETFOUND;
-        //	    if (sfx_id != -1)
-        //		S_StartSound(Nil, sfx_id);
-        //	}
-        //	// [crispy] remember revealed secrets
-        //	sector^.oldspecial = sector^.special;
-        //	sector^.special = 0;
+        // SECRET SECTOR
+        player^.secretcount := player^.secretcount + 1;
+        // [crispy] show centered "Secret Revealed!" message
+        If (showMessages <> 0) And (crispy.secretmessage <> 0) And (player = @players[consoleplayer]) Then Begin
+
+          // [crispy] play DSSECRET if available
+          If I_GetSfxLumpNum(@S_sfx[int(sfx_secret)]) <> -1 Then Begin
+            sfx_id := sfx_secret;
+          End
+          Else Begin
+            If I_GetSfxLumpNum(@S_sfx[int(sfx_itmbk)]) <> -1 Then Begin
+              sfx_id := sfx_itmbk;
+            End
+            Else Begin
+              sfx_id := sfx_None;
+            End;
+          End;
+          If (crispy.secretmessage = SECRETMESSAGE_COUNT) Then Begin
+            str_count := format('Secret %d of %d revealed!', [player^.secretcount, totalsecret]);
+            player^.centermessage := str_count;
+          End
+          Else Begin
+            player^.centermessage := HUSTR_SECRETFOUND;
+          End;
+          If (sfx_id <> sfx_None) Then
+            S_StartSound(Nil, sfx_id);
+        End;
+        // [crispy] remember revealed secrets
+        sector^.oldspecial := sector^.special;
+        sector^.special := 0;
       End;
     11: Begin
         Raise exception.create('Port me.');
