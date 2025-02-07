@@ -12,7 +12,6 @@ Uses
   ufpc_doom_types, Classes, SysUtils
   , doomdata, doomdef, tables, sounds
   , d_player, d_ticcmd
-  , m_fixed
   ;
 
 Type
@@ -1276,7 +1275,6 @@ Type
     NUMSTATES = 4000
     );
 
-
   mobjtype_t = (
     MT_NULL = -1, // [crispy] null/invalid mobj (zero is reserved for MT_PLAYER)
     MT_PLAYER,
@@ -1707,7 +1705,7 @@ Type
     y: fixed_t;
     z: fixed_t;
   End;
-
+  Pdegenmobj_t = ^degenmobj_t;
 
   Pline_t = ^line_t;
 

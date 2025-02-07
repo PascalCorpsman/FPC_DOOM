@@ -22,6 +22,8 @@ Procedure S_StartSoundOnce(origin_p: Pointer; sfx_id: sfxenum_t);
 Procedure S_UnlinkSound(origin: Pmobj_t);
 Procedure S_StopSound(origin: Pmobj_t);
 
+Procedure S_Shutdown();
+
 Implementation
 
 Uses
@@ -257,6 +259,12 @@ Begin
   //            break;
   //        }
   //    }
+End;
+
+Procedure S_Shutdown();
+Begin
+  I_ShutdownSound();
+  //I_ShutdownMusic();
 End;
 
 End.

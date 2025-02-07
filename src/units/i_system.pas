@@ -18,7 +18,9 @@ Procedure I_Tactile(_on: int; off: int; total: int);
 
 Implementation
 
-Uses config, Forms;
+Uses config, Forms, bass
+  , s_sound
+  ;
 
 Procedure I_Error(Error: String);
 Begin
@@ -28,21 +30,14 @@ End;
 
 Procedure I_Quit();
 Begin
-  //   atexit_listentry_t *entry;
-  //
-  //    // Run through all exit functions
-  //
-  //    entry = exit_funcs;
-  //
-  //    while (entry != NULL)
-  //    {
-  //        entry->func();
-  //        entry = entry->next;
-  //    }
-  //
-  //    SDL_Quit();
-  //
-
+  // D_QuitNetGame;
+  // I_ShutdownGamepad;
+  // I_ShutdownGraphics;
+  // CloseLog;
+  S_Shutdown();
+  // D_Endoom;
+  // M_SaveDefaults;
+  // G_CheckDemoStatusAtExit;
   Application.Terminate;
 End;
 

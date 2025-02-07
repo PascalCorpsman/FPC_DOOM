@@ -69,14 +69,48 @@ Procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 Implementation
 
 Uses
-  doomdata, sounds, tables
-  , d_player
+  doomdata, sounds, tables, doomstat
+  , d_player, d_mode, d_main
   , g_game
+  , i_system
   , m_fixed, m_random
-  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local
+  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local, p_switch, p_inter
   , r_main
   , s_sound
   ;
+
+
+Type
+  dirtype_t = (
+    DI_EAST,
+    DI_NORTHEAST,
+    DI_NORTH,
+    DI_NORTHWEST,
+    DI_WEST,
+    DI_SOUTHWEST,
+    DI_SOUTH,
+    DI_SOUTHEAST,
+    DI_NODIR,
+    NUMDIRS
+    );
+
+Const
+  xspeed: Array[0..7] Of fixed_t = (FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000, 0, 47000);
+  yspeed: Array[0..7] Of fixed_t = (0, 47000, FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000);
+
+  //
+  // P_NewChaseDir related LUT.
+  //
+  opposite: Array Of dirtype_t =
+  (
+    DI_WEST, DI_SOUTHWEST, DI_SOUTH, DI_SOUTHEAST,
+    DI_EAST, DI_NORTHEAST, DI_NORTH, DI_NORTHWEST, DI_NODIR
+    );
+
+  diags: Array Of dirtype_t =
+  (
+    DI_NORTHWEST, DI_NORTHEAST, DI_SOUTHWEST, DI_SOUTHEAST
+    );
 
 Var
   soundtarget: Pmobj_t;
@@ -118,32 +152,29 @@ Begin
 End;
 
 Procedure A_PlayerScream(mo: Pmobj_t);
+Var
+  sound: sfxenum_t;
 Begin
-  Raise exception.create('Port me.');
-
   // Default death sound.
-//    int		sound = sfx_pldeth;
-//
-//    if ( (gamemode == commercial)
-//	&& 	(mo->health < -50))
-//    {
-//	// IF THE PLAYER DIES
-//	// LESS THAN -50% WITHOUT GIBBING
-//	sound = sfx_pdiehi;
-//    }
-//
-//    S_StartSound (mo, sound);
+  sound := sfx_pldeth;
+
+  If ((gamemode = commercial)
+    And (mo^.health < -50)) Then Begin
+
+    // IF THE PLAYER DIES
+    // LESS THAN -50% WITHOUT GIBBING
+    sound := sfx_pdiehi;
+  End;
+  S_StartSound(mo, sound);
 End;
 
 Procedure A_Fall(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
-
   // actor is on ground, it can be walked over
-  // actor->flags &= ~MF_SOLID;
+  actor^.flags := actor^.flags And Not MF_SOLID;
 
-   // So change this if corpse objects
-   // are meant to be obstacles.
+  // So change this if corpse objects
+  // are meant to be obstacles.
 End;
 
 Procedure A_XScream(actor: Pmobj_t);
@@ -306,157 +337,438 @@ Begin
 End;
 
 //
+// P_Move
+// Move in the current direction,
+// returns false if the move is blocked.
+//
+
+Function P_Move(actor: Pmobj_t): boolean;
+Var
+  tryx: fixed_t;
+  tryy: fixed_t;
+
+  ld: pline_t;
+
+  // warning: 'catch', 'throw', and 'try'
+  // are all C++ reserved words
+  try_ok: boolean;
+  good: boolean;
+Begin
+  result := false;
+  If (actor^.movedir = integer(DI_NODIR)) Then exit;
+
+  If (unsigned_int(actor^.movedir) >= 8) Then Begin
+    I_Error('Weird actor^.movedir!');
+  End;
+
+  tryx := actor^.x + actor^.info^.speed * xspeed[actor^.movedir];
+  tryy := actor^.y + actor^.info^.speed * yspeed[actor^.movedir];
+
+  try_ok := P_TryMove(actor, tryx, tryy);
+
+  If (Not try_ok) Then Begin
+
+    // open any specials
+    If ((actor^.flags And MF_FLOAT) <> 0) And (floatok) Then Begin
+      // must adjust height
+      If (actor^.z < tmfloorz) Then
+        actor^.z := actor^.z + FLOATSPEED
+      Else
+        actor^.z := actor^.z - FLOATSPEED;
+
+      actor^.flags := actor^.flags Or MF_INFLOAT;
+      result := true;
+      exit;
+    End;
+
+    If (numspechit = 0) Then exit;
+
+    actor^.movedir := integer(DI_NODIR);
+    good := false;
+
+    Repeat
+      ld := spechit[numspechit];
+      // if the special is not a door
+      // that can be opened,
+      // return false
+      If (P_UseSpecialLine(actor, ld, 0)) Then
+        good := true;
+      numspechit := numspechit - 1;
+    Until numspechit = 0;
+    result := good;
+    exit;
+  End
+  Else Begin
+    actor^.flags := actor^.flags And Not MF_INFLOAT;
+  End;
+
+  If ((actor^.flags And MF_FLOAT) = 0) Then
+    actor^.z := actor^.floorz;
+  result := true;
+End;
+
+//
+// TryWalk
+// Attempts to move actor on
+// in its current (ob->moveangle) direction.
+// If blocked by either a wall or an actor
+// returns FALSE
+// If move is either clear or blocked only by a door,
+// returns TRUE and sets...
+// If a door is in the way,
+// an OpenDoor call is made to start it opening.
+//
+
+Function P_TryWalk(actor: Pmobj_t): boolean;
+Begin
+  If (Not P_Move(actor)) Then Begin
+
+    result := false;
+    exit;
+  End;
+  actor^.movecount := P_Random() And 15;
+  result := true;
+End;
+
+Procedure P_NewChaseDir(actor: Pmobj_t);
+Var
+  deltax: fixed_t;
+  deltay: fixed_t;
+
+  d: Array[0..2] Of dirtype_t;
+
+  tdir: int;
+  olddir: dirtype_t;
+
+  turnaround: dirtype_t;
+Begin
+
+  If (actor^.target = Nil) Then Begin
+    I_Error('P_NewChaseDir: called with no target');
+  End;
+
+  olddir := dirtype_t(actor^.movedir);
+  turnaround := opposite[integer(olddir)];
+
+  deltax := actor^.target^.x - actor^.x;
+  deltay := actor^.target^.y - actor^.y;
+
+  If (deltax > 10 * FRACUNIT) Then
+    d[1] := DI_EAST
+  Else If (deltax < -10 * FRACUNIT) Then
+    d[1] := DI_WEST
+  Else
+    d[1] := DI_NODIR;
+
+  If (deltay < -10 * FRACUNIT) Then
+    d[2] := DI_SOUTH
+  Else If (deltay > 10 * FRACUNIT) Then
+    d[2] := DI_NORTH
+  Else
+    d[2] := DI_NODIR;
+
+  // try direct route
+  If (d[1] <> DI_NODIR)
+    And (d[2] <> DI_NODIR) Then Begin
+
+    actor^.movedir := integer(diags[(ord(deltay < 0) Shl 1) + ord(deltax > 0)]);
+    If (actor^.movedir <> integer(turnaround)) And (P_TryWalk(actor)) Then
+      exit;
+  End;
+
+  // try other directions
+  If (P_Random() > 200)
+    Or (abs(deltay) > abs(deltax)) Then Begin
+    tdir := integer(d[1]);
+    d[1] := d[2];
+    d[2] := dirtype_t(tdir);
+  End;
+
+  If (d[1] = turnaround) Then
+    d[1] := DI_NODIR;
+  If (d[2] = turnaround) Then
+    d[2] := DI_NODIR;
+
+  If (d[1] <> DI_NODIR) Then Begin
+    actor^.movedir := integer(d[1]);
+    If (P_TryWalk(actor)) Then Begin
+      // either moved forward or attacked
+      exit;
+    End;
+  End;
+
+  If (d[2] <> DI_NODIR) Then Begin
+    actor^.movedir := integer(d[2]);
+    If (P_TryWalk(actor)) Then
+      exit;
+  End;
+
+  // there is no direct path to the player,
+  // so pick another direction.
+  If (olddir <> DI_NODIR) Then Begin
+
+    actor^.movedir := integer(olddir);
+
+    If (P_TryWalk(actor)) Then
+      exit;
+  End;
+
+  // randomly determine direction of search
+  If (P_Random() And 1) <> 0 Then Begin
+    For tdir := integer(DI_EAST) To integer(DI_SOUTHEAST) Do Begin
+      If (tdir <> integer(turnaround)) Then Begin
+        actor^.movedir := tdir;
+        If (P_TryWalk(actor)) Then exit;
+      End;
+    End;
+  End
+  Else Begin
+    tdir := integer(DI_SOUTHEAST);
+    While tdir <> (integer(DI_EAST) - 1) Do Begin
+      If (tdir <> integer(turnaround)) Then Begin
+        actor^.movedir := tdir;
+        If (P_TryWalk(actor)) Then exit;
+      End;
+      tdir := tdir - 1;
+    End;
+  End;
+
+  If (turnaround <> DI_NODIR) Then Begin
+    actor^.movedir := integer(turnaround);
+    If (P_TryWalk(actor)) Then exit;
+  End;
+
+  actor^.movedir := integer(DI_NODIR); // can not move
+End;
+
+//
+// P_CheckMeleeRange
+//
+
+Function P_CheckMeleeRange(actor: Pmobj_t): boolean;
+Var
+  pl: Pmobj_t;
+  dist: fixed_t;
+  range: fixed_t;
+Begin
+  result := false;
+  If (actor^.target = Nil) Then exit;
+
+  pl := actor^.target;
+  dist := P_AproxDistance(pl^.x - actor^.x, pl^.y - actor^.y);
+
+  If (gameversion < exe_doom_1_5) Then
+    range := MELEERANGE
+  Else
+    range := MELEERANGE - 20 * FRACUNIT + pl^.info^.radius;
+
+  If (dist >= range) Then exit;
+
+  If (Not P_CheckSight(actor, actor^.target)) Then exit;
+
+  // [crispy] height check for melee attacks
+  If (critical^.overunder <> 0) And assigned(pl^.player) Then Begin
+    If (pl^.z >= actor^.z + actor^.height) Or (
+      actor^.z >= pl^.z + pl^.height) Then Begin
+      exit;
+    End;
+  End;
+  result := true;
+End;
+
+//
+// P_CheckMissileRange
+//
+
+Function P_CheckMissileRange(actor: Pmobj_t): boolean;
+Var
+  dist: fixed_t;
+Begin
+  result := false;
+  If (Not P_CheckSight(actor, actor^.target)) Then exit;
+
+  If (actor^.flags And MF_JUSTHIT) <> 0 Then Begin
+    // the target just hit the enemy,
+    // so fight back!
+    actor^.flags := actor^.flags And Not MF_JUSTHIT;
+    result := true;
+  End;
+
+  If (actor^.reactiontime <> 0) Then
+    exit; // do not attack yet
+
+  // OPTIMIZE: get this from a global checksight
+  dist := P_AproxDistance(actor^.x - actor^.target^.x,
+    actor^.y - actor^.target^.y) - 64 * FRACUNIT;
+
+  If (actor^.info^.meleestate = S_NULL) Then
+    dist := dist - 128 * FRACUNIT; // no melee attack, so fire more
+
+  dist := dist Shr FRACBITS;
+
+  // [crispy] generalization of the Arch Vile's different attack range
+  If (actor^.info^.maxattackrange > 0) Then Begin
+    If (dist > actor^.info^.maxattackrange) Then
+      exit; // too far away
+  End;
+
+  // [crispy] generalization of the Revenant's different melee threshold
+  If (actor^.info^.meleethreshold > 0) Then Begin
+    If (dist < actor^.info^.meleethreshold) Then
+      exit; // close for fist attack
+  End;
+
+  // [crispy] generalize missile chance for Cyb, Spider, Revenant & Lost Soul
+  If (actor^.info^.missilechancemult <> FRACUNIT) Then Begin
+    dist := FixedMul(dist, actor^.info^.missilechancemult);
+  End;
+
+  // [crispy] generalization of Min Missile Chance values hardcoded in vanilla
+  If (dist > actor^.info^.minmissilechance) Then
+    dist := actor^.info^.minmissilechance;
+
+  If (P_Random() < dist) Then exit;
+
+  result := true;
+End;
+
+//
 // A_Chase
 // Actor has a melee attack,
 // so it tries to close as fast as possible
 //
 
 Procedure A_Chase(actor: Pmobj_t);
+Label
+  nomissile;
 Var
   delta: int;
 Begin
-  Raise exception.create('Port me.');
 
-  //
-  //    if (actor->reactiontime)
-  //	actor->reactiontime--;
-  //
-  //
-  //    // modify target threshold
-  //    if  (actor->threshold)
-  //    {
-  //        if (gameversion > exe_doom_1_2 &&
-  //            (!actor->target || actor->target->health <= 0))
-  //	{
-  //	    actor->threshold = 0;
-  //	}
-  //	else
-  //	    actor->threshold--;
-  //    }
-  //
-  //    // turn towards movement direction if not there yet
-  //    if (actor->movedir < 8)
-  //    {
-  //        actor->angle &= (7u << 29);
-  //	delta = actor->angle - (actor->movedir << 29);
-  //
-  //	if (delta > 0)
-  //	    actor->angle -= ANG90/2;
-  //	else if (delta < 0)
-  //	    actor->angle += ANG90/2;
-  //    }
-  //
-  //    if (!actor->target
-  //	|| !(actor->target->flags&MF_SHOOTABLE))
-  //    {
-  //	// look for a new target
-  //	if (P_LookForPlayers(actor,true))
-  //	    return; 	// got a new target
-  //
-  //	P_SetMobjState (actor, actor->info->spawnstate);
-  //	return;
-  //    }
-  //
-  //    // do not attack twice in a row
-  //    if (actor->flags & MF_JUSTATTACKED)
-  //    {
-  //	actor->flags &= ~MF_JUSTATTACKED;
-  //	if (gameskill != sk_nightmare && !fastparm)
-  //	    P_NewChaseDir (actor);
-  //	return;
-  //    }
-  //
-  //    // check for melee attack
-  //    if (actor->info->meleestate
-  //	&& P_CheckMeleeRange (actor))
-  //    {
-  //	if (actor->info->attacksound)
-  //	    S_StartSound (actor, actor->info->attacksound);
-  //
-  //	P_SetMobjState (actor, actor->info->meleestate);
-  //	return;
-  //    }
-  //
-  //    // check for missile attack
-  //    if (actor->info->missilestate)
-  //    {
-  //	if (gameskill < sk_nightmare
-  //	    && !fastparm && actor->movecount)
-  //	{
-  //	    goto nomissile;
-  //	}
-  //
-  //	if (!P_CheckMissileRange (actor))
-  //	    goto nomissile;
-  //
-  //	P_SetMobjState (actor, actor->info->missilestate);
-  //	actor->flags |= MF_JUSTATTACKED;
-  //	return;
-  //    }
-  //
-  //    // ?
-  //  nomissile:
-  //    // possibly choose another target
-  //    if (netgame
-  //	&& !actor->threshold
-  //	&& !P_CheckSight (actor, actor->target) )
-  //    {
-  //	if (P_LookForPlayers(actor,true))
-  //	    return;	// got a new target
-  //    }
-  //
-  //    // chase towards player
-  //    if (--actor->movecount<0
-  //	|| !P_Move (actor))
-  //    {
-  //	P_NewChaseDir (actor);
-  //    }
-  //
-  //    // make active sound
-  //    if (actor->info->activesound
-  //	&& P_Random () < 3)
-  //    {
-  //	S_StartSound (actor, actor->info->activesound);
-  //    }
+  If (actor^.reactiontime <> 0) Then
+    actor^.reactiontime := actor^.reactiontime - 1;
+
+  // modify target threshold
+  If (actor^.threshold <> 0) Then Begin
+    If (gameversion > exe_doom_1_2) And
+      (((actor^.target = Nil) Or (actor^.target^.health <= 0))) Then Begin
+      actor^.threshold := 0;
+    End
+    Else
+      actor^.threshold := actor^.threshold - 1;
+  End;
+
+  // turn towards movement direction if not there yet
+  If (actor^.movedir < 8) Then Begin
+
+    actor^.angle := actor^.angle And (7 Shl 29);
+    delta := Integer(actor^.angle - (actor^.movedir Shl 29));
+
+    If (delta > 0) Then
+      actor^.angle := angle_t(actor^.angle - ANG90 Div 2)
+    Else If (delta < 0) Then
+      actor^.angle := angle_t(actor^.angle + ANG90 Div 2);
+  End;
+
+  If (actor^.target = Nil)
+    Or ((actor^.target^.flags And MF_SHOOTABLE) = 0) Then Begin
+    // look for a new target
+    If (P_LookForPlayers(actor, true)) Then exit; // got a new target
+
+    P_SetMobjState(actor, actor^.info^.spawnstate);
+    exit;
+  End;
+
+  // do not attack twice in a row
+  If (actor^.flags And MF_JUSTATTACKED) <> 0 Then Begin
+
+    actor^.flags := actor^.flags And Not MF_JUSTATTACKED;
+    If (gameskill <> sk_nightmare) And (Not fastparm) Then
+      P_NewChaseDir(actor);
+    exit;
+  End;
+
+  // check for melee attack
+  If (actor^.info^.meleestate <> S_NULL)
+    And (P_CheckMeleeRange(actor)) Then Begin
+
+    If (actor^.info^.attacksound <> sfx_None) Then
+      S_StartSound(actor, actor^.info^.attacksound);
+
+    P_SetMobjState(actor, actor^.info^.meleestate);
+    exit;
+  End;
+
+  // check for missile attack
+  If (actor^.info^.missilestate <> S_NULL) Then Begin
+    If (gameskill < sk_nightmare)
+      And (Not fastparm) And (actor^.movecount <> 0) Then Begin
+      Goto nomissile;
+    End;
+
+    If (Not P_CheckMissileRange(actor)) Then
+      Goto nomissile;
+
+    P_SetMobjState(actor, actor^.info^.missilestate);
+    actor^.flags := actor^.flags Or MF_JUSTATTACKED;
+    exit;
+  End;
+
+  // ?
+  nomissile:
+  // possibly choose another target
+  If netgame
+    And (actor^.threshold = 0)
+    And (Not P_CheckSight(actor, actor^.target)) Then Begin
+    If (P_LookForPlayers(actor, true)) Then
+      exit; // got a new target
+  End;
+
+  // chase towards player
+  actor^.movecount := actor^.movecount - 1;
+  If (actor^.movecount < 0)
+    Or (Not P_Move(actor)) Then Begin
+    P_NewChaseDir(actor);
+  End;
+
+  // make active sound
+  If (actor^.info^.activesound <> sfx_None)
+    And (P_Random() < 3) Then Begin
+    S_StartSound(actor, actor^.info^.activesound);
+  End;
 End;
 
 Procedure A_FaceTarget(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    if (!actor->target)
-  //	return;
-  //
-  //    actor->flags &= ~MF_AMBUSH;
-  //
-  //    actor->angle = R_PointToAngle2 (actor->x,
-  //				    actor->y,
-  //				    actor->target->x,
-  //				    actor->target->y);
-  //
-  //    if (actor->target->flags & MF_SHADOW)
-  //	actor->angle += P_SubRandom() << 21;
+  actor^.flags := actor^.flags And Not MF_AMBUSH;
+
+  actor^.angle := R_PointToAngle2(actor^.x,
+    actor^.y,
+    actor^.target^.x,
+    actor^.target^.y);
+
+  If (actor^.target^.flags And MF_SHADOW) <> 0 Then
+    actor^.angle := actor^.angle + P_SubRandom() Shl 21;
 End;
 
 Procedure A_PosAttack(actor: Pmobj_t);
+Var
+  angle: int;
+  damage: int;
+  slope: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //   int		angle;
-  //    int		damage;
-  //    int		slope;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    angle = actor->angle;
-  //    slope = P_AimLineAttack (actor, angle, MISSILERANGE);
-  //
-  //    S_StartSound (actor, sfx_pistol);
-  //    angle += P_SubRandom() << 20;
-  //    damage = ((P_Random()%5)+1)*3;
-  //    P_LineAttack (actor, angle, MISSILERANGE, slope, damage);
+  A_FaceTarget(actor);
+  angle := int(actor^.angle);
+  slope := P_AimLineAttack(actor, angle_t(angle), MISSILERANGE);
+
+  S_StartSound(actor, sfx_pistol);
+  angle := int(angle + P_SubRandom() Shl 20);
+  damage := ((P_Random() Mod 5) + 1) * 3;
+  P_LineAttack(actor, angle_t(angle), MISSILERANGE, slope, damage);
 End;
 
 Procedure A_SPosAttack(actor: Pmobj_t);
@@ -1077,26 +1389,21 @@ Begin
 End;
 
 Procedure A_TroopAttack(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //  int		damage;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    if (P_CheckMeleeRange (actor))
-  //    {
-  //	S_StartSound (actor, sfx_claw);
-  //	damage = (P_Random()%8+1)*3;
-  //	P_DamageMobj (actor->target, actor, actor, damage);
-  //	return;
-  //    }
-  //
-  //
-  //    // launch a missile
-  //    P_SpawnMissile (actor, actor->target, MT_TROOPSHOT);
+  A_FaceTarget(actor);
+  If (P_CheckMeleeRange(actor)) Then Begin
+    S_StartSound(actor, sfx_claw);
+    damage := (P_Random() Mod 8 + 1) * 3;
+    P_DamageMobj(actor^.target, actor, actor, damage);
+    exit;
+  End;
+
+  // launch a missile
+  P_SpawnMissile(actor, actor^.target, MT_TROOPSHOT);
 End;
 
 Procedure A_SargAttack(actor: Pmobj_t);
@@ -1350,6 +1657,7 @@ Begin
   A_PainShootSkull(actor, actor^.angle + ANG180);
   A_PainShootSkull(actor, actor^.angle + ANG270);
 End;
+
 //
 // A_KeenDie
 // DOOM II special, map 32.
@@ -1389,11 +1697,13 @@ End;
 
 Procedure A_BrainPain(mo: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
-
   // [crispy] prevent from adding up volume
-//  crispy->soundfull ? S_StartSoundOnce (NULL,sfx_bospn) : S_StartSound (NULL,sfx_bospn);
-
+  If crispy.soundfull <> 0 Then Begin
+    S_StartSoundOnce(Nil, sfx_bospn);
+  End
+  Else Begin
+    S_StartSound(Nil, sfx_bospn);
+  End;
 End;
 
 Procedure A_BrainScream(mo: Pmobj_t);

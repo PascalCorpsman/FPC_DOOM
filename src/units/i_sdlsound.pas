@@ -10,8 +10,10 @@ Uses
   , d_mode
   ;
 
-Function I_SDL_GetSfxLumpNum(sfx: Psfxinfo_t): int;
 Function I_SDL_InitSound(mission: GameMission_t): boolean;
+Procedure I_SDL_ShutdownSound();
+
+Function I_SDL_GetSfxLumpNum(sfx: Psfxinfo_t): int;
 Function I_SDL_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int; sep: int; pitch: int): int;
 
 Implementation
@@ -23,6 +25,7 @@ Uses
 
 Var
   use_sfx_prefix: Boolean;
+  sound_initialized: boolean = false;
 
 Procedure GetSfxLumpName(sfx: Psfxinfo_t; Var buf: String);
 Begin
@@ -101,15 +104,27 @@ Begin
     //
     //    SDL_PauseAudio(0);
     //
-    //    sound_initialized = true;
+  sound_initialized := true;
 
   result := true;
+End;
+
+Procedure I_SDL_ShutdownSound();
+Begin
+  If Not sound_initialized Then exit;
+
+  //Mix_CloseAudio();
+  //SDL_QuitSubSystem(SDL_INIT_AUDIO);
+  BASS_Free;
+  sound_initialized := false;
 End;
 
 Function I_SDL_StartSound(sfxinfo: Psfxinfo_t; channel: int; vol: int;
   sep: int; pitch: int): int;
 Begin
+  If Not sound_initialized Then exit;
   BassSoundManager.StartSound(sfxinfo);
+  result := 0;
 End;
 
 End.

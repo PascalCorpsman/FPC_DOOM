@@ -489,6 +489,262 @@ Begin
   //    G_ReadDemoTiccmd (cmd);         // make SURE it is exactly the same
 End;
 
+Procedure G_DoCompleted();
+Begin
+  Raise exception.create('Port me. und dann ist das Level geschafft ;)');
+  //    int             i;
+  //
+  //    // [crispy] Write level statistics upon exit
+  //    if (M_ParmExists("-levelstat"))
+  //    {
+  //        G_WriteLevelStat();
+  //    }
+  //
+  //    gameaction = ga_nothing;
+  //
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //	if (playeringame[i])
+  //	    G_PlayerFinishLevel (i);        // take away cards and stuff
+  //
+  //    if (automapactive)
+  //	AM_Stop ();
+  //
+  //    if (gamemode != commercial)
+  //    {
+  //        // Chex Quest ends after 5 levels, rather than 8.
+  //
+  //        if (gameversion == exe_chex)
+  //        {
+  //            // [crispy] display tally screen after Chex Quest E1M5
+  //            /*
+  //            if (gamemap == 5)
+  //            {
+  //                gameaction = ga_victory;
+  //                return;
+  //            }
+  //            */
+  //        }
+  //        else
+  //        {
+  //            switch(gamemap)
+  //            {
+  //            // [crispy] display tally screen after ExM8
+  //            /*
+  //              case 8:
+  //                gameaction = ga_victory;
+  //                return;
+  //            */
+  //              case 9:
+  //                for (i=0 ; i<MAXPLAYERS ; i++)
+  //                    players[i].didsecret = true;
+  //                break;
+  //            }
+  //        }
+  //    }
+  //
+  //// [crispy] disable redundant code
+  ///*
+  ////#if 0  Hmmm - why?
+  //    if ( (gamemap == 8)
+  //	 && (gamemode != commercial) )
+  //    {
+  //	// victory
+  //	gameaction = ga_victory;
+  //	return;
+  //    }
+  //
+  //    if ( (gamemap == 9)
+  //	 && (gamemode != commercial) )
+  //    {
+  //	// exit secret level
+  //	for (i=0 ; i<MAXPLAYERS ; i++)
+  //	    players[i].didsecret = true;
+  //    }
+  ////#endif
+  //*/
+  //
+  //
+  //    wminfo.didsecret = players[consoleplayer].didsecret;
+  //    wminfo.epsd = gameepisode -1;
+  //    wminfo.last = gamemap -1;
+  //
+  //    // wminfo.next is 0 biased, unlike gamemap
+  //    if ( gamemission == pack_nerve && gamemap <= 9 )
+  //    {
+  //	if (secretexit)
+  //	    switch(gamemap)
+  //	    {
+  //	      case  4: wminfo.next = 8; break;
+  //	    }
+  //	else
+  //	    switch(gamemap)
+  //	    {
+  //	      case  9: wminfo.next = 4; break;
+  //	      default: wminfo.next = gamemap;
+  //	    }
+  //    }
+  //    else
+  //    if ( gamemission == pack_master && gamemap <= 21 )
+  //    {
+  //	wminfo.next = gamemap;
+  //    }
+  //    else
+  //    if ( gamemode == commercial)
+  //    {
+  //	if (secretexit)
+  //	    if (gamemap == 2 && critical->havemap33)
+  //	      wminfo.next = 32;
+  //	    else
+  //	    switch(gamemap)
+  //	    {
+  //	      case 15: wminfo.next = 30; break;
+  //	      case 31: wminfo.next = 31; break;
+  //	    }
+  //	else
+  //	    if (gamemap == 33 && critical->havemap33)
+  //	      wminfo.next = 2;
+  //	    else
+  //	    switch(gamemap)
+  //	    {
+  //	      case 31:
+  //	      case 32: wminfo.next = 15; break;
+  //	      default: wminfo.next = gamemap;
+  //	    }
+  //    }
+  //    else
+  //    {
+  //	if (secretexit)
+  //	{
+  //	    if (critical->havee1m10 && gameepisode == 1 && gamemap == 1)
+  //	    wminfo.next = 9; // [crispy] go to secret level E1M10 "Sewers"
+  //	    else
+  //	    wminfo.next = 8; 	// go to secret level
+  //	}
+  //	else if (gamemap == 9)
+  //	{
+  //	    // returning from secret level
+  //	    switch (gameepisode)
+  //	    {
+  //	      case 1:
+  //	      case 6:
+  //		wminfo.next = 3;
+  //		break;
+  //	      case 2:
+  //		wminfo.next = 5;
+  //		break;
+  //	      case 3:
+  //	      case 5: // [crispy] Sigil
+  //		wminfo.next = 6;
+  //		break;
+  //	      case 4:
+  //		wminfo.next = 2;
+  //		break;
+  //	    }
+  //	}
+  //	else
+  //	if (critical->havee1m10 && gameepisode == 1 && gamemap == 10)
+  //	    wminfo.next = 1; // [crispy] returning from secret level E1M10 "Sewers"
+  //	else
+  //	    wminfo.next = gamemap;          // go to next level
+  //    }
+  //
+  //    wminfo.maxkills = totalkills;
+  //    wminfo.maxitems = totalitems;
+  //    wminfo.maxsecret = totalsecret;
+  //    wminfo.maxfrags = 0;
+  //
+  //    // Set par time. Exceptions are added for purposes of
+  //    // statcheck regression testing.
+  //    if (gamemode == commercial)
+  //    {
+  //        // map33 reads its par time from beyond the cpars[] array
+  //        if (gamemap == 33)
+  //        {
+  //            int cpars32;
+  //
+  //            memcpy(&cpars32, DEH_String(GAMMALVL0), sizeof(int));
+  //            cpars32 = LONG(cpars32);
+  //
+  //            wminfo.partime = TICRATE*cpars32;
+  //        }
+  //        // [crispy] support [PARS] sections in BEX files
+  //        else if (bex_cpars[gamemap-1])
+  //        {
+  //            wminfo.partime = TICRATE*bex_cpars[gamemap-1];
+  //        }
+  //        // [crispy] par times for NRFTL
+  //        else if (gamemission == pack_nerve)
+  //        {
+  //            wminfo.partime = TICRATE*npars[gamemap-1];
+  //        }
+  //        else
+  //        {
+  //            wminfo.partime = TICRATE*cpars[gamemap-1];
+  //        }
+  //    }
+  //    // Doom episode 4 doesn't have a par time, so this
+  //    // overflows into the cpars array.
+  //    else if (gameepisode < 4 ||
+  //        // [crispy] single player par times for episode 4
+  //        (gameepisode == 4 && crispy->singleplayer) ||
+  //        // [crispy] par times for Sigil
+  //        gameepisode == 5 ||
+  //        // [crispy] par times for Sigil II
+  //        gameepisode == 6)
+  //    {
+  //        // [crispy] support [PARS] sections in BEX files
+  //        if (bex_pars[gameepisode][gamemap])
+  //        {
+  //            wminfo.partime = TICRATE*bex_pars[gameepisode][gamemap];
+  //        }
+  //        else
+  //        if (gameversion == exe_chex && gameepisode == 1 && gamemap < 6)
+  //        {
+  //            wminfo.partime = TICRATE*chexpars[gamemap];
+  //        }
+  //        else
+  //        {
+  //            wminfo.partime = TICRATE*pars[gameepisode][gamemap];
+  //        }
+  //    }
+  //    else
+  //    {
+  //        wminfo.partime = TICRATE*cpars[gamemap];
+  //    }
+  //
+  //    wminfo.pnum = consoleplayer;
+  //
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //    {
+  //	wminfo.plyr[i].in = playeringame[i];
+  //	wminfo.plyr[i].skills = players[i].killcount;
+  //	wminfo.plyr[i].sitems = players[i].itemcount;
+  //	wminfo.plyr[i].ssecret = players[i].secretcount;
+  //	wminfo.plyr[i].stime = leveltime;
+  //	memcpy (wminfo.plyr[i].frags, players[i].frags
+  //		, sizeof(wminfo.plyr[i].frags));
+  //    }
+  //
+  //    // [crispy] CPhipps - total time for all completed levels
+  //    // cph - modified so that only whole seconds are added to the totalleveltimes
+  //    // value; so our total is compatible with the "naive" total of just adding
+  //    // the times in seconds shown for each level. Also means our total time
+  //    // will agree with Compet-n.
+  //    wminfo.totaltimes = (totalleveltimes += (leveltime - leveltime % TICRATE));
+  //
+  //    gamestate = GS_INTERMISSION;
+  //    viewactive = false;
+  //    automapactive = false;
+  //
+  //    // [crispy] no statdump output for ExM8
+  //    if (gamemode == commercial || gamemap != 8)
+  //    {
+  //    StatCopy(&wminfo);
+  //    }
+  //
+  //    WI_Start (&wminfo);
+End;
+
 //
 // G_Ticker
 // Make ticcmd_ts for the players.
@@ -530,7 +786,7 @@ Begin
           //	    G_DoPlayDemo ();
         End;
       ga_completed: Begin
-          //	    G_DoCompleted ();
+          G_DoCompleted();
         End;
       ga_victory: Begin
           //	    F_StartFinale ();

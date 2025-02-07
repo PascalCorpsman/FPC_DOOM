@@ -1036,20 +1036,20 @@ Begin
 
   If ((thing^.flags And MF_NOCLIP) = 0) Then Begin
 
-    If (tmceilingz - tmfloorz < thing^.height) Then exit; // doesn't fit
+    If (fixed_t(tmceilingz - tmfloorz) < thing^.height) Then exit; // doesn't fit
 
     floatok := true;
 
     If ((thing^.flags And MF_TELEPORT) = 0)
-      And (tmceilingz - thing^.z < thing^.height) Then
+      And ((tmceilingz - thing^.z) < thing^.height) Then
       exit; // mobj must lower itself to fit
 
     If ((thing^.flags And MF_TELEPORT) = 0)
-      And (tmfloorz - thing^.z > 24 * FRACUNIT) Then
+      And (fixed_t(tmfloorz - thing^.z) > 24 * FRACUNIT) Then
       exit; // too big a step up
 
     If ((thing^.flags And (MF_DROPOFF Or MF_FLOAT)) = 0)
-      And (tmfloorz - tmdropoffz > 24 * FRACUNIT) Then
+      And (fixed_t(tmfloorz - tmdropoffz) > 24 * FRACUNIT) Then
       exit; // don't stand over a dropoff
   End;
 

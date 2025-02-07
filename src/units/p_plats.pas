@@ -10,6 +10,9 @@ Uses
   , p_spec
   ;
 
+Var
+  activeplats: Array[0..MAXPLATS - 1] Of pplat_t;
+
 Function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: int): int;
 
 Implementation
@@ -23,6 +26,7 @@ Function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: int): int;
 Var
   rtn: int;
 Begin
+  Raise exception.create('Port me.');
   //    plat_t*	plat;
   //    int		secnum;
 

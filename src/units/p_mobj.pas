@@ -136,6 +136,10 @@ Procedure P_SpawnBlood(x, y, z: fixed_t; damage: int; target: Pmobj_t); // [cris
 Function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 
 Procedure P_RemoveMobj(mobj: Pmobj_t);
+Procedure P_SpawnPlayerMissile(source: Pmobj_t; _type: mobjtype_t);
+Procedure P_ExplodeMissile(mo: Pmobj_t);
+
+Function P_SpawnMissile(source: Pmobj_t; dest: Pmobj_t; _type: mobjtype_t): Pmobj_t;
 
 Implementation
 
@@ -216,33 +220,209 @@ Begin
 End;
 
 //
+// P_CheckMissileSpawn
+// Moves the missile forward a bit
+//  and possibly explodes it right there.
+//
+
+Procedure P_CheckMissileSpawn(th: Pmobj_t);
+Begin
+  th^.tics := th^.tics - P_Random() And 3;
+  If (th^.tics < 1) Then
+    th^.tics := 1;
+
+  // move a little forward so an angle can
+  // be computed if it immediately explodes
+  th^.x := fixed_t(th^.x + SarLongint(th^.momx, 1));
+  th^.y := fixed_t(th^.y + SarLongint(th^.momy, 1));
+  th^.z := fixed_t(th^.z + SarLongint(th^.momz, 1));
+
+  If (Not P_TryMove(th, th^.x, th^.y)) Then Begin
+    P_TryMove(th, th^.x, th^.y); // DEBUG, dass muss natürlich wieder raus ..
+    P_ExplodeMissile(th);
+  End;
+End;
+
+//
+// P_SpawnPlayerMissile
+// Tries to aim at a nearby monster
+//
+
+Procedure P_SpawnPlayerMissile(source: Pmobj_t; _type: mobjtype_t);
+Var
+  th: Pmobj_t;
+  an: angle_t;
+
+  x: fixed_t;
+  y: fixed_t;
+  z: fixed_t;
+  slope: fixed_t;
+Begin
+
+  // see which target is to be aimed at
+  an := source^.angle;
+  If (critical^.freeaim = FREEAIM_DIRECT) Then Begin
+
+    slope := PLAYER_SLOPE(source^.player);
+  End
+  Else Begin
+
+    slope := P_AimLineAttack(source, an, 16 * 64 * FRACUNIT);
+
+    If (linetarget = Nil) Then Begin
+
+      an := angle_t(an + 1 Shl 26);
+      slope := P_AimLineAttack(source, an, 16 * 64 * FRACUNIT);
+
+      If (linetarget = Nil) Then Begin
+
+        an := angle_t(an - 2 Shl 26);
+        slope := P_AimLineAttack(source, an, 16 * 64 * FRACUNIT);
+      End;
+
+      If (linetarget = Nil) Then Begin
+        an := source^.angle;
+        If (critical^.freeaim = FREEAIM_BOTH) Then
+          slope := PLAYER_SLOPE(source^.player)
+        Else
+          slope := 0;
+      End;
+    End;
+  End;
+
+  x := source^.x;
+  y := source^.y;
+  z := fixed_t(source^.z + 4 * 8 * FRACUNIT);
+
+  th := P_SpawnMobj(x, y, z, _Type);
+
+  If (th^.info^.seesound <> sfx_None) Then
+    S_StartSound(th, th^.info^.seesound);
+
+  th^.target := source;
+  th^.angle := an;
+  th^.momx := FixedMul(th^.info^.speed,
+    finecosine[an Shr ANGLETOFINESHIFT]);
+  th^.momy := FixedMul(th^.info^.speed,
+    finesine[an Shr ANGLETOFINESHIFT]);
+  th^.momz := FixedMul(th^.info^.speed, slope);
+  // [crispy] suppress interpolation of player missiles for the first tic
+  th^.interp := -1;
+
+  P_CheckMissileSpawn(th);
+
+  A_Recoil(source^.player);
+End;
+
+// [crispy] return the latest "safe" state in a state sequence,
+// so that no action pointer is ever called
+
+Var
+  laststate: statenum_t = S_NULL;
+  lastsafestate: statenum_t = S_NULL;
+
+Function P_LatestSafeState(state: statenum_t): statenum_t;
+Var
+  safestate: statenum_t = S_NULL;
+Begin
+
+  If (state = laststate) Then Begin
+    result := lastsafestate;
+  End;
+
+  laststate := state;
+  While state <> S_NULL Do Begin
+    //    for (laststate = state; state != S_NULL; state = states[state].nextstate)
+    If (safestate = S_NULL) Then Begin
+      safestate := state;
+    End;
+
+    If assigned(states[integer(state)].action.acp1) Then Begin
+      safestate := S_NULL;
+    End;
+
+    // [crispy] a state with -1 tics never changes
+    If (states[integer(state)].tics = -1) Or (state = states[integer(state)].nextstate) Then Begin
+
+      break;
+    End;
+    state := states[integer(state)].nextstate;
+  End;
+  lastsafestate := safestate;
+  result := safestate;
+End;
+
+//
 // P_ExplodeMissile
 //
 
 Procedure P_ExplodeMissileSafe(mo: Pmobj_t; safe: boolean);
 Begin
-  Raise exception.create('Port me.');
+  mo^.momx := 0;
+  mo^.momy := 0;
+  mo^.momz := 0;
 
-  //    mo->momx = mo->momy = mo->momz = 0;
-  //
-  //    P_SetMobjState (mo, safe ? P_LatestSafeState(mobjinfo[mo->type].deathstate) : mobjinfo[mo->type].deathstate);
-  //
-  //    mo->tics -= safe ? Crispy_Random()&3 : P_Random()&3;
-  //
-  //    if (mo->tics < 1)
-  //	mo->tics = 1;
-  //
-  //    mo->flags &= ~MF_MISSILE;
-  //    // [crispy] missile explosions are translucent
-  //    mo->flags |= MF_TRANSLUCENT;
-  //
-  //    if (mo->info->deathsound)
-  //	S_StartSound (mo, mo->info->deathsound);
+  If safe Then Begin
+    P_SetMobjState(mo, P_LatestSafeState(mobjinfo[int(mo^._type)].deathstate));
+    mo^.tics := mo^.tics - Crispy_Random() And 3;
+  End
+  Else Begin
+    P_SetMobjState(mo, mobjinfo[int(mo^._type)].deathstate);
+    mo^.tics := mo^.tics - P_Random() And 3;
+  End;
+
+  If (mo^.tics < 1) Then
+    mo^.tics := 1;
+
+  mo^.flags := mo^.flags And Not MF_MISSILE;
+  // [crispy] missile explosions are translucent
+  mo^.flags := int(mo^.flags Or MF_TRANSLUCENT);
+
+  If (mo^.info^.deathsound <> sfx_None) Then
+    S_StartSound(mo, mo^.info^.deathsound);
 End;
 
 Procedure P_ExplodeMissile(mo: Pmobj_t);
 Begin
   P_ExplodeMissileSafe(mo, false);
+End;
+
+Function P_SpawnMissile(source: Pmobj_t; dest: Pmobj_t; _type: mobjtype_t
+  ): Pmobj_t;
+Var
+  th: Pmobj_t;
+  an: angle_t;
+  dist: int;
+Begin
+  th := P_SpawnMobj(source^.x,
+    source^.y,
+    source^.z + 4 * 8 * FRACUNIT, _type);
+
+  If (th^.info^.seesound <> sfx_None) Then
+    S_StartSound(th, th^.info^.seesound);
+
+  th^.target := source; // where it came from
+  an := R_PointToAngle2(source^.x, source^.y, dest^.x, dest^.y);
+
+  // fuzzy player
+  If (dest^.flags And MF_SHADOW) <> 0 Then
+    an := angle_t(an + P_SubRandom() Shl 20);
+
+  th^.angle := an;
+  an := an Shr ANGLETOFINESHIFT;
+  th^.momx := FixedMul(th^.info^.speed, finecosine[an]);
+  th^.momy := FixedMul(th^.info^.speed, finesine[an]);
+
+  dist := P_AproxDistance(dest^.x - source^.x, dest^.y - source^.y);
+  dist := dist div th^.info^.speed;
+
+  If (dist < 1) Then
+    dist := 1;
+
+  th^.momz := (dest^.z - source^.z) div dist;
+  P_CheckMissileSpawn(th);
+
+  result := th;
 End;
 
 // Use a heuristic approach to detect infinite state cycles: Count the number
@@ -499,44 +679,6 @@ Begin
     st_keyorskull[it_yellowcard] := 3;
 End;
 
-// [crispy] return the latest "safe" state in a state sequence,
-// so that no action pointer is ever called
-
-Var
-  laststate: statenum_t = S_NULL;
-  lastsafestate: statenum_t = S_NULL;
-
-Function P_LatestSafeState(state: statenum_t): statenum_t;
-Var
-  safestate: statenum_t = S_NULL;
-Begin
-
-  If (state = laststate) Then Begin
-    result := lastsafestate;
-  End;
-
-  laststate := state;
-  While state <> S_NULL Do Begin
-    //    for (laststate = state; state != S_NULL; state = states[state].nextstate)
-    If (safestate = S_NULL) Then Begin
-      safestate := state;
-    End;
-
-    If assigned(states[integer(state)].action.acp1) Then Begin
-      safestate := S_NULL;
-    End;
-
-    // [crispy] a state with -1 tics never changes
-    If (states[integer(state)].tics = -1) Or (state = states[integer(state)].nextstate) Then Begin
-
-      break;
-    End;
-    state := states[integer(state)].nextstate;
-  End;
-  lastsafestate := safestate;
-  result := safestate;
-End;
-
 //
 // MOVEMENT CLIPPING
 //
@@ -584,10 +726,10 @@ Begin
 
   Repeat
     If (xmove > MAXMOVE Div 2) Or (ymove > MAXMOVE Div 2) Then Begin
-      ptryx := mo^.x + xmove Div 2;
-      ptryy := mo^.y + ymove Div 2;
-      xmove := xmove Shr 1;
-      ymove := ymove Shr 1;
+      ptryx := fixed_t(mo^.x + xmove Div 2);
+      ptryy := fixed_t(mo^.y + ymove Div 2);
+      xmove := SarLongint(xmove, 1);
+      ymove := SarLongint(ymove, 1);
     End
     Else Begin
       ptryx := mo^.x + xmove;
@@ -832,7 +974,6 @@ Begin
     If ((mo^.flags And MF_MISSILE) <> 0)
       And ((mo^.flags And MF_NOCLIP) = 0)
       And ((mo^.flags And MF_BOUNCES) = 0) Then Begin
-
       P_ExplodeMissile(mo);
       exit;
     End;

@@ -424,13 +424,13 @@ Begin
   End;
 
   // transform the origin point
-  tr_x := interpx - viewx;
-  tr_y := interpy - viewy;
+  tr_x := fixed_t(interpx - viewx);
+  tr_y := fixed_t(interpy - viewy);
 
   gxt := FixedMul(tr_x, viewcos);
   gyt := -FixedMul(tr_y, viewsin);
 
-  tz := gxt - gyt;
+  tz := fixed_t(gxt - gyt);
 
   // thing is behind view plane?
   If (tz < MINZ) Then exit;

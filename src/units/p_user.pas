@@ -81,7 +81,7 @@ Begin
       player^.attacker^.x,
       player^.attacker^.y);
 
-    delta := angle - player^.mo^.angle;
+    delta := angle_t(angle - player^.mo^.angle);
 
     If (delta < ANG5) Or (delta > angle_t(-ANG5)) Then Begin
 
@@ -93,9 +93,9 @@ Begin
         player^.damagecount := player^.damagecount - 1;
     End
     Else If (delta < ANG180) Then
-      player^.mo^.angle := player^.mo^.angle + ANG5
+      player^.mo^.angle := angle_t(player^.mo^.angle + ANG5)
     Else
-      player^.mo^.angle := player^.mo^.angle - ANG5;
+      player^.mo^.angle := angle_t(player^.mo^.angle - ANG5);
   End
   Else If (player^.damagecount) <> 0 Then
     player^.damagecount := player^.damagecount - 1;

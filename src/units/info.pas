@@ -277,7 +277,7 @@ Initialization
   Set_States(S_BFGSHOT2, SPR_BFS1, 32769, 4, Nil, S_BFGSHOT, 0, 0);
   Set_States(S_BFGLAND, SPR_BFE1, 32768, 8, Nil, S_BFGLAND2, 0, 0);
   Set_States(S_BFGLAND2, SPR_BFE1, 32769, 8, Nil, S_BFGLAND3, 0, 0);
-  Set_States(S_BFGLAND3, SPR_BFE1, 32770, 8, @A_BFGSpray, S_BFGLAND4, 0, 0);
+  Set_StatesP1(S_BFGLAND3, SPR_BFE1, 32770, 8, @A_BFGSpray, S_BFGLAND4, 0, 0);
   Set_States(S_BFGLAND4, SPR_BFE1, 32771, 8, Nil, S_BFGLAND5, 0, 0);
   Set_States(S_BFGLAND5, SPR_BFE1, 32772, 8, Nil, S_BFGLAND6, 0, 0);
   Set_States(S_BFGLAND6, SPR_BFE1, 32773, 8, Nil, S_NULL, 0, 0);

@@ -74,26 +74,26 @@ Const
   //  #define GAMMALVL25	"Gamma correction level 2.5"
   //  #define GAMMALVL35	"Gamma correction level 3.5"
   //  #define EMPTYSTRING	"empty slot"
+
   //
-  //  //
-  //  //	P_inter.C
-  //  //
-  //  #define GOTARMOR	"Picked up the armor."
-  //  #define GOTMEGA	"Picked up the MegaArmor!"
-  //  #define GOTHTHBONUS	"Picked up a health bonus."
-  //  #define GOTARMBONUS	"Picked up an armor bonus."
-  //  #define GOTSTIM	"Picked up a stimpack."
-  //  #define GOTMEDINEED	"Picked up a medikit that you REALLY need!"
-  //  #define GOTMEDIKIT	"Picked up a medikit."
+  //	P_inter.C
+  //
+  GOTARMOR = 'Picked up the armor.';
+  GOTMEGA = 'Picked up the MegaArmor!';
+  GOTHTHBONUS = 'Picked up a health bonus.';
+  GOTARMBONUS = 'Picked up an armor bonus.';
+  GOTSTIM = 'Picked up a stimpack.';
+  GOTMEDINEED = 'Picked up a medikit that you REALLY need!';
+  GOTMEDIKIT = 'Picked up a medikit.';
   //  #define GOTSUPER	"Supercharge!"
-  //
+
   //  #define GOTBLUECARD	"Picked up a blue keycard."
   //  #define GOTYELWCARD	"Picked up a yellow keycard."
   //  #define GOTREDCARD	"Picked up a red keycard."
   //  #define GOTBLUESKUL	"Picked up a blue skull key."
   //  #define GOTYELWSKUL	"Picked up a yellow skull key."
   //  #define GOTREDSKULL	"Picked up a red skull key."
-  //
+
   //  #define GOTINVUL	"Invulnerability!"
   //  #define GOTBERSERK	"Berserk!"
   //  #define GOTINVIS	"Partial Invisibility"
@@ -101,15 +101,15 @@ Const
   //  #define GOTMAP	"Computer Area Map"
   //  #define GOTVISOR	"Light Amplification Visor"
   //  #define GOTMSPHERE	"MegaSphere!"
-  //
-  //  #define GOTCLIP	"Picked up a clip."
-  //  #define GOTCLIPBOX	"Picked up a box of bullets."
+
+  GOTCLIP = 'Picked up a clip.';
+  GOTCLIPBOX = 'Picked up a box of bullets.';
   //  #define GOTROCKET	"Picked up a rocket."
   //  #define GOTROCKBOX	"Picked up a box of rockets."
   //  #define GOTCELL	"Picked up an energy cell."
   //  #define GOTCELLBOX	"Picked up an energy cell pack."
-  //  #define GOTSHELLS	"Picked up 4 shotgun shells."
-  //  #define GOTSHELLBOX	"Picked up a box of shotgun shells."
+  GOTSHELLS = 'Picked up 4 shotgun shells.';
+  GOTSHELLBOX = 'Picked up a box of shotgun shells.';
   //  #define GOTBACKPACK	"Picked up a backpack full of ammo!"
 
   GOTBFG9000 = 'You got the BFG9000!  Oh, yes.';
@@ -134,15 +134,15 @@ Const
   PD_REDK = 'You need a red key to open this door';
   PD_YELLOWK = 'You need a yellow key to open this door';
 
-  //  //
-  //  //	G_game.C
-  //  //
-  //  #define GGSAVED	"game saved."
   //
-  //  //
-  //  //	HU_stuff.C
-  //  //
-  //  #define HUSTR_MSGU	"[Message unsent]"
+  //	G_game.C
+  //
+//  #define GGSAVED	"game saved."
+
+  //
+  //	HU_stuff.C
+  //
+//  #define HUSTR_MSGU	"[Message unsent]"
 
   HUSTR_E1M1 = 'E1M1: Hangar';
   HUSTR_E1M2 = 'E1M2: Nuclear Plant';
@@ -359,35 +359,35 @@ Const
   //  #define HUSTR_CHATMACRO8	"I'll take care of it."
   //  #define HUSTR_CHATMACRO9	"Yes"
   //  #define HUSTR_CHATMACRO0	"No"
-  //
+
   //  #define HUSTR_TALKTOSELF1	"You mumble to yourself"
   //  #define HUSTR_TALKTOSELF2	"Who's there?"
   //  #define HUSTR_TALKTOSELF3	"You scare yourself"
   //  #define HUSTR_TALKTOSELF4	"You start to rave"
   //  #define HUSTR_TALKTOSELF5	"You've lost it..."
-  //
+
   //  #define HUSTR_MESSAGESENT	"[Message Sent]"
-  //
+
   //  // The following should NOT be changed unless it seems
   //  // just AWFULLY necessary
-  //
+
   //  #define HUSTR_PLRGREEN	"Green: "
   //  #define HUSTR_PLRINDIGO	"Indigo: "
   //  #define HUSTR_PLRBROWN	"Brown: "
   //  #define HUSTR_PLRRED		"Red: "
-  //
+
   //  #define HUSTR_KEYGREEN	'g'
   //  #define HUSTR_KEYINDIGO	'i'
   //  #define HUSTR_KEYBROWN	'b'
   //  #define HUSTR_KEYRED	'r'
+
   //
-  //  //
-  //  //	AM_map.C
-  //  //
+  //	AM_map.C
   //
+
   //  #define AMSTR_FOLLOWON	"Follow Mode ON"
   //  #define AMSTR_FOLLOWOFF	"Follow Mode OFF"
-  //
+
   //  #define AMSTR_GRIDON	"Grid ON"
   //  #define AMSTR_GRIDOFF	"Grid OFF"
 
@@ -400,10 +400,10 @@ Const
   AMSTR_ROTATEON = 'Rotate Mode ON';
   AMSTR_ROTATEOFF = 'Rotate Mode OFF';
 
-  //  //
-  //  //	ST_stuff.C
-  //  //
   //
+  //	ST_stuff.C
+  //
+
   //  #define STSTR_MUS		"Music Change"
   //  #define STSTR_NOMUS		"IMPOSSIBLE SELECTION"
   STSTR_DQDON = 'Degreelessness Mode On';
@@ -417,13 +417,13 @@ Const
 
   //  #define STSTR_BEHOLD	"inVuln, Str, Inviso, Rad, Allmap, or Lite-amp"
   //  #define STSTR_BEHOLDX	"Power-up Toggled"
-  //
+
   //  #define STSTR_CHOPPERS	"... doesn't suck - GM"
   //  #define STSTR_CLEV		"Changing Level..."
+
   //
-  //  //
-  //  //	F_Finale.C
-  //  //
+  //	F_Finale.C
+  //
   //  #define E1TEXT \
   //  "Once you beat the big badasses and\n"\
   //  "clean out the moon base you're supposed\n"\
@@ -440,8 +440,8 @@ Const
   //  "To continue the DOOM experience, play\n"\
   //  "The Shores of Hell and its amazing\n"\
   //  "sequel, Inferno!\n"
-  //
-  //
+
+
   //  #define E2TEXT \
   //  "You've done it! The hideous cyber-\n"\
   //  "demon lord that ruled the lost Deimos\n"\
@@ -460,8 +460,8 @@ Const
   //  "\n" \
   //  "Now, it's on to the final chapter of\n"\
   //  "DOOM! -- Inferno."
-  //
-  //
+
+
   //  #define E3TEXT \
   //  "The loathsome spiderdemon that\n"\
   //  "masterminded the invasion of the moon\n"\
@@ -480,8 +480,8 @@ Const
   //  "unleashed. It's good that no Hell-\n"\
   //  "spawn could have come through that\n"\
   //  "door with you ..."
-  //
-  //
+
+
   //  #define E4TEXT \
   //  "the spider mastermind must have sent forth\n"\
   //  "its legions of hellspawn before your\n"\
@@ -499,7 +499,7 @@ Const
   //  "of demons run amok among our cities.\n"\
   //  "\n"\
   //  "next stop, hell on earth!"
-  //
+
   //  #define E5TEXT \
   //  "Baphomet was only doing Satan's bidding\n"\
   //  "by bringing you back to Hell. Somehow they\n"\
@@ -512,7 +512,7 @@ Const
   //  "\n"\
   //  "\n"\
   //  "Lock and load. Rip and tear."
-  //
+
   //  #define E6TEXT \
   //  "Satan erred in casting you to Hell's\n"\
   //  "darker depths. His plan failed. He has\n"\
@@ -522,9 +522,9 @@ Const
   //  "and hope you go down fighting.\n"\
   //  "\n"\
   //  "Prepare for HELLION!"
-  //
-  //  // after level 6, put this:
-  //
+
+  // after level 6, put this:
+
   //  #define C1TEXT \
   //  "YOU HAVE ENTERED DEEPLY INTO THE INFESTED\n" \
   //  "STARPORT. BUT SOMETHING IS WRONG. THE\n" \
@@ -538,9 +538,9 @@ Const
   //  "OF THE STARBASE AND FIND THE CONTROLLING\n" \
   //  "SWITCH WHICH HOLDS EARTH'S POPULATION\n" \
   //  "HOSTAGE."
-  //
-  //  // After level 11, put this:
-  //
+
+  // After level 11, put this:
+
   //  #define C2TEXT \
   //  "YOU HAVE WON! YOUR VICTORY HAS ENABLED\n" \
   //  "HUMANKIND TO EVACUATE EARTH AND ESCAPE\n"\
@@ -559,10 +559,10 @@ Const
   //  "YOUR OWN HOME CITY, NOT FAR FROM THE\n"\
   //  "STARPORT.\" SLOWLY AND PAINFULLY YOU GET\n"\
   //  "UP AND RETURN TO THE FRAY."
-  //
-  //
-  //  // After level 20, put this:
-  //
+
+
+  // After level 20, put this:
+
   //  #define C3TEXT \
   //  "YOU ARE AT THE CORRUPT HEART OF THE CITY,\n"\
   //  "SURROUNDED BY THE CORPSES OF YOUR ENEMIES.\n"\
@@ -573,10 +573,10 @@ Const
   //  "THERE MUST BE A WAY TO CLOSE IT ON THE\n"\
   //  "OTHER SIDE. WHAT DO YOU CARE IF YOU'VE\n"\
   //  "GOT TO GO THROUGH HELL TO GET TO IT?"
-  //
-  //
-  //  // After level 29, put this:
-  //
+
+
+  // After level 29, put this:
+
   //  #define C4TEXT \
   //  "THE HORRENDOUS VISAGE OF THE BIGGEST\n"\
   //  "DEMON YOU'VE EVER SEEN CRUMBLES BEFORE\n"\
@@ -593,29 +593,29 @@ Const
   //  "FOREHEAD YOU BEGIN THE LONG TREK BACK\n"\
   //  "HOME. REBUILDING EARTH OUGHT TO BE A\n"\
   //  "LOT MORE FUN THAN RUINING IT WAS.\n"
-  //
-  //
-  //
-  //  // Before level 31, put this:
-  //
+
+
+
+  // Before level 31, put this:
+
   //  #define C5TEXT \
   //  "CONGRATULATIONS, YOU'VE FOUND THE SECRET\n"\
   //  "LEVEL! LOOKS LIKE IT'S BEEN BUILT BY\n"\
   //  "HUMANS, RATHER THAN DEMONS. YOU WONDER\n"\
   //  "WHO THE INMATES OF THIS CORNER OF HELL\n"\
   //  "WILL BE."
-  //
-  //
-  //  // Before level 32, put this:
-  //
+
+
+  // Before level 32, put this:
+
   //  #define C6TEXT \
   //  "CONGRATULATIONS, YOU'VE FOUND THE\n"\
   //  "SUPER SECRET LEVEL!  YOU'D BETTER\n"\
   //  "BLAZE THROUGH THIS ONE!\n"
-  //
-  //
-  //  // after map 06
-  //
+
+
+  // after map 06
+
   //  #define P1TEXT  \
   //  "You gloat over the steaming carcass of the\n"\
   //  "Guardian.  With its death, you've wrested\n"\
@@ -629,10 +629,10 @@ Const
   //  "struggles will have been wasted. Keep\n"\
   //  "moving, keep fighting, keep killing.\n"\
   //  "Oh yes, keep living, too."
-  //
-  //
-  //  // after map 11
-  //
+
+
+  // after map 11
+
   //  #define P2TEXT \
   //  "Even the deadly Arch-Vile labyrinth could\n"\
   //  "not stop you, and you've gotten to the\n"\
@@ -640,10 +640,10 @@ Const
   //  "efficiently and permanently deactivated.\n"\
   //  "\n"\
   //  "You're good at that kind of thing."
-  //
-  //
-  //  // after map 20
-  //
+
+
+  // after map 20
+
   //  #define P3TEXT \
   //  "You've bashed and battered your way into\n"\
   //  "the heart of the devil-hive.  Time for a\n"\
@@ -655,9 +655,9 @@ Const
   //  "Grinning evilly, you check your gear, and\n"\
   //  "get ready to give the bastard a little Hell\n"\
   //  "of your own making!"
-  //
-  //  // after map 30
-  //
+
+  // after map 30
+
   //  #define P4TEXT \
   //  "The Gatekeeper's evil face is splattered\n"\
   //  "all over the place.  As its tattered corpse\n"\
@@ -671,23 +671,23 @@ Const
   //  "launcher in your coffin. If you go to Hell\n"\
   //  "when you die, you'll need it for some\n"\
   //  "final cleaning-up ..."
-  //
-  //  // before map 31
-  //
+
+  // before map 31
+
   //  #define P5TEXT \
   //  "You've found the second-hardest level we\n"\
   //  "got. Hope you have a saved game a level or\n"\
   //  "two previous.  If not, be prepared to die\n"\
   //  "aplenty. For master marines only."
-  //
-  //  // before map 32
-  //
+
+  // before map 32
+
   //  #define P6TEXT \
   //  "Betcha wondered just what WAS the hardest\n"\
   //  "level we had ready for ya?  Now you know.\n"\
   //  "No one gets out alive."
-  //
-  //
+
+
   //  #define T1TEXT \
   //  "You've fought your way out of the infested\n"\
   //  "experimental labs.   It seems that UAC has\n"\
@@ -701,8 +701,8 @@ Const
   //  "their teeth into you. With luck, the\n"\
   //  "complex still has some warlike ordnance\n"\
   //  "laying around."
-  //
-  //
+
+
   //  #define T2TEXT \
   //  "You hear the grinding of heavy machinery\n"\
   //  "ahead.  You sure hope they're not stamping\n"\
@@ -713,8 +713,8 @@ Const
   //  "maniacs packed into one mad killer.\n"\
   //  "\n"\
   //  "You don't plan to go down easy."
-  //
-  //
+
+
   //  #define T3TEXT \
   //  "The vista opening ahead looks real damn\n"\
   //  "familiar. Smells familiar, too -- like\n"\
@@ -724,7 +724,7 @@ Const
   //  "brood on it, the madder you get.\n"\
   //  "Hefting your gun, an evil grin trickles\n"\
   //  "onto your face. Time to take some names."
-  //
+
   //  #define T4TEXT \
   //  "Suddenly, all is silent, from one horizon\n"\
   //  "to the other. The agonizing echo of Hell\n"\
@@ -737,16 +737,16 @@ Const
   //  "Something rumbles in the distance.\n"\
   //  "A blue light begins to glow inside the\n"\
   //  "ruined skull of the demon-spitter."
-  //
-  //
+
+
   //  #define T5TEXT \
   //  "What now? Looks totally different. Kind\n"\
   //  "of like King Tut's condo. Well,\n"\
   //  "whatever's here can't be any worse\n"\
   //  "than usual. Can it?  Or maybe it's best\n"\
   //  "to let sleeping gods lie.."
-  //
-  //
+
+
   //  #define T6TEXT \
   //  "Time for a vacation. You've burst the\n"\
   //  "bowels of hell and by golly you're ready\n"\
@@ -758,8 +758,8 @@ Const
   //  "\n"\
   //  "As you step off the transport, you hear\n"\
   //  "the stomp of a cyberdemon's iron shoe."
-  //
-  //
+
+
   //  #define N1TEXT \
   //  "TROUBLE WAS BREWING AGAIN IN YOUR FAVORITE\n"\
   //  "VACATION SPOT... HELL. SOME CYBERDEMON\n"\
@@ -774,7 +774,7 @@ Const
   //  "HITTING THE FLOOR. HIS DEATH MOAN GURGLES\n" \
   //  "OUT THROUGH THE MESS YOU LEFT OF HIS FACE.\n\n" \
   //  "THIS RIDE IS CLOSED."
-  //
+
   //  #define M1TEXT \
   //  "CONGRATULATIONS YOU HAVE FINISHED... \n\n"\
   //  "MOST OF THE MASTER LEVELS\n\n"\
@@ -785,7 +785,7 @@ Const
   //  "since you have shown cowardice and didn't\n"\
   //  "reach the most hideous level\n"\
   //  "they had made for you."
-  //
+
   //  #define M2TEXT \
   //  "CONGRATULATIONS YOU HAVE FINISHED... \n\n"\
   //  "ALL THE MASTER LEVELS\n\n"\
@@ -797,10 +797,10 @@ Const
   //  "for more - but you don't know where\n"\
   //  "to find more when the demons hide\n"\
   //  "like cowards when they see you."
+
   //
-  //  //
-  //  // Character cast strings F_FINALE.C
-  //  //
+  // Character cast strings F_FINALE.C
+  //
   //  #define CC_ZOMBIE	"ZOMBIEMAN"
   //  #define CC_SHOTGUN	"SHOTGUN GUY"
   //  #define CC_HEAVY	"HEAVY WEAPON DUDE"

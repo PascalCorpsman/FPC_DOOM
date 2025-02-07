@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="95">
+    <Units Count="100">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -428,6 +428,26 @@
         <Filename Value="../Sample/Sound/uwave.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit94>
+      <Unit95>
+        <Filename Value="units/p_lights.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit95>
+      <Unit96>
+        <Filename Value="units/p_ceilng.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit96>
+      <Unit97>
+        <Filename Value="units/wi_stuff.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit97>
+      <Unit98>
+        <Filename Value="units/r_swirl.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit98>
+      <Unit99>
+        <Filename Value="units/v_snow.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit99>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -16,7 +16,7 @@ Const
 
 
 Procedure I_InitSound(mission: GameMission_t);
-//Procedure I_ShutdownSound();
+Procedure I_ShutdownSound();
 Function I_GetSfxLumpNum(sfxinfo: Psfxinfo_t): int;
 //Procedure I_UpdateSound();
 //Procedure I_UpdateSoundParams(channel: int; vol: int; sep: int);
@@ -152,6 +152,33 @@ Begin
   //	const char *driver_name = SDL_GetCurrentAudioDriver();
   //
   //	fprintf(stderr, "I_InitSound: SDL audio driver is %s\n", driver_name ? driver_name : "none");
+  //    }
+End;
+
+Procedure I_ShutdownSound();
+Begin
+  //    if (sound_module != NULL)
+  //    {
+  {      sound_module->} I_SDL_ShutdownSound;
+  //    }
+  //
+  //    if (music_packs_active)
+  //    {
+  //        music_pack_module.Shutdown();
+  //    }
+  //
+  //#ifndef DISABLE_SDL2MIXER
+  //    music_sdl_module.Shutdown();
+  //
+  //    if (music_module == &music_sdl_module)
+  //    {
+  //        return;
+  //    }
+  //#endif
+  //
+  //    if (music_module != NULL)
+  //    {
+  //        music_module->Shutdown();
   //    }
 End;
 

@@ -608,8 +608,8 @@ Begin
     exit;
   End;
 
-  dx := (x - node^.x);
-  dy := (y - node^.y);
+  dx := fixed_t(x - node^.x);
+  dy := fixed_t(y - node^.y);
 
   // Try to quickly decide by looking at sign bits.
   If ((node^.dy Xor node^.dx Xor dx Xor dy) And $80000000) <> 0 Then Begin

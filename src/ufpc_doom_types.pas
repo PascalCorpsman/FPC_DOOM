@@ -125,7 +125,7 @@ Type
 
     //    	// [crispy] in-game switches and variables
     screenshotmsg: int;
-    //    	int snowflakes;
+    snowflakes: int;
     cleanscreenshot: int;
     //    	int demowarp;
     //    	int fps;
@@ -259,6 +259,7 @@ Initialization
   //  Crispy.widescreen := 1; // match screen by default
   Crispy.cleanscreenshot := 0;
   Crispy.screenshotmsg := 0;
+  Crispy.snowflakes := 0;
   Crispy.fistisquit := false;
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;

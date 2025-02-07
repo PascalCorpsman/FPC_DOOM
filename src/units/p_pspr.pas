@@ -18,6 +18,7 @@ Const
 
   //  psprnum_t -> info_types.pas
 
+Procedure A_Recoil(player: Pplayer_t);
 Procedure A_Light0(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_Light1(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_Light2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -37,7 +38,7 @@ Procedure A_Saw(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_FirePlasma(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_BFGsound(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Procedure A_FireBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
-Procedure A_BFGSpray(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Procedure A_BFGSpray(mo: Pmobj_t);
 
 Procedure P_SetupPsprites(player: Pplayer_t);
 
@@ -51,8 +52,8 @@ Uses
   doomdef, sounds, a11y_weapon_pspr, info, tables, doomstat
   , d_items, d_event, deh_misc, d_mode, d_player
   , m_fixed, m_random
-  , p_mobj, p_tick, p_enemy, p_local, p_map
-  , r_things
+  , p_mobj, p_tick, p_enemy, p_local, p_map, p_inter
+  , r_things, r_main
   , s_sound
   ;
 
@@ -497,7 +498,7 @@ Begin
   angle := mo^.angle;
 
   If (Not accurate) Then
-    angle := angle + P_SubRandom() Shl 18;
+    angle := angle_t(angle + P_SubRandom() Shl 18);
 
   P_LineAttack(mo, angle, MISSILERANGE, bulletslope, damage);
 End;
@@ -530,60 +531,56 @@ Begin
 End;
 
 Procedure A_FireShotgun(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Var
+  i: int;
 Begin
-  Raise Exception.Create('Port me.');
-  //   int		i;
-  //
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    S_StartSound (player->so, sfx_shotgn); // [crispy] weapon sound source
-  //    P_SetMobjState (player->mo, S_PLAY_ATK2);
-  //
-  //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
-  //
-  //    P_SetPsprite (player,
-  //		  ps_flash,
-  //		  weaponinfo[player->readyweapon].flashstate);
-  //
-  //    P_BulletSlope (player->mo);
-  //
-  //    for (i=0 ; i<7 ; i++)
-  //	P_GunShot (player->mo, false);
-  //
-  //    A_Recoil (player);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+
+  S_StartSound(player^.so, sfx_shotgn); // [crispy] weapon sound source
+  P_SetMobjState(player^.mo, S_PLAY_ATK2);
+
+  DecreaseAmmo(player, int(weaponinfo[int(player^.readyweapon)].ammo), 1);
+
+  P_SetPsprite(player,
+    ps_flash,
+    weaponinfo[int(player^.readyweapon)].flashstate);
+
+  P_BulletSlope(player^.mo);
+
+  For i := 0 To 6 Do
+    P_GunShot(player^.mo, false);
+
+  A_Recoil(player);
 End;
 
 Procedure A_FireShotgun2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Var
+  i: int;
+  angle: angle_t;
+  damage: int;
 Begin
-  Raise Exception.Create('Port me.');
-  //   int		i;
-  //    angle_t	angle;
-  //    int		damage;
-  //
-  //
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    S_StartSound (player->so, sfx_dshtgn); // [crispy] weapon sound source
-  //    P_SetMobjState (player->mo, S_PLAY_ATK2);
-  //
-  //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 2);
-  //
-  //    P_SetPsprite (player,
-  //		  ps_flash,
-  //		  weaponinfo[player->readyweapon].flashstate);
-  //
-  //    P_BulletSlope (player->mo);
-  //
-  //    for (i=0 ; i<20 ; i++)
-  //    {
-  //	damage = 5*(P_Random ()%3+1);
-  //	angle = player->mo->angle;
-  //	angle += P_SubRandom() << ANGLETOFINESHIFT;
-  //	P_LineAttack (player->mo,
-  //		      angle,
-  //		      MISSILERANGE,
-  //		      bulletslope + (P_SubRandom() << 5), damage);
-  //    }
-  //
-  //    A_Recoil (player);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  S_StartSound(player^.so, sfx_dshtgn); // [crispy] weapon sound source
+  P_SetMobjState(player^.mo, S_PLAY_ATK2);
+
+  DecreaseAmmo(player, int(weaponinfo[integer(player^.readyweapon)].ammo), 2);
+
+  P_SetPsprite(player,
+    ps_flash,
+    weaponinfo[integer(player^.readyweapon)].flashstate);
+
+  P_BulletSlope(player^.mo);
+
+  For i := 0 To 19 Do Begin
+    damage := 5 * (P_Random() Mod 3 + 1);
+    angle := player^.mo^.angle;
+    angle := angle_t(angle + P_SubRandom() Shl ANGLETOFINESHIFT);
+    P_LineAttack(player^.mo,
+      angle,
+      MISSILERANGE,
+      bulletslope + (P_SubRandom() Shl 5), damage);
+  End;
+  A_Recoil(player);
 End;
 
 Procedure A_CheckReload(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -598,101 +595,97 @@ End;
 
 Procedure A_FireCGun(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    S_StartSound (player->so, sfx_pistol); // [crispy] weapon sound source
+
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  S_StartSound(player^.so, sfx_pistol); // [crispy] weapon sound source
   //
-  //    if (!player->ammo[weaponinfo[player->readyweapon].ammo])
-  //	return;
-  //
-  //    P_SetMobjState (player->mo, S_PLAY_ATK2);
-  //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
-  //
-  //    P_SetPsprite (player,
-  //		  ps_flash,
-  //		  weaponinfo[player->readyweapon].flashstate
-  //		  + psp->state
-  //		  - &states[S_CHAIN1] );
-  //
-  //    P_BulletSlope (player->mo);
-  //
-  //    P_GunShot (player->mo, !player->refire);
-  //
-  //    A_Recoil (player);
+  If (player^.ammo[int(weaponinfo[int(player^.readyweapon)].ammo)] = 0) Then exit;
+
+
+  P_SetMobjState(player^.mo, S_PLAY_ATK2);
+  DecreaseAmmo(player, int(weaponinfo[int(player^.readyweapon)].ammo), 1);
+
+  P_SetPsprite(player,
+    ps_flash,
+    statenum_t(
+    int(
+    weaponinfo[int(player^.readyweapon)].flashstate)
+    + (psp^.state - @states[int(S_CHAIN1)]) Div sizeof(states[0])));
+
+  P_BulletSlope(player^.mo);
+
+  P_GunShot(player^.mo, odd(Not player^.refire));
+
+  A_Recoil(player);
 End;
 
 Procedure A_GunFlash(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    P_SetMobjState (player->mo, S_PLAY_ATK2);
-  //    P_SetPsprite (player,ps_flash,weaponinfo[player->readyweapon].flashstate);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  P_SetMobjState(player^.mo, S_PLAY_ATK2);
+  P_SetPsprite(player, ps_flash, weaponinfo[int(player^.readyweapon)].flashstate);
 End;
 
 Procedure A_FireMissile(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //  if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //  DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
-  //  P_SpawnPlayerMissile (player->mo, MT_ROCKET);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  DecreaseAmmo(player, int(weaponinfo[int(player^.readyweapon)].ammo), 1);
+  P_SpawnPlayerMissile(player^.mo, MT_ROCKET);
 End;
 
 Procedure A_Saw(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Var
+  angle: angle_t;
+  damage: int;
+  slope: int;
 Begin
-  Raise Exception.Create('Port me.');
-  //    angle_t	angle;
-  //    int		damage;
-  //    int		slope;
-  //
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    damage = 2*(P_Random ()%10+1);
-  //    angle = player->mo->angle;
-  //    angle += P_SubRandom() << 18;
-  //
-  //    // use meleerange + 1 se the puff doesn't skip the flash
-  //    slope = P_AimLineAttack (player->mo, angle, MELEERANGE+1);
-  //    P_LineAttack (player->mo, angle, MELEERANGE+1, slope, damage);
-  //
-  //    A_Recoil (player);
-  //
-  //    if (!linetarget)
-  //    {
-  //	S_StartSound (player->so, sfx_sawful); // [crispy] weapon sound source
-  //	return;
-  //    }
-  //    S_StartSound (player->so, sfx_sawhit); // [crispy] weapon sound source
-  //
-  //    // turn to face target
-  //    angle = R_PointToAngle2 (player->mo->x, player->mo->y,
-  //			     linetarget->x, linetarget->y);
-  //    if (angle - player->mo->angle > ANG180)
-  //    {
-  //	if ((signed int) (angle - player->mo->angle) < -ANG90/20)
-  //	    player->mo->angle = angle + ANG90/21;
-  //	else
-  //	    player->mo->angle -= ANG90/20;
-  //    }
-  //    else
-  //    {
-  //	if (angle - player->mo->angle > ANG90/20)
-  //	    player->mo->angle = angle - ANG90/21;
-  //	else
-  //	    player->mo->angle += ANG90/20;
-  //    }
-  //    player->mo->flags |= MF_JUSTATTACKED;
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  damage := 2 * (P_Random() Mod 10 + 1);
+  angle := player^.mo^.angle;
+  angle := angle_t(angle + P_SubRandom() Shl 18);
+
+  // use meleerange + 1 se the puff doesn't skip the flash
+  slope := P_AimLineAttack(player^.mo, angle, MELEERANGE + 1);
+  P_LineAttack(player^.mo, angle, MELEERANGE + 1, slope, damage);
+
+  A_Recoil(player);
+
+  If (linetarget = Nil) Then Begin
+    S_StartSound(player^.so, sfx_sawful); // [crispy] weapon sound source
+    exit;
+  End;
+  S_StartSound(player^.so, sfx_sawhit); // [crispy] weapon sound source
+
+  // turn to face target
+  angle := R_PointToAngle2(player^.mo^.x, player^.mo^.y,
+    linetarget^.x, linetarget^.y);
+  If (angle_t(angle - player^.mo^.angle) > ANG180) Then Begin
+
+    If (int((angle - player^.mo^.angle)) < -ANG90 Div 20) Then
+      player^.mo^.angle := angle_t(angle + ANG90 Div 21)
+    Else
+      player^.mo^.angle := angle_t(player^.mo^.angle - ANG90 Div 20);
+  End
+  Else Begin
+    If (angle - player^.mo^.angle > ANG90 / 20) Then Begin
+      player^.mo^.angle := angle_t(angle - ANG90 Div 21)
+    End
+    Else
+      player^.mo^.angle := angle_t(player^.mo^.angle + ANG90 Div 20);
+  End;
+  player^.mo^.flags := player^.mo^.flags Or MF_JUSTATTACKED;
 End;
 
 Procedure A_FirePlasma(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //  if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
-  //
-  //    P_SetPsprite (player,
-  //		  ps_flash,
-  //		  weaponinfo[player->readyweapon].flashstate+(P_Random ()&1) );
-  //
-  //    P_SpawnPlayerMissile (player->mo, MT_PLASMA);
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  DecreaseAmmo(player, int(weaponinfo[int(player^.readyweapon)].ammo), 1);
+
+  P_SetPsprite(player,
+    ps_flash,
+    statenum_t(int(weaponinfo[int(player^.readyweapon)].flashstate) + ord(P_Random() And 1)));
+
+  P_SpawnPlayerMissile(player^.mo, MT_PLASMA);
 End;
 
 Procedure A_BFGsound(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
@@ -703,44 +696,41 @@ End;
 
 Procedure A_FireBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Raise Exception.Create('Port me.');
-  //      if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo,
-  //                 deh_bfg_cells_per_shot);
-  //    P_SpawnPlayerMissile (player->mo, MT_BFG);
+  If Not assigned(player) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  DecreaseAmmo(player, int(weaponinfo[int(player^.readyweapon)].ammo),
+    deh_bfg_cells_per_shot);
+  P_SpawnPlayerMissile(player^.mo, MT_BFG);
 End;
 
-Procedure A_BFGSpray(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Procedure A_BFGSpray(mo: Pmobj_t);
+Var
+  i, j, damage: int;
+  an: angle_t;
 Begin
-  Raise Exception.Create('Port me.');
-  //    int			i;
-  //    int			j;
-  //    int			damage;
-  //    angle_t		an;
-  //
-  //    // offset angles from its attack angle
-  //    for (i=0 ; i<40 ; i++)
-  //    {
-  //	an = mo->angle - ANG90/2 + ANG90/40*i;
-  //
-  //	// mo->target is the originator (player)
-  //	//  of the missile
-  //	P_AimLineAttack (mo->target, an, 16*64*FRACUNIT);
-  //
-  //	if (!linetarget)
-  //	    continue;
-  //
-  //	P_SpawnMobj (linetarget->x,
-  //		     linetarget->y,
-  //		     linetarget->z + (linetarget->height>>2),
-  //		     MT_EXTRABFG);
-  //
-  //	damage = 0;
-  //	for (j=0;j<15;j++)
-  //	    damage += (P_Random()&7) + 1;
-  //
-  //	P_DamageMobj (linetarget, mo->target,mo->target, damage);
-  //    }
+  // offset angles from its attack angle
+  For i := 0 To 39 Do Begin
+
+    an := angle_t(mo^.angle - ANG90 Div 2 + ANG90 Div 40 * i);
+
+    // mo^.target is the originator (player)
+    //  of the missile
+    P_AimLineAttack(mo^.target, an, 16 * 64 * FRACUNIT);
+
+    If (linetarget = Nil) Then
+      continue;
+
+    P_SpawnMobj(linetarget^.x,
+      linetarget^.y,
+      linetarget^.z + SarLongint(linetarget^.height, 2),
+      MT_EXTRABFG);
+
+    damage := 0;
+    For j := 0 To 14 Do Begin
+      damage := damage + (P_Random() And 7) + 1;
+    End;
+
+    P_DamageMobj(linetarget, mo^.target, mo^.target, damage);
+  End;
 End;
 
 //

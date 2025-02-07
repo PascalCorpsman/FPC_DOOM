@@ -37,7 +37,7 @@ Procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 Implementation
 
 Uses
-  tables, doomstat, info, sounds
+  tables, doomstat, info, sounds, deh_misc
   , am_map
   , d_mode, d_player, d_items
   , i_system
@@ -473,6 +473,46 @@ Begin
 End;
 
 //
+// P_GiveBody
+// Returns false if the body isn't needed at all
+//
+
+Function P_GiveBody(player: pplayer_t; num: int): boolean;
+Begin
+  If (player^.health >= MAXHEALTH) Then Begin
+    result := false;
+    exit;
+  End;
+
+  player^.health := player^.health + num;
+  If (player^.health > MAXHEALTH) Then
+    player^.health := MAXHEALTH;
+  player^.mo^.health := player^.health;
+
+  result := true;
+End;
+
+//
+// P_GiveArmor
+// Returns false if the armor is worse
+// than the current armor.
+//
+
+Function P_GiveArmor(player: Pplayer_t; armortype: int): boolean;
+Var
+  hits: int;
+Begin
+  hits := armortype * 100;
+  If (player^.armorpoints >= hits) Then Begin
+    result := false; // don't pick up
+    exit;
+  End;
+  player^.armortype := armortype;
+  player^.armorpoints := hits;
+  result := true;
+End;
+
+//
 // P_TouchSpecialThing
 //
 
@@ -483,13 +523,9 @@ Var
   delta: fixed_t;
   sound: sfxenum_t;
   dropped: boolean;
-
 Begin
-
   dropped := ((special^.flags And MF_DROPPED) <> 0);
-
   delta := special^.z - toucher^.z;
-
   If (delta > toucher^.height)
     Or (delta < -8 * FRACUNIT) Then Begin
     // out of reach
@@ -498,48 +534,44 @@ Begin
 
   sound := sfx_itemup;
   player := toucher^.player;
-
   // Dead thing touching.
   // Can happen with a sliding player corpse.
   If (toucher^.health <= 0) Then exit;
 
-
   // Identify by sprite.
   Case (special^.sprite) Of
 
-    //	// armor
-    //      case SPR_ARM1:
-    //	if (!P_GiveArmor (player, deh_green_armor_class))
-    //	    return;
-    //	player^.message = DEH_String(GOTARMOR);
-    //	break;
-    //
-    //      case SPR_ARM2:
-    //	if (!P_GiveArmor (player, deh_blue_armor_class))
-    //	    return;
-    //	player^.message = DEH_String(GOTMEGA);
-    //	break;
-    //
-    //	// bonus items
-    //      case SPR_BON1:
-    //	player^.health++;		// can go over 100%
-    //	if (player^.health > deh_max_health)
-    //	    player^.health = deh_max_health;
-    //	player^.mo^.health = player^.health;
-    //	player^.message = DEH_String(GOTHTHBONUS);
-    //	break;
-    //
-    //      case SPR_BON2:
-    //	player^.armorpoints++;		// can go over 100%
-    //	if (player^.armorpoints > deh_max_armor && gameversion > exe_doom_1_2)
-    //	    player^.armorpoints = deh_max_armor;
-    //        // deh_green_armor_class only applies to the green armor shirt;
-    //        // for the armor helmets, armortype 1 is always used.
-    //	if (!player^.armortype)
-    //	    player^.armortype = 1;
-    //	player^.message = DEH_String(GOTARMBONUS);
-    //	break;
-    //
+    // armor
+    SPR_ARM1: Begin
+        If (Not P_GiveArmor(player, deh_green_armor_class)) Then exit;
+        player^.message := GOTARMOR;
+      End;
+
+    SPR_ARM2: Begin
+        If (Not P_GiveArmor(player, deh_blue_armor_class)) Then exit;
+        player^.message := GOTMEGA;
+      End;
+
+    // bonus items
+    SPR_BON1: Begin
+        player^.health := player^.health + 1; // can go over 100%
+        If (player^.health > deh_max_health) Then
+          player^.health := deh_max_health;
+        player^.mo^.health := player^.health;
+        player^.message := GOTHTHBONUS;
+      End;
+
+    SPR_BON2: Begin
+        player^.armorpoints := player^.armorpoints + 1; // can go over 100%
+        If (player^.armorpoints > deh_max_armor) And (gameversion > exe_doom_1_2) Then
+          player^.armorpoints := deh_max_armor;
+        // deh_green_armor_class only applies to the green armor shirt;
+        // for the armor helmets, armortype 1 is always used.
+        If (player^.armortype = 0) Then
+          player^.armortype := 1;
+        player^.message := GOTARMBONUS;
+      End;
+
     //      case SPR_SOUL:
     //	player^.health += deh_soulsphere_health;
     //	if (player^.health > deh_max_soulsphere)
@@ -618,26 +650,23 @@ Begin
     //	if (!netgame)
     //	    break;
     //	return;
-    //
-    //	// medikits, heals
-    //      case SPR_STIM:
-    //	if (!P_GiveBody (player, 10))
-    //	    return;
-    //	player^.message = DEH_String(GOTSTIM);
-    //	break;
-    //
-    //      case SPR_MEDI:
-    //	if (!P_GiveBody (player, 25))
-    //	    return;
-    //
-    //	// [crispy] show "Picked up a Medikit that you really need" message as intended
-    //	if (player^.health < 50)
-    //	    player^.message = DEH_String(GOTMEDINEED);
-    //	else
-    //	    player^.message = DEH_String(GOTMEDIKIT);
-    //	break;
-    //
-    //
+
+     // medikits, heals
+    SPR_STIM: Begin
+        If (Not P_GiveBody(player, 10)) Then exit;
+
+        player^.message := GOTSTIM;
+      End;
+
+    SPR_MEDI: Begin
+        If (Not P_GiveBody(player, 25)) Then exit;
+        // [crispy] show "Picked up a Medikit that you really need" message as intended
+        If (player^.health < 50) Then
+          player^.message := GOTMEDINEED
+        Else
+          player^.message := GOTMEDIKIT;
+      End;
+
     //	// power ups
     //      case SPR_PINV:
     //	if (!P_GivePower (player, pw_invulnerability))
@@ -646,7 +675,7 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
+
     //      case SPR_PSTR:
     //	if (!P_GivePower (player, pw_strength))
     //	    return;
@@ -656,7 +685,7 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
+
     //      case SPR_PINS:
     //	if (!P_GivePower (player, pw_invisibility))
     //	    return;
@@ -664,7 +693,7 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
+
     //      case SPR_SUIT:
     //	if (!P_GivePower (player, pw_ironfeet))
     //	    return;
@@ -672,7 +701,7 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
+
     //      case SPR_PMAP:
     //	if (!P_GivePower (player, pw_allmap))
     //	    return;
@@ -680,7 +709,7 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
+
     //      case SPR_PVIS:
     //	if (!P_GivePower (player, pw_infrared))
     //	    return;
@@ -688,69 +717,62 @@ Begin
     //	if (gameversion > exe_doom_1_2)
     //	    sound = sfx_getpow;
     //	break;
-    //
-    //	// ammo
-    //	// [NS] Give half ammo for drops of all types.
-    //      case SPR_CLIP:
-    //	/*
-    //	if (special^.flags & MF_DROPPED)
-    //	{
-    //	    if (!P_GiveAmmo (player,am_clip,0))
-    //		return;
-    //	}
-    //	else
-    //	{
-    //	    if (!P_GiveAmmo (player,am_clip,1))
-    //		return;
-    //	}
-    //	*/
-    //	    if (!P_GiveAmmo (player,am_clip,1,dropped))
-    //		return;
-    //	player^.message = DEH_String(GOTCLIP);
-    //	break;
-    //
-    //      case SPR_AMMO:
-    //	if (!P_GiveAmmo (player, am_clip,5,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTCLIPBOX);
-    //	break;
-    //
+
+     // ammo
+     // [NS] Give half ammo for drops of all types.
+    SPR_CLIP: Begin
+        (*
+        If (special^.flags And MF_DROPPED) <> 0 Then Begin
+          If (Not P_GiveAmmo(player, am_clip, 0)) Then exit;
+        End
+        Else Begin
+          If (Not P_GiveAmmo(player, am_clip, 1)) Then exit;
+        End;
+        //*)
+        If (Not P_GiveAmmo(player, am_clip, 1, dropped)) Then exit;
+        player^.message := GOTCLIP;
+      End;
+
+    SPR_AMMO: Begin
+        If (Not P_GiveAmmo(player, am_clip, 5, dropped)) Then exit;
+
+        player^.message := GOTCLIPBOX;
+      End;
+
     //      case SPR_ROCK:
     //	if (!P_GiveAmmo (player, am_misl,1,dropped))
     //	    return;
     //	player^.message = DEH_String(GOTROCKET);
     //	break;
-    //
+
     //      case SPR_BROK:
     //	if (!P_GiveAmmo (player, am_misl,5,dropped))
     //	    return;
     //	player^.message = DEH_String(GOTROCKBOX);
     //	break;
-    //
+
     //      case SPR_CELL:
     //	if (!P_GiveAmmo (player, am_cell,1,dropped))
     //	    return;
     //	player^.message = DEH_String(GOTCELL);
     //	break;
-    //
+
     //      case SPR_CELP:
     //	if (!P_GiveAmmo (player, am_cell,5,dropped))
     //	    return;
     //	player^.message = DEH_String(GOTCELLBOX);
     //	break;
-    //
-    //      case SPR_SHEL:
-    //	if (!P_GiveAmmo (player, am_shell,1,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTSHELLS);
-    //	break;
-    //
-    //      case SPR_SBOX:
-    //	if (!P_GiveAmmo (player, am_shell,5,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTSHELLBOX);
-    //	break;
-    //
+
+    SPR_SHEL: Begin
+        If (Not P_GiveAmmo(player, am_shell, 1, dropped)) Then exit;
+        player^.message := GOTSHELLS;
+      End;
+
+    SPR_SBOX: Begin
+        If (Not P_GiveAmmo(player, am_shell, 5, dropped)) Then exit;
+        player^.message := GOTSHELLBOX;
+      End;
+
     //      case SPR_BPAK:
     //	if (!player^.backpack)
     //	{
@@ -762,7 +784,7 @@ Begin
     //	    P_GiveAmmo (player, i, 1, false);
     //	player^.message = DEH_String(GOTBACKPACK);
     //	break;
-    //
+
     //	// weapons
     //	// [NS] Give half ammo for all dropped weapons.
     //      case SPR_BFUG:
@@ -771,7 +793,7 @@ Begin
     //	player^.message = DEH_String(GOTBFG9000);
     //	sound = sfx_wpnup;
     //	break;
-    //
+
     //      case SPR_MGUN:
     //        if (!P_GiveWeapon(player, wp_chaingun,
     //                          (special^.flags & MF_DROPPED) != 0))
@@ -792,14 +814,14 @@ Begin
     //	player^.message = DEH_String(GOTLAUNCHER);
     //	sound = sfx_wpnup;
     //	break;
-    //
+
     //      case SPR_PLAS:
     //	if (!P_GiveWeapon (player, wp_plasma, dropped) )
     //	    return;
     //	player^.message = DEH_String(GOTPLASMA);
     //	sound = sfx_wpnup;
     //	break;
-    //
+
     //      case SPR_SHOT:
     //        if (!P_GiveWeapon(player, wp_shotgun,
     //                          (special^.flags & MF_DROPPED) != 0))
@@ -807,7 +829,7 @@ Begin
     //	player^.message = DEH_String(GOTSHOTGUN);
     //	sound = sfx_wpnup;
     //	break;
-    //
+
     //      case SPR_SGN2:
     //        if (!P_GiveWeapon(player, wp_supershotgun,
     //                          (special^.flags & MF_DROPPED) != 0))
@@ -815,16 +837,16 @@ Begin
     //	player^.message = DEH_String(GOTSHOTGUN2);
     //	sound = sfx_wpnup;
     //	break;
-    //
+
     //	// [NS] Beta pickups.
     //      case SPR_BON3:
     //	player^.message = DEH_String(BETA_BONUS3);
     //	break;
-    //
+
     //      case SPR_BON4:
     //	player^.message = DEH_String(BETA_BONUS4);
-    //	break;
-    //
+    //  break;
+
   Else Begin
       Raise exception.create('port me: ' + inttostr(integer(special^.sprite)));
       I_Error('P_SpecialThing: Unknown gettable thing');

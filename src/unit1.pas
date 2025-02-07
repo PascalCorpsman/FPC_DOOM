@@ -27,6 +27,13 @@
 (******************************************************************************)
 Unit Unit1;
 
+{$ifdef Windows}
+(*
+ * Seid Bass.pas braucht DOOM ein bisschen mehr, unter Windows kann man das so setzen und dann kann man weiter den Stack Test an lassen.
+ *)
+{$MAXSTACKSIZE 33554432}
+{$endif}
+
 {$MODE objfpc}{$H+}
 {$DEFINE DebuggMode}
 
