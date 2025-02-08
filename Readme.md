@@ -68,3 +68,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.02.03) able to shoot barrels ![](documentation/shoot_barrel.gif)
 - (2025.02.05) First version of .wad viewer ![](documentation/WAD_Viewer_001.png)
 - (2025.02.06) enable SFX engine [Video](documentation/DOOM_Sound.mp4)
+- (2025.02.08) reached finish screen of level 1 ![](documentation/Hanger_Finished.gif)
