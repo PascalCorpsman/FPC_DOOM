@@ -44,6 +44,7 @@ Uses
   , i_timer, i_video
   , g_game
   , hu_stuff
+  , m_random
   , p_spec, p_setup, p_tick
   , s_sound, st_stuff
   , v_video
@@ -59,6 +60,68 @@ Const
   SP_STATSY = 50;
   SP_TIMEX = 16;
   SP_TIMEY = (ORIGHEIGHT - 32);
+
+  // Different between registered DOOM (1994) and
+  //  Ultimate DOOM - Final edition (retail, 1995?).
+  // This is supposedly ignored for commercial
+  //  release (aka DOOM II), which had 34 maps
+  //  in one episode. So there.
+  NUMEPISODES = 4;
+  DEFINE_NUMMAPS = 9;
+
+  lnodes: Array[0..NUMEPISODES - 1, 0..DEFINE_NUMMAPS - 1] Of point_t =
+  (
+    // Episode 0 World Map
+    (
+    (x: 185; y: 164), // location of level 0 (CJ)
+    (x: 148; y: 143), // location of level 1 (CJ)
+    (x: 69; y: 122), // location of level 2 (CJ)
+    (x: 209; y: 102), // location of level 3 (CJ)
+    (x: 116; y: 89), // location of level 4 (CJ)
+    (x: 166; y: 55), // location of level 5 (CJ)
+    (x: 71; y: 56), // location of level 6 (CJ)
+    (x: 135; y: 29), // location of level 7 (CJ)
+    (x: 71; y: 24) // location of level 8 (CJ)
+    ),
+
+    // Episode 1 World Map should go here
+    (
+    (x: 254; y: 25), // location of level 0 (CJ)
+    (x: 97; y: 50), // location of level 1 (CJ)
+    (x: 188; y: 64), // location of level 2 (CJ)
+    (x: 128; y: 78), // location of level 3 (CJ)
+    (x: 214; y: 92), // location of level 4 (CJ)
+    (x: 133; y: 130), // location of level 5 (CJ)
+    (x: 208; y: 136), // location of level 6 (CJ)
+    (x: 148; y: 140), // location of level 7 (CJ)
+    (x: 235; y: 158) // location of level 8 (CJ)
+    ),
+
+    // Episode 2 World Map should go here
+    (
+    (x: 156; y: 168), // location of level 0 (CJ)
+    (x: 48; y: 154), // location of level 1 (CJ)
+    (x: 174; y: 95), // location of level 2 (CJ)
+    (x: 265; y: 75), // location of level 3 (CJ)
+    (x: 130; y: 48), // location of level 4 (CJ)
+    (x: 279; y: 23), // location of level 5 (CJ)
+    (x: 198; y: 48), // location of level 6 (CJ)
+    (x: 140; y: 25), // location of level 7 (CJ)
+    (x: 281; y: 136) // location of level 8 (CJ)
+    ),
+
+    (
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0),
+    (x: 0; y: 0)
+    )
+    );
 
 Type
 
@@ -140,14 +203,6 @@ Const
   // in seconds
   SHOWNEXTLOCDELAY = 4;
   SHOWLASTLOCDELAY = SHOWNEXTLOCDELAY;
-
-  // Different between registered DOOM (1994) and
-  //  Ultimate DOOM - Final edition (retail, 1995?).
-  // This is supposedly ignored for commercial
-  //  release (aka DOOM II), which had 34 maps
-  //  in one episode. So there.
-  NUMEPISODES = 4;
-  DEFINE_NUMMAPS = 9;
 
 Var
   // used to accelerate or skip a stage
@@ -293,46 +348,37 @@ Begin
   If (gamemode = commercial) Then exit;
   If (wbs^.epsd > 2) Then exit;
 
-  Raise Exception.Create('Port me.');
+  For i := 0 To NUMANIMS[wbs^.epsd] - 1 Do Begin
+    a := @anims[wbs^.epsd][i];
+    If (bcnt = a^.nexttic) Then Begin
+      Case (a^._type) Of
+        ANIM_ALWAYS: Begin
+            a^.ctr := a^.ctr + 1;
+            If (a^.ctr >= a^.nanims) Then a^.ctr := 0;
+            a^.nexttic := bcnt + a^.period;
+          End;
+        ANIM_RANDOM: Begin
+            a^.ctr := a^.ctr + 1;
+            If (a^.ctr = a^.nanims) Then Begin
+              a^.ctr := -1;
+              a^.nexttic := bcnt + a^.data2 + (M_Random.M_Random() Mod a^.data1);
+            End
+            Else
+              a^.nexttic := bcnt + a^.period;
+          End;
+        ANIM_LEVEL: Begin
+            // gawd-awful hack for level anims
+            If (Not ((state = StatCount) And (i = 7))
+              And (wbs^.next = a^.data1)) Then Begin
 
-  //    for (i=0;i<NUMANIMS[wbs->epsd];i++)
-  //    {
-  //	a = &anims[wbs->epsd][i];
-  //
-  //	if (bcnt == a->nexttic)
-  //	{
-  //	    switch (a->type)
-  //	    {
-  //	      case ANIM_ALWAYS:
-  //		if (++a->ctr >= a->nanims) a->ctr = 0;
-  //		a->nexttic = bcnt + a->period;
-  //		break;
-  //
-  //	      case ANIM_RANDOM:
-  //		a->ctr++;
-  //		if (a->ctr == a->nanims)
-  //		{
-  //		    a->ctr = -1;
-  //		    a->nexttic = bcnt+a->data2+(M_Random()%a->data1);
-  //		}
-  //		else a->nexttic = bcnt + a->period;
-  //		break;
-  //
-  //	      case ANIM_LEVEL:
-  //		// gawd-awful hack for level anims
-  //		if (!(state == StatCount && i == 7)
-  //		    && wbs->next == a->data1)
-  //		{
-  //		    a->ctr++;
-  //		    if (a->ctr == a->nanims) a->ctr--;
-  //		    a->nexttic = bcnt + a->period;
-  //		}
-  //		break;
-  //	    }
-  //	}
-  //
-  //    }
-
+              a^.ctr := a^.ctr + 1;
+              If (a^.ctr = a^.nanims) Then a^.ctr := a^.ctr - 1;
+              a^.nexttic := bcnt + a^.period;
+            End;
+          End;
+      End;
+    End;
+  End;
 End;
 
 Procedure WI_initNoState();
@@ -350,27 +396,26 @@ Begin
   If (gamemode = commercial) Then exit;
 
   If (wbs^.epsd > 2) Then exit;
-  Raise exception.create('Port me.');
 
-  //    for (i=0;i<NUMANIMS[wbs->epsd];i++)
-  //    {
-  //	a = &anims[wbs->epsd][i];
-  //
-  //	// init variables
-  //	// [crispy] Do not reset animation timers upon switching to "Entering" state
-  //	// via WI_initShowNextLoc. Fixes notable blinking of Tower of Babel drawing
-  //	// and the rest of animations from being restarted.
-  //	if (firstcall)
-  //	a->ctr = -1;
-  //
-  //	// specify the next time to draw it
-  //	if (a->type == ANIM_ALWAYS)
-  //	    a->nexttic = bcnt + 1 + (M_Random()%a->period);
-  //	else if (a->type == ANIM_RANDOM)
-  //	    a->nexttic = bcnt + 1 + a->data2+(M_Random()%a->data1);
-  //	else if (a->type == ANIM_LEVEL)
-  //	    a->nexttic = bcnt + 1;
-  //    }
+  For i := 0 To NUMANIMS[wbs^.epsd] - 1 Do Begin
+
+    a := @anims[wbs^.epsd][i];
+
+    // init variables
+    // [crispy] Do not reset animation timers upon switching to "Entering" state
+    // via WI_initShowNextLoc. Fixes notable blinking of Tower of Babel drawing
+    // and the rest of animations from being restarted.
+    If (firstcall) Then
+      a^.ctr := -1;
+
+    // specify the next time to draw it
+    If (a^._type = ANIM_ALWAYS) Then
+      a^.nexttic := bcnt + 1 + (m_random.M_Random() Mod a^.period)
+    Else If (a^._type = ANIM_RANDOM) Then
+      a^.nexttic := bcnt + 1 + a^.data2 + (m_random.M_Random() Mod a^.data1)
+    Else If (a^._type = ANIM_LEVEL) Then
+      a^.nexttic := bcnt + 1;
+  End;
 End;
 
 Procedure WI_initShowNextLoc();
@@ -821,7 +866,6 @@ Begin
   End;
 End;
 
-
 // Draws "<Levelname> Finished!"
 
 Procedure WI_drawLF();
@@ -836,36 +880,32 @@ Begin
     exit;
   End;
 
-  hier gehts weiter
+  If (gamemode <> commercial) Or (wbs^.last < NUMCMAPS) Then Begin
+    // draw <LevelName>
+    V_DrawPatch((ORIGWIDTH - lnames[wbs^.last]^.width) Div 2,
+      y, lnames[wbs^.last]);
 
-  //    if (gamemode != commercial || wbs^.last < NUMCMAPS)
-  //    {
-  //        // draw <LevelName>
-  //        V_DrawPatch((ORIGWIDTH - SHORT(lnames[wbs^.last]^.width))/2,
-  //                    y, lnames[wbs^.last]);
-  //
-  //        // draw "Finished!"
-  //        y += (5*SHORT(lnames[wbs^.last]^.height))/4;
-  //
-  //        V_DrawPatch((ORIGWIDTH - SHORT(finished^.width)) / 2, y, finished);
-  //    }
-  //    else if (wbs^.last == NUMCMAPS)
-  //    {
-  //        // MAP33 - draw "Finished!" only
-  //        V_DrawPatch((ORIGWIDTH - SHORT(finished^.width)) / 2, y, finished);
-  //    }
-  //    else if (wbs^.last > NUMCMAPS)
-  //    {
-  //        // > MAP33.  Doom bombs out here with a Bad V_DrawPatch error.
-  //        // I'm pretty sure that doom2.exe is just reading into random
-  //        // bits of memory at this point, but let's try to be accurate
-  //        // anyway.  This deliberately triggers a V_DrawPatch error.
-  //
-  //        patch_t tmp = { ORIGWIDTH, ORIGHEIGHT, 1, 1,
-  //                        { 0, 0, 0, 0, 0, 0, 0, 0 } };
-  //
-  //        V_DrawPatch(0, y, &tmp);
-  //    }
+    // draw "Finished!"
+    y := y + (5 * SHORT(lnames[wbs^.last]^.height)) Div 4;
+
+    V_DrawPatch((ORIGWIDTH - SHORT(finished^.width)) Div 2, y, finished);
+  End
+  Else If (wbs^.last = NUMCMAPS) Then Begin
+
+    // MAP33 - draw "Finished!" only
+    V_DrawPatch((ORIGWIDTH - SHORT(finished^.width)) Div 2, y, finished);
+  End
+  Else If (wbs^.last > NUMCMAPS) Then Begin
+    //        // > MAP33.  Doom bombs out here with a Bad V_DrawPatch error.
+    //        // I'm pretty sure that doom2.exe is just reading into random
+    //        // bits of memory at this point, but let's try to be accurate
+    //        // anyway.  This deliberately triggers a V_DrawPatch error.
+    //
+    //        patch_t tmp = { ORIGWIDTH, ORIGHEIGHT, 1, 1,
+    //                        { 0, 0, 0, 0, 0, 0, 0, 0 } };
+    //
+    //        V_DrawPatch(0, y, &tmp);
+  End;
 End;
 
 
@@ -1238,60 +1278,121 @@ Begin
 End;
 
 
-Procedure WI_drawShowNextLoc();
+// Draws "Entering <LevelName>"
+
+Procedure WI_drawEL();
+Var
+  y: int;
 Begin
-        hier gehts weiter
-  //    int		i;
-  //    int		last;
-  //    extern boolean secretexit; // [crispy] Master Level support
-  //
-  //    WI_slamBackground();
-  //
-  //    // draw animated background
-  //    WI_drawAnimatedBack();
-  //
-  //    if ( gamemode != commercial)
-  //    {
-  //  	if (wbs->epsd > 2)
-  //	{
-  //	    WI_drawEL();
-  //	    return;
-  //	}
-  //
-  //	last = (wbs->last == 8 || wbs->last == 9) ? wbs->next - 1 : wbs->last; // [crispy] support E1M10 "Sewers"
-  //
-  //	// draw a splat on taken cities.
-  //	for (i=0 ; i<=last ; i++)
-  //	    WI_drawOnLnode(i, splat);
-  //
-  //	// splat the secret level?
-  //	if (wbs->didsecret)
-  //	    WI_drawOnLnode(8, splat);
-  //
-  //	// [crispy] the splat for E1M10 "Sewers" is drawn only once,
-  //	// i.e. now, when returning from the level
-  //	// (and this is not going to change)
-  //	if (crispy->havee1m10 && wbs->epsd == 0 && wbs->last == 9)
-  //	{
-  //	    wbs->epsd = 1;
-  //	    WI_drawOnLnode(0, splat);
-  //	    wbs->epsd = 0;
-  //	}
-  //
-  //	// draw flashing ptr
-  //	if (snl_pointeron)
-  //	    WI_drawOnLnode(wbs->next, yah);
-  //    }
-  //
-  //    if ((gamemission == pack_nerve && wbs->last == 7) ||
-  //        (gamemission == pack_master && wbs->last == 19 && !secretexit) ||
-  //        (gamemission == pack_master && wbs->last == 20))
-  //        return;
-  //
-  //    // draws which level you are entering..
-  //    if ( (gamemode != commercial)
-  //	 || wbs->next != 30)
-  //	WI_drawEL();
+  y := WI_TITLEY;
+
+  // [crispy] prevent crashes with maps without map title graphics lump
+  If (wbs^.next >= num_lnames) Or (lnames[wbs^.next] = Nil) Then exit;
+
+  // draw "Entering"
+  V_DrawPatch((ORIGWIDTH - SHORT(entering^.width)) Div 2,
+    y,
+    entering);
+
+  // draw level
+  y := y + (5 * SHORT(lnames[wbs^.next]^.height)) Div 4;
+
+  V_DrawPatch((ORIGWIDTH - SHORT(lnames[wbs^.next]^.width)) Div 2,
+    y,
+    lnames[wbs^.next]);
+End;
+
+Procedure WI_drawOnLnode(n: int; Const c: Array Of Ppatch_t);
+Var
+  i: int;
+  left, top, right, bottom: int;
+  fits: Boolean;
+Begin
+  fits := false;
+
+  i := 0;
+  Repeat
+    left := lnodes[wbs^.epsd][n].x - SHORT(c[i]^.leftoffset);
+    top := lnodes[wbs^.epsd][n].y - SHORT(c[i]^.topoffset);
+    right := left + SHORT(c[i]^.width);
+    bottom := top + SHORT(c[i]^.height);
+
+    If (left >= 0)
+      And (right < ORIGWIDTH)
+      And (top >= 0)
+      And (bottom < ORIGHEIGHT) Then Begin
+      fits := true;
+    End
+    Else Begin
+      i := i + 1;
+    End;
+    //    } while (!fits && i!=2 && c[i] != NULL);
+  Until Not ((Not fits) And (i <> 2) And (c[i] <> Nil));
+
+  If (fits) And (i < 2) Then Begin
+    V_DrawPatch(lnodes[wbs^.epsd][n].x,
+      lnodes[wbs^.epsd][n].y,
+      c[i]);
+  End
+  Else Begin
+    // DEBUG
+    writeln(format('Could not place patch on level %d', [n + 1]));
+  End
+End;
+
+Procedure WI_drawShowNextLoc();
+Var
+  i, last: int;
+Begin
+
+  WI_slamBackground();
+
+  // draw animated background
+  WI_drawAnimatedBack();
+
+  If (gamemode <> commercial) Then Begin
+    If (wbs^.epsd > 2) Then Begin
+      WI_drawEL();
+      exit;
+    End;
+    If (wbs^.last = 8) Or (wbs^.last = 9) Then Begin
+      last := wbs^.next - 1; // [crispy] support E1M10 "Sewers"
+    End
+    Else Begin
+      last := wbs^.last; // [crispy] support E1M10 "Sewers"
+    End;
+
+    // draw a splat on taken cities.
+    For i := 0 To last Do Begin
+      WI_drawOnLnode(i, splat);
+    End;
+
+    // splat the secret level?
+    If (wbs^.didsecret) Then
+      WI_drawOnLnode(8, splat);
+
+    // [crispy] the splat for E1M10 "Sewers" is drawn only once,
+    // i.e. now, when returning from the level
+    // (and this is not going to change)
+    If (crispy.havee1m10) And (wbs^.epsd = 0) And (wbs^.last = 9) Then Begin
+      wbs^.epsd := 1;
+      WI_drawOnLnode(0, splat);
+      wbs^.epsd := 0;
+    End;
+
+    // draw flashing ptr
+    If (snl_pointeron) Then
+      WI_drawOnLnode(wbs^.next, yah);
+  End;
+
+  If ((gamemission = pack_nerve) And (wbs^.last = 7)) Or
+    ((gamemission = pack_master) And (wbs^.last = 19) And (Not secretexit)) Or
+    ((gamemission = pack_master) And (wbs^.last = 20)) Then exit;
+
+  // draws which level you are entering..
+  If ((gamemode <> commercial)
+    ) Or (wbs^.next <> 30) Then
+    WI_drawEL();
 
 End;
 
@@ -1566,7 +1667,7 @@ Begin
       nummaps := DEFINE_NUMMAPS + 1;
     End
     Else Begin
-      nummaps := NUMMAPS;
+      nummaps := DEFINE_NUMMAPS;
     End;
     setlength(lnames, nummaps);
     num_lnames := nummaps;

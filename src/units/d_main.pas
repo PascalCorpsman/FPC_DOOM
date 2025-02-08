@@ -788,18 +788,17 @@ Begin
 
   // clean up border stuff
   If (gamestate <> oldgamestate) And (gamestate <> GS_LEVEL) Then Begin
-    Raise exception.create('Port me.');
+
     //#ifndef CRISPY_TRUECOLOR
     //	I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
     //#else
-    //	I_SetPalette (0);
+    // I_SetPalette(0);
     //#endif
   End;
 
 
   // see if the border needs to be initially drawn
   If (gamestate = GS_LEVEL) And (oldgamestate <> GS_LEVEL) Then Begin
-    Raise exception.create('Port me.');
     viewactivestate := false; // view was not active
     //	R_FillBackScreen ();    // draw the pattern into the back screen
   End;
