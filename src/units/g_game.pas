@@ -88,12 +88,14 @@ Function G_CheckDemoStatus(): boolean;
 Procedure G_PlayerReborn(player: int);
 Procedure G_DeathMatchSpawnPlayer(playernum: int);
 
+Procedure G_WorldDone();
+
 Implementation
 
 Uses
-  doomdata, doomstat, info, sounds, deh_misc, doomkey
+  doomdata, doomstat, info, sounds, deh_misc, doomkey, statdump
   , am_map
-  , d_main, d_loop, d_net
+  , d_main, d_loop, d_net, d_englsh
   , i_video, i_timer
   , hu_stuff
   , m_menu, m_argv, m_random, m_fixed, m_controls
@@ -101,7 +103,7 @@ Uses
   , p_setup, p_mobj, p_inter, p_tick, p_local
   , r_data, r_sky, r_main
   , s_sound, st_stuff
-  , w_wad
+  , w_wad, wi_stuff
   ;
 
 Const
@@ -113,6 +115,30 @@ Const
 
   sidemove: Array[0..1] Of fixed_t = ($18, $28);
   angleturn: Array[0..2] Of fixed_t = (640, 1280, 320); // + slow turn
+
+  // DOOM Par Times
+  pars: Array Of Array Of int =
+  (
+    (0),
+    (0, 30, 75, 120, 90, 165, 180, 180, 30, 165),
+    (0, 90, 90, 90, 120, 90, 360, 240, 30, 170),
+    (0, 90, 45, 90, 150, 90, 90, 165, 30, 135)
+    // [crispy] Episode 4 par times from the BFG Edition
+    , (0, 165, 255, 135, 150, 180, 390, 135, 360, 180)
+    // [crispy] Episode 5 par times from Sigil v1.21
+    , (0, 90, 150, 360, 420, 780, 420, 780, 300, 660)
+    // [crispy] Episode 6 par times from Sigil II v1.0
+    , (0, 480, 300, 240, 420, 510, 840, 960, 390, 450)
+    );
+
+  // DOOM II Par Times
+  cpars: Array Of int =
+  (
+    30, 90, 120, 120, 90, 150, 120, 120, 270, 90, //  1-10
+    210, 150, 150, 150, 210, 150, 420, 150, 210, 150, // 11-20
+    240, 150, 180, 150, 150, 300, 330, 420, 300, 180, // 21-30
+    120, 30 // 31-32
+    );
 
   // [crispy] for rounding error
 Type
@@ -303,6 +329,64 @@ Begin
   //    P_SpawnPlayer (&playerstarts[playernum]);
 End;
 
+Procedure G_WorldDone();
+Begin
+  gameaction := ga_worlddone;
+  Raise exception.create('Juhee durch das Wi Menu sind wir durch, weiter gehts..');
+
+  //    if (secretexit)
+  //      // [crispy] special-casing for E1M10 "Sewers" support
+  //      // i.e. avoid drawing the splat for E1M9 already
+  //      if (!crispy->havee1m10 || gameepisode != 1 || gamemap != 1)
+  //	players[consoleplayer].didsecret = true;
+  //
+  //    if ( gamemission == pack_nerve )
+  //    {
+  //	switch (gamemap)
+  //	{
+  //	  case 8:
+  //	    F_StartFinale ();
+  //	    break;
+  //	}
+  //    }
+  //    else
+  //    if ( gamemission == pack_master )
+  //    {
+  //	switch (gamemap)
+  //	{
+  //	  case 20:
+  //	    if (secretexit)
+  //		break;
+  //	  case 21:
+  //	    F_StartFinale ();
+  //	    break;
+  //	}
+  //    }
+  //    else
+  //    if ( gamemode == commercial )
+  //    {
+  //	switch (gamemap)
+  //	{
+  //	  case 15:
+  //	  case 31:
+  //	    if (!secretexit)
+  //		break;
+  //	  case 6:
+  //	  case 11:
+  //	  case 20:
+  //	  case 30:
+  //	    F_StartFinale ();
+  //	    break;
+  //	}
+  //    }
+  //    // [crispy] display tally screen after ExM8
+  //    else
+  //    if ( gamemap == 8 || (gameversion == exe_chex && gamemap == 5) )
+  //    {
+  //	gameaction = ga_victory;
+  //    }
+End;
+
 //
 // G_DoReborn
 //
@@ -489,260 +573,303 @@ Begin
   //    G_ReadDemoTiccmd (cmd);         // make SURE it is exactly the same
 End;
 
-Procedure G_DoCompleted();
+// [crispy] Write level statistics upon exit
+
+Procedure G_WriteLevelStat();
 Begin
-  Raise exception.create('Port me. und dann ist das Level geschafft ;)');
-  //    int             i;
+  Raise exception.create('Port me.');
+  //    FILE *fstream;
   //
-  //    // [crispy] Write level statistics upon exit
-  //    if (M_ParmExists("-levelstat"))
+  //    int i, playerKills = 0, playerItems = 0, playerSecrets = 0;
+  //
+  //    char levelString[8];
+  //    char levelTimeString[TIMESTRSIZE];
+  //    char totalTimeString[TIMESTRSIZE];
+  //    char *decimal;
+  //
+  //    static boolean firsttime = true;
+  //
+  //    if (firsttime)
   //    {
-  //        G_WriteLevelStat();
-  //    }
-  //
-  //    gameaction = ga_nothing;
-  //
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //	if (playeringame[i])
-  //	    G_PlayerFinishLevel (i);        // take away cards and stuff
-  //
-  //    if (automapactive)
-  //	AM_Stop ();
-  //
-  //    if (gamemode != commercial)
-  //    {
-  //        // Chex Quest ends after 5 levels, rather than 8.
-  //
-  //        if (gameversion == exe_chex)
-  //        {
-  //            // [crispy] display tally screen after Chex Quest E1M5
-  //            /*
-  //            if (gamemap == 5)
-  //            {
-  //                gameaction = ga_victory;
-  //                return;
-  //            }
-  //            */
-  //        }
-  //        else
-  //        {
-  //            switch(gamemap)
-  //            {
-  //            // [crispy] display tally screen after ExM8
-  //            /*
-  //              case 8:
-  //                gameaction = ga_victory;
-  //                return;
-  //            */
-  //              case 9:
-  //                for (i=0 ; i<MAXPLAYERS ; i++)
-  //                    players[i].didsecret = true;
-  //                break;
-  //            }
-  //        }
-  //    }
-  //
-  //// [crispy] disable redundant code
-  ///*
-  ////#if 0  Hmmm - why?
-  //    if ( (gamemap == 8)
-  //	 && (gamemode != commercial) )
-  //    {
-  //	// victory
-  //	gameaction = ga_victory;
-  //	return;
-  //    }
-  //
-  //    if ( (gamemap == 9)
-  //	 && (gamemode != commercial) )
-  //    {
-  //	// exit secret level
-  //	for (i=0 ; i<MAXPLAYERS ; i++)
-  //	    players[i].didsecret = true;
-  //    }
-  ////#endif
-  //*/
-  //
-  //
-  //    wminfo.didsecret = players[consoleplayer].didsecret;
-  //    wminfo.epsd = gameepisode -1;
-  //    wminfo.last = gamemap -1;
-  //
-  //    // wminfo.next is 0 biased, unlike gamemap
-  //    if ( gamemission == pack_nerve && gamemap <= 9 )
-  //    {
-  //	if (secretexit)
-  //	    switch(gamemap)
-  //	    {
-  //	      case  4: wminfo.next = 8; break;
-  //	    }
-  //	else
-  //	    switch(gamemap)
-  //	    {
-  //	      case  9: wminfo.next = 4; break;
-  //	      default: wminfo.next = gamemap;
-  //	    }
-  //    }
-  //    else
-  //    if ( gamemission == pack_master && gamemap <= 21 )
-  //    {
-  //	wminfo.next = gamemap;
-  //    }
-  //    else
-  //    if ( gamemode == commercial)
-  //    {
-  //	if (secretexit)
-  //	    if (gamemap == 2 && critical->havemap33)
-  //	      wminfo.next = 32;
-  //	    else
-  //	    switch(gamemap)
-  //	    {
-  //	      case 15: wminfo.next = 30; break;
-  //	      case 31: wminfo.next = 31; break;
-  //	    }
-  //	else
-  //	    if (gamemap == 33 && critical->havemap33)
-  //	      wminfo.next = 2;
-  //	    else
-  //	    switch(gamemap)
-  //	    {
-  //	      case 31:
-  //	      case 32: wminfo.next = 15; break;
-  //	      default: wminfo.next = gamemap;
-  //	    }
+  //        firsttime = false;
+  //        fstream = M_fopen("levelstat.txt", "w");
   //    }
   //    else
   //    {
-  //	if (secretexit)
-  //	{
-  //	    if (critical->havee1m10 && gameepisode == 1 && gamemap == 1)
-  //	    wminfo.next = 9; // [crispy] go to secret level E1M10 "Sewers"
-  //	    else
-  //	    wminfo.next = 8; 	// go to secret level
-  //	}
-  //	else if (gamemap == 9)
-  //	{
-  //	    // returning from secret level
-  //	    switch (gameepisode)
-  //	    {
-  //	      case 1:
-  //	      case 6:
-  //		wminfo.next = 3;
-  //		break;
-  //	      case 2:
-  //		wminfo.next = 5;
-  //		break;
-  //	      case 3:
-  //	      case 5: // [crispy] Sigil
-  //		wminfo.next = 6;
-  //		break;
-  //	      case 4:
-  //		wminfo.next = 2;
-  //		break;
-  //	    }
-  //	}
-  //	else
-  //	if (critical->havee1m10 && gameepisode == 1 && gamemap == 10)
-  //	    wminfo.next = 1; // [crispy] returning from secret level E1M10 "Sewers"
-  //	else
-  //	    wminfo.next = gamemap;          // go to next level
+  //        fstream = M_fopen("levelstat.txt", "a");
   //    }
   //
-  //    wminfo.maxkills = totalkills;
-  //    wminfo.maxitems = totalitems;
-  //    wminfo.maxsecret = totalsecret;
-  //    wminfo.maxfrags = 0;
+  //    if (fstream == NULL)
+  //    {
+  //        fprintf(stderr, "G_WriteLevelStat: Unable to open levelstat.txt for writing!\n");
+  //        return;
+  //    }
   //
-  //    // Set par time. Exceptions are added for purposes of
-  //    // statcheck regression testing.
   //    if (gamemode == commercial)
   //    {
-  //        // map33 reads its par time from beyond the cpars[] array
-  //        if (gamemap == 33)
-  //        {
-  //            int cpars32;
-  //
-  //            memcpy(&cpars32, DEH_String(GAMMALVL0), sizeof(int));
-  //            cpars32 = LONG(cpars32);
-  //
-  //            wminfo.partime = TICRATE*cpars32;
-  //        }
-  //        // [crispy] support [PARS] sections in BEX files
-  //        else if (bex_cpars[gamemap-1])
-  //        {
-  //            wminfo.partime = TICRATE*bex_cpars[gamemap-1];
-  //        }
-  //        // [crispy] par times for NRFTL
-  //        else if (gamemission == pack_nerve)
-  //        {
-  //            wminfo.partime = TICRATE*npars[gamemap-1];
-  //        }
-  //        else
-  //        {
-  //            wminfo.partime = TICRATE*cpars[gamemap-1];
-  //        }
-  //    }
-  //    // Doom episode 4 doesn't have a par time, so this
-  //    // overflows into the cpars array.
-  //    else if (gameepisode < 4 ||
-  //        // [crispy] single player par times for episode 4
-  //        (gameepisode == 4 && crispy->singleplayer) ||
-  //        // [crispy] par times for Sigil
-  //        gameepisode == 5 ||
-  //        // [crispy] par times for Sigil II
-  //        gameepisode == 6)
-  //    {
-  //        // [crispy] support [PARS] sections in BEX files
-  //        if (bex_pars[gameepisode][gamemap])
-  //        {
-  //            wminfo.partime = TICRATE*bex_pars[gameepisode][gamemap];
-  //        }
-  //        else
-  //        if (gameversion == exe_chex && gameepisode == 1 && gamemap < 6)
-  //        {
-  //            wminfo.partime = TICRATE*chexpars[gamemap];
-  //        }
-  //        else
-  //        {
-  //            wminfo.partime = TICRATE*pars[gameepisode][gamemap];
-  //        }
+  //        M_snprintf(levelString, sizeof(levelString), "MAP%02d", gamemap);
   //    }
   //    else
   //    {
-  //        wminfo.partime = TICRATE*cpars[gamemap];
+  //        M_snprintf(levelString, sizeof(levelString), "E%dM%d",
+  //                    gameepisode, gamemap);
   //    }
   //
-  //    wminfo.pnum = consoleplayer;
+  //    G_FormatLevelStatTime(levelTimeString, leveltime);
+  //    G_FormatLevelStatTime(totalTimeString, totalleveltimes + leveltime);
   //
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //    // Total time ignores centiseconds
+  //    decimal = strchr(totalTimeString, '.');
+  //    if (decimal != NULL)
   //    {
-  //	wminfo.plyr[i].in = playeringame[i];
-  //	wminfo.plyr[i].skills = players[i].killcount;
-  //	wminfo.plyr[i].sitems = players[i].itemcount;
-  //	wminfo.plyr[i].ssecret = players[i].secretcount;
-  //	wminfo.plyr[i].stime = leveltime;
-  //	memcpy (wminfo.plyr[i].frags, players[i].frags
-  //		, sizeof(wminfo.plyr[i].frags));
+  //        *decimal = '\0';
   //    }
   //
-  //    // [crispy] CPhipps - total time for all completed levels
-  //    // cph - modified so that only whole seconds are added to the totalleveltimes
-  //    // value; so our total is compatible with the "naive" total of just adding
-  //    // the times in seconds shown for each level. Also means our total time
-  //    // will agree with Compet-n.
-  //    wminfo.totaltimes = (totalleveltimes += (leveltime - leveltime % TICRATE));
-  //
-  //    gamestate = GS_INTERMISSION;
-  //    viewactive = false;
-  //    automapactive = false;
-  //
-  //    // [crispy] no statdump output for ExM8
-  //    if (gamemode == commercial || gamemap != 8)
+  //    for (i = 0; i < MAXPLAYERS; i++)
   //    {
-  //    StatCopy(&wminfo);
+  //        if (playeringame[i])
+  //        {
+  //            playerKills += players[i].killcount;
+  //            playerItems += players[i].itemcount;
+  //            playerSecrets += players[i].secretcount;
+  //        }
   //    }
   //
-  //    WI_Start (&wminfo);
+  //    fprintf(fstream, "%s%s - %s (%s)  K: %d/%d  I: %d/%d  S: %d/%d\n",
+  //            levelString, (secretexit ? "s" : ""),
+  //            levelTimeString, totalTimeString, playerKills, totalkills,
+  //            playerItems, totalitems, playerSecrets, totalsecret);
+  //
+  //    fclose(fstream);
+End;
+
+//
+// G_PlayerFinishLevel
+// Can when a player completes a level.
+//
+
+Procedure G_PlayerFinishLevel(player: int);
+Var
+  p: Pplayer_t;
+Begin
+  p := @players[player];
+  FillChar(p^.powers[0], sizeof(p^.powers), 0);
+  FillChar(p^.cards[card_t(0)], sizeof(p^.cards), 0);
+  FillChar(p^.tryopen[card_t(0)], sizeof(p^.tryopen), 0); // [crispy] blinking key or skull in the status bar
+  p^.mo^.flags := p^.mo^.flags And Not MF_SHADOW; // cancel invisibility
+  p^.extralight := 0; // cancel gun flashes
+  p^.fixedcolormap := 0; // cancel ir gogles
+  p^.damagecount := 0; // no palette changes
+  p^.bonuscount := 0;
+  // [crispy] reset additional player properties
+  p^.lookdir := 0;
+  p^.oldlookdir := 0;
+  p^.centering := false;
+  p^.jumpTics := 0;
+  p^.recoilpitch := 0;
+  p^.oldrecoilpitch := 0;
+  p^.btuse := 0;
+  p^.btuse_tics := 0;
+End;
+
+Procedure G_DoCompleted();
+Var
+  cpars32, i: int;
+Begin
+
+  // [crispy] Write level statistics upon exit
+  If (M_ParmExists('-levelstat')) Then Begin
+    G_WriteLevelStat();
+  End;
+
+  gameaction := ga_nothing;
+
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    If (playeringame[i]) Then
+      G_PlayerFinishLevel(i); // take away cards and stuff
+  End;
+
+  If (automapactive) Then AM_Stop();
+
+  If (gamemode <> commercial) Then Begin
+
+    // Chex Quest ends after 5 levels, rather than 8.
+    If (gameversion = exe_chex) Then Begin
+      // [crispy] display tally screen after Chex Quest E1M5
+      (*
+      if (gamemap == 5)
+      {
+          gameaction = ga_victory;
+          return;
+      }
+      *)
+    End
+    Else Begin
+      Case (gamemap) Of
+        // [crispy] display tally screen after ExM8
+        (*
+          case 8:
+            gameaction = ga_victory;
+            return;
+        *)
+        9: Begin
+            For i := 0 To MAXPLAYERS - 1 Do Begin
+              players[i].didsecret := true;
+            End;
+          End;
+      End;
+    End;
+  End;
+
+  wminfo.didsecret := players[consoleplayer].didsecret;
+  wminfo.epsd := gameepisode - 1;
+  wminfo.last := gamemap - 1;
+
+  // wminfo.next is 0 biased, unlike gamemap
+  If (gamemission = pack_nerve) And (gamemap <= 9) Then Begin
+    If (secretexit) Then
+      Case (gamemap) Of
+        4: wminfo.next := 8;
+      End
+    Else
+      Case (gamemap) Of
+        9: wminfo.next := 4;
+      Else
+        wminfo.next := gamemap;
+      End;
+  End
+  Else If (gamemission = pack_master) And (gamemap <= 21) Then Begin
+    wminfo.next := gamemap;
+  End
+  Else If (gamemode = commercial) Then Begin
+    If (secretexit) Then
+      If (gamemap = 2) And (critical^.havemap33) Then
+        wminfo.next := 32
+      Else
+        Case (gamemap) Of
+
+          15: wminfo.next := 30;
+          31: wminfo.next := 31;
+        End
+    Else If (gamemap = 33) And (critical^.havemap33) Then
+      wminfo.next := 2
+    Else
+      Case (gamemap) Of
+        31, 32: wminfo.next := 15;
+      Else
+        wminfo.next := gamemap;
+      End;
+  End
+  Else Begin
+    If (secretexit) Then Begin
+      If (critical^.havee1m10) And (gameepisode = 1) And (gamemap = 1) Then
+        wminfo.next := 9 // [crispy] go to secret level E1M10 "Sewers"
+      Else
+        wminfo.next := 8; // go to secret level
+    End
+    Else If (gamemap = 9) Then Begin
+      // returning from secret level
+      Case (gameepisode) Of
+        1, 6: wminfo.next := 3;
+        2: wminfo.next := 5;
+        3, 5: wminfo.next := 6; // [crispy] Sigil
+        4: wminfo.next := 2;
+      End;
+    End
+    Else If (critical^.havee1m10) And (gameepisode = 1) And (gamemap = 10) Then
+      wminfo.next := 1 // [crispy] returning from secret level E1M10 "Sewers"
+    Else
+      wminfo.next := gamemap; // go to next level
+  End;
+
+  wminfo.maxkills := totalkills;
+  wminfo.maxitems := totalitems;
+  wminfo.maxsecret := totalsecret;
+  wminfo.maxfrags := 0;
+
+  // Set par time. Exceptions are added for purposes of
+  // statcheck regression testing.
+  If (gamemode = commercial) Then Begin
+    // map33 reads its par time from beyond the cpars[] array
+    If (gamemap = 33) Then Begin
+      // WTF: anstatt den Speicherüberlauf zu emulieren könnte man hier doch auch was vernünftiges tun ..
+      cpars32 := ord(GAMMALVL0[1])
+        + ord(GAMMALVL0[2]) Shl 8
+        + ord(GAMMALVL0[3]) Shl 16
+        + ord(GAMMALVL0[4]) Shl 24;
+      wminfo.partime := TICRATE * cpars32;
+    End
+      // [crispy] support [PARS] sections in BEX files
+//        else if (bex_cpars[gamemap-1])
+//        {
+//            wminfo.partime = TICRATE*bex_cpars[gamemap-1];
+//        }
+//        // [crispy] par times for NRFTL
+//        else if (gamemission == pack_nerve)
+//        {
+//            wminfo.partime = TICRATE*npars[gamemap-1];
+//        }
+    Else Begin
+      wminfo.partime := TICRATE * cpars[gamemap - 1];
+    End
+  End
+    // Doom episode 4 doesn't have a par time, so this
+    // overflows into the cpars array.
+  Else If (gameepisode < 4) Or (
+    // [crispy] single player par times for episode 4
+    ((gameepisode = 4) And (crispy.singleplayer))) Or (
+    // [crispy] par times for Sigil
+    gameepisode = 5) Or (
+    // [crispy] par times for Sigil II
+    gameepisode = 6) Then Begin
+    // [crispy] support [PARS] sections in BEX files
+    //    if (bex_pars[gameepisode][gamemap])
+    //    {
+    //        wminfo.partime = TICRATE*bex_pars[gameepisode][gamemap];
+    //    }
+    //    else
+    //    if (gameversion == exe_chex && gameepisode == 1 && gamemap < 6)
+    //    {
+    //        wminfo.partime = TICRATE*chexpars[gamemap];
+    //    }
+    //    else
+    //    {
+    wminfo.partime := TICRATE * pars[gameepisode][gamemap];
+    //    }
+  End
+  Else Begin
+    wminfo.partime := TICRATE * cpars[gamemap];
+  End;
+
+  wminfo.pnum := consoleplayer;
+
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    wminfo.plyr[i]._in := playeringame[i];
+    wminfo.plyr[i].skills := players[i].killcount;
+    wminfo.plyr[i].sitems := players[i].itemcount;
+    wminfo.plyr[i].ssecret := players[i].secretcount;
+    wminfo.plyr[i].stime := leveltime;
+    move(players[i].frags[0], wminfo.plyr[i].frags[0], sizeof(wminfo.plyr[i].frags));
+  End;
+
+  // [crispy] CPhipps - total time for all completed levels
+  // cph - modified so that only whole seconds are added to the totalleveltimes
+  // value; so our total is compatible with the "naive" total of just adding
+  // the times in seconds shown for each level. Also means our total time
+  // will agree with Compet-n.
+  totalleveltimes := totalleveltimes + (leveltime - leveltime Mod TICRATE);
+  wminfo.totaltimes := totalleveltimes;
+
+  gamestate := GS_INTERMISSION;
+  viewactive := false;
+  automapactive := false;
+
+  // [crispy] no statdump output for ExM8
+  If (gamemode = commercial) Or (gamemap <> 8) Then Begin
+    StatCopy(@wminfo);
+  End;
+
+  WI_Start(@wminfo);
 End;
 
 //
@@ -919,10 +1046,9 @@ Begin
 
   // Have we just finished displaying an intermission screen?
 
-//    if (oldgamestate == GS_INTERMISSION && gamestate != GS_INTERMISSION)
-//    {
-//        WI_End();
-//    }
+  If (oldgamestate = GS_INTERMISSION) And (gamestate <> GS_INTERMISSION) Then Begin
+    WI_End();
+  End;
 
   oldgamestate := gamestate;
   oldleveltime := leveltime;
@@ -945,15 +1071,15 @@ Begin
       End;
 
     GS_INTERMISSION: Begin
-        //	WI_Ticker ();
+        WI_Ticker();
       End;
 
     GS_FINALE: Begin
-        //	F_Ticker ();
+        // F_Ticker();
       End;
 
     GS_DEMOSCREEN: Begin
-        //	D_PageTicker ();
+        // D_PageTicker();
       End;
   End;
 End;
@@ -1298,8 +1424,14 @@ Begin
       episode := 1;
     End
     Else Begin
-      //      if (episode == 2 && !crispy->havenerve)
-      //            episode = crispy->havemaster ? 3 : 1;
+      If (episode = 2) And (crispy.havenerve = '') Then Begin
+        If crispy.havemaster <> '' Then Begin
+          episode := 3;
+        End
+        Else Begin
+          episode := 1;
+        End;
+      End;
     End;
   End;
 

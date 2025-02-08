@@ -34,6 +34,12 @@ Const
   NUM_CROSSHAIRS = 3;
   CROSSHAIR_INTERCEPT = $10;
 
+  DEMOTIMER_OFF = 0;
+  DEMOTIMER_RECORD = 1;
+  DEMOTIMER_PLAYBACK = 2;
+  DEMOTIMER_BOTH = 3;
+  NUM_DEMOTIMERS = 4;
+
   NUM_CROSSHAIRTYPES = 3;
 
   FREEAIM_AUTO = 0;
@@ -109,9 +115,9 @@ Type
     crosshairtarget: int;
     crosshairtype: int;
     //    	int defaultskill;
-    //    	int demotimer;
+    demotimer: int; // DEMOTIMER_OFF, DEMOTIMER_RECORD, DEMOTIMER_PLAYBACK, DEMOTIMER_BOTH
     //    	int demotimerdir;
-    //    	int demobar;
+    demobar: int;
     extautomap: int; // 0,1
     flipcorpses: int;
     //    	int fpslimit;
@@ -154,10 +160,10 @@ Type
     flashinghom: Boolean;
     fliplevels: boolean;
     flipweapons: Boolean;
-    //    	boolean haved1e5;
-    //    	boolean haved1e6;
-    //    	boolean havee1m10;
-    //    	boolean havemap33;
+    haved1e5: boolean;
+    haved1e6: boolean;
+    havee1m10: boolean;
+    havemap33: boolean;
     havessg: boolean; // Hat der Spieler zugriff auf die Doppeläufige Schrotflinte ? (true = ja)
     singleplayer: boolean;
     stretchsky: Boolean; // wird in R_InitSkyMap initialisiert
@@ -169,8 +175,8 @@ Type
     moreammo: boolean;
     //    	boolean pistolstart;
 
-    //    	char *havenerve;
-    //    	char *havemaster;
+    havenerve: String;
+    havemaster: String;
     //    	char *havesigil;
     //    	char *havesigil2;
 
@@ -252,6 +258,8 @@ Initialization
   Crispy.crosshairhealth := 0;
   Crispy.crosshairtarget := 0;
   Crispy.crosshairtype := 0;
+  Crispy.demotimer := DEMOTIMER_OFF;
+  Crispy.demobar := 0;
   Crispy.extautomap := 0; // Wenn <> 0, dann werden Schlüssel Türen auf der Kartenvorschau in ihrer Farbe gezeichnet
   Crispy.flipcorpses := 0;
   Crispy.freeaim := 0;
@@ -284,11 +292,16 @@ Initialization
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;
+  Crispy.haved1e5 := false; // Wird während dem laden des .wad files initialisiert
+  Crispy.haved1e6 := false; // Wird während dem laden des .wad files initialisiert
+  Crispy.havee1m10 := false; // Wird während dem laden des .wad files initialisiert
+  Crispy.havemap33 := false; // Wird während dem laden des .wad files initialisiert
   Crispy.havessg := false; // Wird während dem laden des .wad files initialisiert
   Crispy.singleplayer := false;
   Crispy.stretchsky := false;
   Crispy.moreammo := false;
-
+  Crispy.havenerve := ''; // Wird in CheckLoadNerve initialisiert
+  Crispy.havemaster := ''; // Wird in LoadMasterlevelsWads initialisiert
   FillChar(critical_s, sizeof(critical_s), 0);
 
 End.

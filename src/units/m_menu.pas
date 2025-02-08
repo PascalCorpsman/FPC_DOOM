@@ -329,7 +329,7 @@ Begin
 
   // Chex Quest disabled the episode select screen, as did Doom II.
 
-  If (gamemode = commercial) And (true {!crispy->havenerve && !crispy->havemaster}) Or (gameversion = exe_chex) Then Begin // [crispy] NRFTL / The Master Levels
+  If ((gamemode = commercial) And (crispy.havenerve = '') And (crispy.havemaster = '')) Or (gameversion = exe_chex) Then Begin // [crispy] NRFTL / The Master Levels
     M_SetupNextMenu(@NewDef);
   End
   Else Begin

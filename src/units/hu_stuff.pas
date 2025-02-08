@@ -31,6 +31,7 @@ Procedure HU_Erase();
 Procedure HU_Ticker();
 Procedure HU_Drawer();
 Function HU_Responder(Const ev: Pevent_t): boolean;
+Procedure HU_DemoProgressBar();
 
 Implementation
 
@@ -1098,6 +1099,11 @@ Begin
   //    }
 
   result := eatkey;
+End;
+
+Procedure HU_DemoProgressBar();
+Begin
+  Raise Exception.Create('Port me.');
 End;
 
 End.

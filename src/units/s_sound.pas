@@ -15,6 +15,7 @@ Var
 Procedure S_StartSound(origin_p: Pointer; sfx_id: sfxenum_t);
 Procedure S_StartSoundOptional(origin_p: Pointer; sfx_id: sfxenum_t; old_sfx_id: sfxenum_t);
 Procedure S_StartMusic(m_id: musicenum_t);
+Procedure S_ChangeMusic(music_id: musicenum_t; looping: boolean);
 
 Procedure S_ResumeSound();
 Procedure S_PauseSound();
@@ -41,7 +42,7 @@ Var
   mus_paused: Boolean = false;
   mus_playing: Boolean = false;
 
-Procedure S_StartSound(origin_p: Pointer; sfx_id: sfxenum_t);
+procedure S_StartSound(origin_p: Pointer; sfx_id: sfxenum_t);
 Var
   sfx: ^sfxinfo_t;
   origin: Pmobj_t;
@@ -150,7 +151,8 @@ Begin
   I_StartSound(sfx, 0, 100, 0, NORM_PITCH);
 End;
 
-Procedure S_StartSoundOptional(origin_p: Pointer; sfx_id: sfxenum_t; old_sfx_id: sfxenum_t);
+procedure S_StartSoundOptional(origin_p: Pointer; sfx_id: sfxenum_t;
+  old_sfx_id: sfxenum_t);
 Begin
   // Umleiten nach Bass ?
   If (I_GetSfxLumpNum(@S_sfx[integer(sfx_id)]) <> -1) Then Begin
@@ -161,13 +163,18 @@ Begin
   End;
 End;
 
-Procedure S_StartMusic(m_id: musicenum_t);
+procedure S_StartMusic(m_id: musicenum_t);
 Begin
   //    S_ChangeMusic(m_id, false);
   nop();
 End;
 
-Procedure S_ResumeSound();
+procedure S_ChangeMusic(music_id: musicenum_t; looping: boolean);
+Begin
+
+End;
+
+procedure S_ResumeSound;
 Begin
   If (mus_playing) And (mus_paused) Then Begin
 
@@ -176,7 +183,7 @@ Begin
   End;
 End;
 
-Procedure S_PauseSound();
+procedure S_PauseSound;
 Begin
   If (mus_playing) And (Not mus_paused) Then Begin
 
@@ -192,13 +199,13 @@ End;
 //  determines music if any, changes music.
 //
 
-Procedure S_Start();
+procedure S_Start;
 Begin
   nop();
 
 End;
 
-Procedure S_StartSoundOnce(origin_p: Pointer; sfx_id: sfxenum_t);
+procedure S_StartSoundOnce(origin_p: Pointer; sfx_id: sfxenum_t);
 Begin
   nop();
 
@@ -225,7 +232,7 @@ End;
 // Thanks to jeff-d and kb1 for discussing this feature and the former for the
 // original implementation idea: https://www.doomworld.com/vb/post/1585325
 
-Procedure S_UnlinkSound(origin: Pmobj_t);
+procedure S_UnlinkSound(origin: Pmobj_t);
 Begin
   nop();
 
@@ -248,7 +255,7 @@ Begin
   //    }
 End;
 
-Procedure S_StopSound(origin: Pmobj_t);
+procedure S_StopSound(origin: Pmobj_t);
 Begin
   nop();
 
@@ -264,7 +271,7 @@ Begin
   //    }
 End;
 
-Procedure S_Shutdown();
+procedure S_Shutdown;
 Begin
   I_ShutdownSound();
   //I_ShutdownMusic();

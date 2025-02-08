@@ -47,7 +47,7 @@ Uses
   , r_main, r_draw
   , s_sound, st_stuff
   , v_video
-  , w_wad, w_main
+  , w_wad, w_main, wi_stuff
   , v_snow
   , z_zone
   ;
@@ -712,6 +712,7 @@ Var
 Begin
   redrawsbar := false;
   If (crispy.uncapped <> 0) Then Begin
+    Raise exception.create('Port me.');
     //        I_StartDisplay();
     //        G_FastResponder();
     //        G_PrepTiccmd();
@@ -755,7 +756,7 @@ Begin
       End;
 
     GS_INTERMISSION: Begin
-        //	WI_Drawer ();
+        WI_Drawer();
       End;
 
     GS_FINALE: Begin
@@ -787,6 +788,7 @@ Begin
 
   // clean up border stuff
   If (gamestate <> oldgamestate) And (gamestate <> GS_LEVEL) Then Begin
+    Raise exception.create('Port me.');
     //#ifndef CRISPY_TRUECOLOR
     //	I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
     //#else
@@ -797,7 +799,7 @@ Begin
 
   // see if the border needs to be initially drawn
   If (gamestate = GS_LEVEL) And (oldgamestate <> GS_LEVEL) Then Begin
-
+    Raise exception.create('Port me.');
     viewactivestate := false; // view was not active
     //	R_FillBackScreen ();    // draw the pattern into the back screen
   End;
@@ -838,20 +840,19 @@ Begin
     inhelpscreensstate := true;
   End;
 
-  //    // [crispy] Snow
+  // [crispy] Snow
   If (crispy.snowflakes <> 0) Then Begin
     V_SnowDraw();
-
     // [crispy] force redraw of status bar and border
     viewactivestate := false;
     inhelpscreensstate := true;
   End;
 
-  //    // [crispy] draw neither pause pic nor menu when taking a clean screenshot
-  //    if (crispy->cleanscreenshot)
-  //    {
-  //	return false;
-  //    }
+  // [crispy] draw neither pause pic nor menu when taking a clean screenshot
+  If (crispy.cleanscreenshot <> 0) Then Begin
+    result := false;
+    exit;
+  End;
 
   // draw pause pic
   If (paused <> 0) Then Begin
@@ -1725,26 +1726,26 @@ Begin
     );
 
   // [crispy] check for presence of a 5th episode
-//    crispy->haved1e5 = (gameversion == exe_ultimate) &&
-//                       (W_CheckNumForName("m_epi5") != -1) &&
-//                       (W_CheckNumForName("e5m1") != -1) &&
-//                       (W_CheckNumForName("wilv40") != -1);
+  crispy.haved1e5 := (gameversion = exe_ultimate) And
+    (W_CheckNumForName('m_epi5') <> -1) And
+    (W_CheckNumForName('e5m1') <> -1) And
+    (W_CheckNumForName('wilv40') <> -1);
 
-//  [crispy]check For presence Of a 6 th episode
-//    crispy->haved1e6 = (gameversion == exe_ultimate) &&
-//                       (W_CheckNumForName("m_epi6") != -1) &&
-//                       (W_CheckNumForName("e6m1") != -1) &&
-//                       (W_CheckNumForName("wilv50") != -1);
+  //  [crispy]check For presence Of a 6 th episode
+  crispy.haved1e6 := (gameversion = exe_ultimate) And
+    (W_CheckNumForName('m_epi6') <> -1) And
+    (W_CheckNumForName('e6m1') <> -1) And
+    (W_CheckNumForName('wilv50') <> -1);
 
   // [crispy] check for presence of E1M10
-//    crispy->havee1m10 = (gamemode == retail) &&
-//                       (W_CheckNumForName("e1m10") != -1) &&
-//                       (W_CheckNumForName("sewers") != -1);
+  crispy.havee1m10 := (gamemode = retail) And
+    (W_CheckNumForName('e1m10') <> -1) And
+    (W_CheckNumForName('sewers') <> -1);
 
   // [crispy] check for presence of MAP33
-//    crispy->havemap33 = (gamemode == commercial) &&
-//                       (W_CheckNumForName("map33") != -1) &&
-//                       (W_CheckNumForName("cwilv32") != -1);
+  crispy.havemap33 := (gamemode = commercial) And
+    (W_CheckNumForName('map33') <> -1) And
+    (W_CheckNumForName('cwilv32') <> -1);
 
   // [crispy] change level name for MAP33 if not already changed
 //    if (crispy->havemap33 && !DEH_HasStringReplacement(PHUSTR_1))

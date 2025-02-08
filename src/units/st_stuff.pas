@@ -37,6 +37,7 @@ Function cht_CheckCheatSP(Var cht: cheatseq_t; key: char): int;
 Function ST_Responder(Const ev: Pevent_t): boolean;
 
 Procedure ST_refreshBackground(force: boolean);
+Procedure ST_DrawDemoTimer(time: int);
 
 Implementation
 
@@ -408,6 +409,11 @@ Begin
   //	    V_CopyRect(ORIGWIDTH + WIDESCREENDELTA, 0, st_backing_screen, WIDESCREENDELTA, ST_HEIGHT, ORIGWIDTH + WIDESCREENDELTA, ST_Y);
   //	}
   //    }
+End;
+
+Procedure ST_DrawDemoTimer(time: int);
+Begin
+  Raise Exception.Create('Port me.');
 End;
 
 Procedure ST_drawWidgets(refresh: boolean);

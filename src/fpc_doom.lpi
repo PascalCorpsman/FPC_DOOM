@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="100">
+    <Units Count="101">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -448,6 +448,10 @@
         <Filename Value="units/v_snow.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit99>
+      <Unit100>
+        <Filename Value="units/statdump.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit100>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

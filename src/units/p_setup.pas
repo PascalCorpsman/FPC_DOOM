@@ -213,22 +213,17 @@ Begin
   Else Begin
     lumpName := format('E%dM%d', [episode, map]);
   End;
-
   // [crispy] special-casing for E1M10 "Sewers" support
-//      if (crispy->havee1m10 && episode == 1 && map == 10)
-//      {
-//  	DEH_snprintf(lumpname, 9, "E1M10");
-//      }
-
+  If (crispy.havee1m10) And (episode = 1) And (map = 10) Then Begin
+    lumpname := 'E1M10';
+  End;
   // [crispy] NRFTL / The Master Levels
-//    if (crispy->havenerve && episode == 2 && map <= 9)
-//    {
-//	strcat(lumpname, "N");
-//    }
-//    if (crispy->havemaster && episode == 3 && map <= 21)
-//    {
-//	strcat(lumpname, "M");
-//    }
+  If (crispy.havenerve <> '') And (episode = 2) And (map <= 9) Then Begin
+    lumpname := lumpname + 'N';
+  End;
+  If (crispy.havemaster <> '') And (episode = 3) And (map <= 21) Then Begin
+    lumpname := lumpname + 'M';
+  End;
   If critical Then Begin
     result := W_GetNumForName(lumpname);
   End
@@ -1031,24 +1026,18 @@ Begin
   End;
 
   // [crispy] NRFTL / The Master Levels
-//    if (crispy->havenerve || crispy->havemaster)
-//    {
-//        if (crispy->havemaster && episode == 3)
-//        {
-//            gamemission = pack_master;
-//        }
-//        else
-//        if (crispy->havenerve && episode == 2)
-//        {
-//            gamemission = pack_nerve;
-//        }
-//        else
-//        {
-//            gamemission = doom2;
-//        }
-//    }
-//    else
-  Begin
+  If (crispy.havenerve <> '') Or (crispy.havemaster <> '') Then Begin
+    If (crispy.havemaster <> '') And (episode = 3) Then Begin
+      gamemission := pack_master;
+    End
+    Else If (crispy.havenerve <> '') And (episode = 2) Then Begin
+      gamemission := pack_nerve;
+    End
+    Else Begin
+      gamemission := doom2;
+    End;
+  End
+  Else Begin
     If (gamemission = pack_master) Then Begin
       episode := 3;
       gameepisode := 3;

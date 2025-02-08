@@ -60,15 +60,15 @@ Type
   //
   wbplayerstruct_t = Record
     _in: boolean; // whether the player is in game
-
     // Player stats, kills, collected items etc.
     skills: int;
     sitems: int;
     ssecret: int;
     stime: int;
-    frags: Array[0..3] Of int;
+    frags: Array[0..3] Of int; // WTF: sollte das nicht an MAXPLAYERS hängen ?
     score: int; // current score on entry, modified on return
   End;
+  Pwbplayerstruct_t = ^wbplayerstruct_t;
 
   wbstartstruct_t = Record
 
@@ -97,7 +97,7 @@ Type
     // [crispy] CPhipps - total game time for completed levels so far
     totaltimes: int;
   End;
-
+  Pwbstartstruct_t = ^wbstartstruct_t;
 
 Implementation
 

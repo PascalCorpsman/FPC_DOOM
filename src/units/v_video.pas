@@ -18,6 +18,7 @@ Uses
 
 Procedure V_Init();
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
+Procedure V_DrawPatch(x, y: int; Const patch: ppatch_t);
 Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
 Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
@@ -109,8 +110,9 @@ Type
 Var
   PatchBuffer: Array Of TPatchBuffer = Nil;
 
-// TODO: Das ist nicht gerade schnell, bei 1280x800 dauert so das Main Menu Rendern bereits mehr als 35ms :/
-//       bei 640x400 gehts aber noch gut und da Fullscreenpatches nur in den Menü's oder Endscreens vorkommen ists ok.
+  // TODO: Das ist nicht gerade schnell, bei 1280x800 dauert so das Main Menu Rendern bereits mehr als 35ms :/
+  //       bei 640x400 gehts aber noch gut und da Fullscreenpatches nur in den Menü's oder Endscreens vorkommen ists ok.
+
 Procedure V_DrawStretchedPatch(x, y, Width, Height: int; Const patch: ppatch_t);
 Var
   col, i, j, srcX, srcY, srcIndex: int;
@@ -236,7 +238,7 @@ Begin
   patch^.topoffset := 0;
 
   If (flipped) Then Begin
-    raise exception.create('V_DrawPatchFullScreen für flipped implementieren.');
+    Raise exception.create('V_DrawPatchFullScreen für flipped implementieren.');
     // V_DrawPatchFlipped(0, 0, patch);
   End
   Else Begin
