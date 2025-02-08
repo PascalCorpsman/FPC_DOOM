@@ -118,6 +118,15 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit6"/>
       </Unit>
+      <Unit>
+        <Filename Value="..\..\Sample\DatenSteuerung\ufifo.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Sample\OpenGL\dglopengl.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="dglOpenGL"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -128,7 +137,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\units;..;..\..\Sample\Sound;..\..\Sample\Sound\Bass"/>
+      <OtherUnitFiles Value="..\units;..;..\..\Sample\Sound;..\..\Sample\Sound\Bass;..\..\Sample\DatenSteuerung;..\..\Sample\OpenGL"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

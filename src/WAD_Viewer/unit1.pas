@@ -95,9 +95,9 @@ Const
 
 Procedure TForm1.Button1Click(Sender: TObject);
 Begin
-  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
-  exit; // TODO: Debug- remove
-
+  //  LoadWadFile('Doom1.wad'); // TODO: Debug- remove
+  //  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
+  //  exit; // TODO: Debug- remove
   // Select .wad file
   If OpenDialog1.Execute Then Begin
     LoadWadFile(OpenDialog1.FileName);
@@ -243,11 +243,11 @@ End;
 Procedure TForm1.LoadWadFile(Const Filename: String);
 Var
   s, i: Integer;
-
 Begin
   If Not W_AddFile(Filename) Then Begin
     showmessage('Error, could not load: ' + Filename);
   End;
+  caption := 'Loaded: ' + ExtractFileName(Filename);
   InitColorPallete;
   StringGrid1.RowCount := length(lumpinfo) + 1;
   For i := 0 To high(lumpinfo) Do Begin
