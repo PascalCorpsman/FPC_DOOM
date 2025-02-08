@@ -24,8 +24,9 @@ Implementation
 Uses
   doomdata, doomstat, sounds
   , d_mode
+  , i_system
   , g_game
-  , p_doors, p_setup
+  , p_doors, p_setup, p_floor, p_plats
   , r_data
   , s_sound
   , w_wad
@@ -195,7 +196,6 @@ Begin
   FillChar(buttonlist[0], maxbuttons * sizeof(buttonlist[0]), 0);
 End;
 
-
 //
 // Start a button counting down till it turns off.
 //
@@ -204,47 +204,46 @@ Procedure P_StartButton(line: Pline_t; w: bwhere_e; texture: int; time: int);
 Var
   i: int;
 Begin
-  Raise exception.create('Port me.');
+  // See if button is already pressed
 
-  //    // See if button is already pressed
-  //    for (i = 0;i < maxbuttons;i++)
-  //    {
-  //	if (buttonlist[i].btimer
-  //	    && buttonlist[i].line == line)
-  //	{
-  //
-  //	  // [crispy] register up to three buttons at once for lines with more than one switch texture
-  //	  if (buttonlist[i].where == w)
-  //	  {
-  //	    return;
-  //	  }
-  //	}
-  //    }
-  //
-  //
-  //
-  //    for (i = 0;i < maxbuttons;i++)
-  //    {
-  //	if (!buttonlist[i].btimer)
-  //	{
-  //	    buttonlist[i].line = line;
-  //	    buttonlist[i].where = w;
-  //	    buttonlist[i].btexture = texture;
-  //	    buttonlist[i].btimer = time;
-  //	    buttonlist[i].soundorg = crispy->soundfix ? &line->soundorg : &line->frontsector->soundorg; // [crispy] corrected sound source
-  //	    return;
-  //	}
-  //    }
-  //
-  //    // [crispy] remove MAXBUTTONS limit
-  //    {
-  //	maxbuttons = 2 * maxbuttons;
-  //	buttonlist = I_Realloc(buttonlist, sizeof(*buttonlist) * maxbuttons);
-  //	memset(buttonlist + maxbuttons/2, 0, sizeof(*buttonlist) * maxbuttons/2);
-  //	return P_StartButton(line, w, texture, time);
-  //    }
-  //
-  //    I_Error("P_StartButton: no button slots left!");
+  For i := 0 To maxbuttons - 1 Do Begin
+    If (buttonlist[i].btimer <> 0)
+      And (buttonlist[i].line = line) Then Begin
+      // [crispy] register up to three buttons at once for lines with more than one switch texture
+      If (buttonlist[i].where = w) Then Begin
+        exit;
+      End;
+    End;
+  End;
+
+  For i := 0 To maxbuttons - 1 Do Begin
+    If (buttonlist[i].btimer = 0) Then Begin
+      buttonlist[i].line := line;
+      buttonlist[i].where := w;
+      buttonlist[i].btexture := texture;
+      buttonlist[i].btimer := time;
+      If crispy.soundfix <> 0 Then Begin
+        buttonlist[i].soundorg := @line^.soundorg; // [crispy] corrected sound source
+      End
+      Else Begin
+        buttonlist[i].soundorg := @line^.frontsector^.soundorg; // [crispy] corrected sound source
+      End;
+      exit;
+    End;
+  End;
+
+  // [crispy] remove MAXBUTTONS limit
+  Begin
+    maxbuttons := 2 * maxbuttons;
+    setlength(buttonlist, maxbuttons);
+    For i := maxbuttons Div 2 To maxbuttons - 1 Do
+      FillChar(buttonlist[i], sizeof(buttonlist[i]), 0);
+
+    P_StartButton(line, w, texture, time);
+    exit;
+  End;
+
+  I_Error('P_StartButton: no button slots left!');
 End;
 
 //
@@ -500,19 +499,18 @@ Begin
     //	if (EV_DoFloor(line,raiseFloor))
     //	    P_ChangeSwitchTexture(line,0);
     //	break;
-    //
-    //      case 102:
-    //	// Lower Floor to Surrounding floor height
-    //	if (EV_DoFloor(line,lowerFloor))
-    //	    P_ChangeSwitchTexture(line,0);
-    //	break;
-    //
-    //      case 103:
-    //	// Open Door
-    //	if (EV_DoDoor(line,vld_open))
-    //	    P_ChangeSwitchTexture(line,0);
-    //	break;
-    //
+
+    102: Begin
+        // Lower Floor to Surrounding floor height
+        If (EV_DoFloor(line, lowerFloor) <> 0) Then
+          P_ChangeSwitchTexture(line, 0);
+      End;
+    103: Begin
+        // Open Door
+        If (EV_DoDoor(line, vld_open) <> 0) Then
+          P_ChangeSwitchTexture(line, 0);
+      End;
+
     //      case 111:
     //	// Blazing Door Raise (faster than TURBO!)
     //	if (EV_DoDoor (line,vld_blazeRaise))
@@ -595,13 +593,13 @@ Begin
     //	if (EV_DoDoor(line,vld_open))
     //	    P_ChangeSwitchTexture(line,1);
     //	break;
-    //
-    //      case 62:
-    //	// PlatDownWaitUpStay
-    //	if (EV_DoPlat(line,downWaitUpStay,1))
-    //	    P_ChangeSwitchTexture(line,1);
-    //	break;
-    //
+
+    62: Begin
+        // PlatDownWaitUpStay
+        If (EV_DoPlat(line, downWaitUpStay, 1) <> 0) Then
+          P_ChangeSwitchTexture(line, 1);
+      End;
+
     //      case 63:
     //	// Raise Door
     //	if (EV_DoDoor(line,vld_normal))

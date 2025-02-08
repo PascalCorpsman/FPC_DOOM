@@ -785,22 +785,22 @@ Begin
     //	player^.message = DEH_String(GOTBACKPACK);
     //	break;
 
-    //	// weapons
-    //	// [NS] Give half ammo for all dropped weapons.
-    //      case SPR_BFUG:
-    //	if (!P_GiveWeapon (player, wp_bfg, dropped) )
-    //	    return;
-    //	player^.message = DEH_String(GOTBFG9000);
-    //	sound = sfx_wpnup;
-    //	break;
+     // weapons
+     // [NS] Give half ammo for all dropped weapons.
+    SPR_BFUG: Begin
+        If (Not P_GiveWeapon(player, wp_bfg, dropped)) Then exit;
 
-    //      case SPR_MGUN:
-    //        if (!P_GiveWeapon(player, wp_chaingun,
-    //                          (special^.flags & MF_DROPPED) != 0))
-    //            return;
-    //	player^.message = DEH_String(GOTCHAINGUN);
-    //	sound = sfx_wpnup;
-    //	break;
+        player^.message := GOTBFG9000;
+        sound := sfx_wpnup;
+      End;
+
+    SPR_MGUN: Begin
+        If (Not P_GiveWeapon(player, wp_chaingun,
+          (special^.flags And MF_DROPPED) <> 0)) Then exit;
+
+        player^.message := GOTCHAINGUN;
+        sound := sfx_wpnup;
+      End;
 
     SPR_CSAW: Begin
         If (Not P_GiveWeapon(player, wp_chainsaw, dropped)) Then exit;
@@ -808,37 +808,34 @@ Begin
         sound := sfx_wpnup;
       End;
 
-    //      case SPR_LAUN:
-    //	if (!P_GiveWeapon (player, wp_missile, dropped) )
-    //	    return;
-    //	player^.message = DEH_String(GOTLAUNCHER);
-    //	sound = sfx_wpnup;
-    //	break;
+    SPR_LAUN: Begin
+        If (Not P_GiveWeapon(player, wp_missile, dropped)) Then exit;
+        player^.message := GOTLAUNCHER;
+        sound := sfx_wpnup;
+      End;
 
-    //      case SPR_PLAS:
-    //	if (!P_GiveWeapon (player, wp_plasma, dropped) )
-    //	    return;
-    //	player^.message = DEH_String(GOTPLASMA);
-    //	sound = sfx_wpnup;
-    //	break;
+    SPR_PLAS: Begin
+        If (Not P_GiveWeapon(player, wp_plasma, dropped)) Then exit;
 
-    //      case SPR_SHOT:
-    //        if (!P_GiveWeapon(player, wp_shotgun,
-    //                          (special^.flags & MF_DROPPED) != 0))
-    //            return;
-    //	player^.message = DEH_String(GOTSHOTGUN);
-    //	sound = sfx_wpnup;
-    //	break;
+        player^.message := GOTPLASMA;
+        sound := sfx_wpnup;
+      End;
 
-    //      case SPR_SGN2:
-    //        if (!P_GiveWeapon(player, wp_supershotgun,
-    //                          (special^.flags & MF_DROPPED) != 0))
-    //            return;
-    //	player^.message = DEH_String(GOTSHOTGUN2);
-    //	sound = sfx_wpnup;
-    //	break;
+    SPR_SHOT: Begin
+        If (Not P_GiveWeapon(player, wp_shotgun,
+          (special^.flags And MF_DROPPED) <> 0)) Then exit;
+        player^.message := GOTSHOTGUN;
+        sound := sfx_wpnup;
+      End;
 
-    //	// [NS] Beta pickups.
+    SPR_SGN2: Begin
+        If (Not P_GiveWeapon(player, wp_supershotgun,
+          (special^.flags And MF_DROPPED) <> 0)) Then exit;
+        player^.message := GOTSHOTGUN2;
+        sound := sfx_wpnup;
+      End;
+
+    // [NS] Beta pickups.
     //      case SPR_BON3:
     //	player^.message = DEH_String(BETA_BONUS3);
     //	break;

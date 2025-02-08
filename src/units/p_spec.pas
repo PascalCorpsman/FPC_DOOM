@@ -35,6 +35,7 @@ Const
   PLATWAIT = 3;
   PLATSPEED = FRACUNIT;
   MAXPLATS = 30 * 256;
+  FLOORSPEED = FRACUNIT;
 
   //
   // P_FLOOR
@@ -230,6 +231,19 @@ Type
   End;
   Pstrobe_t = ^strobe_t;
 
+  floormove_t = Record
+    thinker: thinker_t;
+    _type: floor_e;
+    crush: boolean;
+    sector: Psector_t;
+    direction: int;
+    newspecial: int;
+    texture: short;
+    floordestheight: fixed_t;
+    speed: fixed_t;
+  End;
+  Pfloormove_t = ^floormove_t;
+
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();
@@ -240,13 +254,20 @@ Procedure P_ShootSpecialLine(thing: Pmobj_t; line: pline_t);
 Procedure P_CrossSpecialLine(linenum, side: int; thing: Pmobj_t);
 
 Function P_FindLowestCeilingSurrounding(sec: Psector_t): fixed_t;
+
+Function P_FindHighestFloorSurrounding(sec: Psector_t): fixed_t;
+Function P_FindLowestFloorSurrounding(sec: Psector_t): fixed_t;
+
 Function P_FindMinSurroundingLight(sector: Psector_t; max: int): int;
+
+Function P_FindSectorFromLineTag(line: Pline_t; start: int): int;
+Function P_FindNextHighestFloor(sec: Psector_t; currentheight: int): fixed_t;
 
 Implementation
 
 Uses
   doomstat, doomdata, sounds
-  , d_loop, d_mode, d_englsh
+  , d_loop, d_mode
   , i_timer, i_system, i_sound
   , g_game
   , m_menu
@@ -1361,6 +1382,57 @@ Begin
 End;
 
 //
+// P_FindHighestFloorSurrounding()
+// FIND HIGHEST FLOOR HEIGHT IN SURROUNDING SECTORS
+//
+
+Function P_FindHighestFloorSurrounding(sec: Psector_t): fixed_t;
+Var
+  i: int;
+  check: Pline_t;
+  other: Psector_t;
+  floor: fixed_t;
+Begin
+  floor := -500 * FRACUNIT;
+  For i := 0 To sec^.linecount - 1 Do Begin
+    check := @sec^.lines[i];
+    other := getNextSector(check, sec);
+    If (other = Nil) Then
+      continue;
+    If (other^.floorheight > floor) Then
+      floor := other^.floorheight;
+  End;
+  result := floor;
+End;
+
+//
+// P_FindLowestFloorSurrounding()
+// FIND LOWEST FLOOR HEIGHT IN SURROUNDING SECTORS
+//
+
+Function P_FindLowestFloorSurrounding(sec: Psector_t): fixed_t;
+Var
+  i: int;
+  check: Pline_t;
+  other: Psector_t;
+  floor: fixed_t;
+Begin
+  floor := sec^.floorheight;
+
+  For i := 0 To sec^.linecount - 1 Do Begin
+    check := @sec^.lines[i];
+    other := getNextSector(check, sec);
+
+    If (other = Nil) Then
+      continue;
+
+    If (other^.floorheight < floor) Then
+      floor := other^.floorheight;
+  End;
+  result := floor;
+End;
+
+//
 // Find minimum light from an adjacent sector
 //
 
@@ -1381,6 +1453,123 @@ Begin
 
     If (check^.lightlevel < min) Then
       min := check^.lightlevel;
+  End;
+  result := min;
+End;
+
+//
+// RETURN NEXT SECTOR # THAT LINE TAG REFERS TO
+//
+
+Function P_FindSectorFromLineTag(line: Pline_t; start: int): int;
+Var
+  i: int;
+  linedef: int;
+Begin
+  //#if 0
+  //    // [crispy] linedefs without tags apply locally
+  //    if (crispy->singleplayer && !line->tag)
+  //    {
+  //    for (i=start+1;i<numsectors;i++)
+  //	if (&sectors[i] == line->backsector)
+  //	{
+  //	    const long linedef = line - lines;
+  //	    fprintf(stderr, "P_FindSectorFromLineTag: Linedef %ld without tag applied to sector %d\n", linedef, i);
+  //	    return i;
+  //	}
+  //    }
+  //    else
+  //#else
+      // [crispy] emit a warning for linedefs without tags
+  If (line^.tag = 0) Then Begin
+    linedef := (line - @lines[0]) Div sizeof(lines[0]);
+    writeln(stderr, format('P_FindSectorFromLineTag: Linedef %d without tag', [linedef]));
+  End;
+  //#endif
+
+  For i := start + 1 To numsectors - 1 Do Begin
+    If (sectors[i].tag = line^.tag) Then Begin
+      result := i;
+      exit;
+    End;
+  End;
+  result := -1;
+End;
+
+//
+// P_FindNextHighestFloor
+// FIND NEXT HIGHEST FLOOR IN SURROUNDING SECTORS
+// Note: this should be doable w/o a fixed array.
+
+// Thanks to entryway for the Vanilla overflow emulation.
+
+// 20 adjoining sectors max!
+Const
+  MAX_ADJOINING_SECTORS = 20;
+
+Function P_FindNextHighestFloor(sec: Psector_t; currentheight: int): fixed_t;
+Const
+  heightlist: Array Of fixed_t = Nil;
+  heightlist_size: int = 0;
+Var
+  i, h, min: int;
+  check: Pline_t;
+  other: Psector_t;
+  height: fixed_t;
+
+Begin
+  height := currentheight;
+
+  // [crispy] remove MAX_ADJOINING_SECTORS Vanilla limit
+  // from prboom-plus/src/p_spec.c:404-411
+  If (sec^.linecount > heightlist_size) Then Begin
+    Repeat
+      If heightlist_size <> 0 Then Begin
+        heightlist_size := 2 * heightlist_size;
+      End
+      Else Begin
+        heightlist_size := MAX_ADJOINING_SECTORS;
+      End;
+    Until Not ((sec^.linecount > heightlist_size));
+    setlength(heightlist, heightlist_size);
+  End;
+
+  h := 0;
+  For i := 0 To sec^.linecount - 1 Do Begin
+    check := @sec^.lines[i];
+    other := getNextSector(check, sec);
+
+    If (other = Nil) Then
+      continue;
+
+    If (other^.floorheight > height) Then Begin
+      // Emulation of memory (stack) overflow
+      If (h = MAX_ADJOINING_SECTORS + 1) Then Begin
+        height := other^.floorheight;
+      End
+      Else If (h = MAX_ADJOINING_SECTORS + 2) Then Begin
+        // Fatal overflow: game crashes at 22 sectors
+        writeln(stderr, 'Sector with more than 22 adjoining sectors. ' +
+          'Vanilla will crash here\');
+      End;
+      heightlist[h] := other^.floorheight;
+      h := h + 1;
+    End;
+  End;
+
+  // Find lowest height in list
+  If (h = 0) Then Begin
+    result := currentheight;
+    exit;
+  End;
+
+  min := heightlist[0];
+
+  // Range checking?
+  For i := 1 To h - 1 Do Begin
+    If (heightlist[i] < min) Then Begin
+      min := heightlist[i];
+    End;
   End;
   result := min;
 End;
