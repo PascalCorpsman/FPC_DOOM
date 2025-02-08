@@ -292,10 +292,10 @@ Begin
   inhelpscreens := true;
 
   If (W_CheckNumForName('M_EPISOD') <> -1) Then Begin
-    V_DrawPatchDirect(54 + ScaleOffX, 38 + ScaleOffY, W_CacheLumpName('M_EPISOD', PU_CACHE));
+    V_DrawPatchDirect(54, 38, W_CacheLumpName('M_EPISOD', PU_CACHE));
   End
   Else Begin
-    M_WriteText(54 + ScaleOffX, 38 + ScaleOffY, 'Which Episode?');
+    M_WriteText(54, 38, 'Which Episode?');
     // EpiDef.lumps_missing := 1;
   End;
 End;
@@ -304,15 +304,15 @@ Procedure M_DrawNewGame();
 Begin
   // [crispy] force status bar refresh
   //  inhelpscreens := true;
-  V_DrawPatchDirect(96 + ScaleOffX, 14 + ScaleOffY, W_CacheLumpName('M_NEWG', PU_CACHE));
-  V_DrawPatchDirect(54 + ScaleOffX, 38 + ScaleOffY, W_CacheLumpName('M_SKILL', PU_CACHE));
+  V_DrawPatchDirect(96, 14, W_CacheLumpName('M_NEWG', PU_CACHE));
+  V_DrawPatchDirect(54, 38, W_CacheLumpName('M_SKILL', PU_CACHE));
 End;
 
 Procedure M_DrawMainMenu();
 Begin
   // [crispy] force status bar refresh
   //    inhelpscreens = true;
-  V_DrawPatchDirect(94 + ScaleOffX, 2 + ScaleOffY, W_CacheLumpName('M_DOOM', PU_CACHE));
+  V_DrawPatchDirect(94, 2, W_CacheLumpName('M_DOOM', PU_CACHE));
 End;
 
 Procedure M_NewGame(choice: int);
@@ -1292,7 +1292,7 @@ Begin
         s := '';
       End;
       x := ORIGWIDTH Div 2 - M_StringWidth(str) Div 2;
-      M_WriteText(math.max(0, x) + ScaleOffX, y + ScaleOffY, str); // [crispy] prevent negative x-coords
+      M_WriteText(math.max(0, x), y, str); // [crispy] prevent negative x-coords
       // TODO: hier fehlt ein:
       // dp_translation := nil;
       y := y + hu_font[0]^.height;
@@ -1311,8 +1311,8 @@ Begin
     currentMenu^.routine(); // call Draw routine
 
   // DRAW MENU
-  x := currentMenu^.x + ScaleOffX;
-  y := currentMenu^.y + ScaleOffY;
+  x := currentMenu^.x;
+  y := currentMenu^.y;
   max := currentMenu^.numitems;
 
   //    // [crispy] check current menu for missing menu graphics lumps - only once
@@ -1345,7 +1345,7 @@ Begin
     //	dp_translation = NULL;
 //  End
 //  Else Begin
-  V_DrawPatchDirect(x + SKULLXOFF, currentMenu^.y - 5 + itemOn * LINEHEIGHT + ScaleOffY,
+  V_DrawPatchDirect(x + SKULLXOFF, currentMenu^.y - 5 + itemOn * LINEHEIGHT,
     W_CacheLumpName(skullName[whichSkull], PU_CACHE));
   //  End;
 End;

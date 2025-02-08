@@ -859,7 +859,7 @@ Begin
       y := 4
     Else
       y := (viewwindowy Shr crispy.hires) + 4;
-    V_DrawPatchDirect((viewwindowx {Shr crispy.hires}) + ((scaledviewwidth {Shr crispy.hires}) - 68) Div 2, y,
+    V_DrawPatchDirect((viewwindowx Shr crispy.hires) + ((scaledviewwidth Shr crispy.hires) - 68) Div 2, y,
       W_CacheLumpName('M_PAUSE', PU_CACHE));
   End;
 

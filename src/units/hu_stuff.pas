@@ -352,7 +352,7 @@ End;
 
 Function HU_TITLEY(): int;
 Begin
-  result := (SCREENHEIGHT - (ST_HEIGHT Shl Crispy.hires) - (hu_font[0]^.height) - 1);
+  result := (ORIGHEIGHT - (ST_HEIGHT {Shl Crispy.hires}) - (hu_font[0]^.height) - 1);
 End;
 
 Function HU_MSGX(): int;
@@ -752,7 +752,7 @@ Begin
   If (automapactive) Then Begin
     // [crispy] move map title to the bottom
     If (crispy.automapoverlay <> 0) And (screenblocks >= CRISPY_HUD - 1) Then
-      w_title.y := HU_TITLEY + ST_HEIGHT Shl Crispy.hires
+      w_title.y := HU_TITLEY + ST_HEIGHT {Shl Crispy.hires}
     Else
       w_title.y := HU_TITLEY;
   End;

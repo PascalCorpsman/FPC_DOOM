@@ -110,10 +110,10 @@ Type
 Var
   PatchBuffer: Array Of TPatchBuffer = Nil;
 
-  // TODO: Das ist nicht gerade schnell, bei 1280x800 dauert so das Main Menu Rendern bereits mehr als 35ms :/
-  //       bei 640x400 gehts aber noch gut und da Fullscreenpatches nur in den Menü's oder Endscreens vorkommen ists ok.
+  // Das ist nicht gerade schnell, bei 1280x800 dauert so das Main Menu Rendern bereits mehr als 35ms :/
+  // bei 640x400 gehts aber noch gut und da Fullscreenpatches nur in den Menü's oder Endscreens vorkommen ists ok.
 
-Procedure V_DrawStretchedPatch(x, y, Width, Height: int; Const patch: ppatch_t);
+Procedure V_DrawStretchedPatch(x, y, Width, Height: int; Const patch: ppatch_t); Deprecated 'Das wird nicht mehr benötigt, weil V_DrawPatch direkt auf 320x200 skalliert ;)';
 Var
   col, i, j, srcX, srcY, srcIndex: int;
   column: Pcolumn_t;
@@ -167,6 +167,26 @@ Begin
   End;
 End;
 
+(*
+ * EGAL wie Crispy.hires ist, V_DrawPatch geht immer von ORIGWIDTH / ORIGHEIGHT aus !
+ * d.h. dass ggf der Pixel passend Verschoben und "Dicker" gemacht werden muss
+ *)
+
+Procedure V_DrawPatchSetPixel(x, y: int; col: Byte);
+Var
+  d, i, j, index: integer;
+Begin
+  y := y Shl Crispy.hires;
+  x := x Shl Crispy.hires;
+  d := (1 Shl Crispy.hires) - 1;
+  For j := 0 To d Do Begin
+    index := (y + j) * SCREENWIDTH + x;
+    For i := 0 To d Do Begin
+      dest_screen[index + i] := col;
+    End;
+  End;
+End;
+
 Procedure V_DrawPatch(x, y: int; Const patch: ppatch_t);
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
 Const
@@ -179,7 +199,7 @@ Var
   w, col: int;
   column: Pcolumn_t;
   source: PByte;
-  row, index: integer;
+  row: integer;
   count: Byte;
   sc: byte;
 Begin
@@ -208,9 +228,9 @@ Begin
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
         b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc] And $00FFFFFF;
 {$ENDIF}
-        index := (x + col) + (y + row) * SCREENWIDTH;
+        V_DrawPatchSetPixel((x + col), (y + row), sc);
         // If (index >= 0) And (index <= high(dest_screen)) Then Begin
-        dest_screen[index] := sc;
+        // dest_screen[index] := sc;
         // End;
         source := pointer(source) + 1;
         row := row + 1;
@@ -242,13 +262,13 @@ Begin
     // V_DrawPatchFlipped(0, 0, patch);
   End
   Else Begin
-    If Crispy.hires <> 0 Then Begin
-      V_DrawStretchedPatch(0, 0, SCREENWIDTH, SCREENHEIGHT, patch);
-    End
-    Else Begin
-      // Ohne Scallierung ist Fullscreen einfach ;)
-      V_DrawPatch(0, 0, patch);
-    End;
+    //    If Crispy.hires <> 0 Then Begin
+    //      V_DrawStretchedPatch(0, 0, SCREENWIDTH, SCREENHEIGHT, patch);
+    //    End
+    //    Else Begin
+    // Ohne Skallierung ist Fullscreen einfach ;)
+    V_DrawPatch(0, 0, patch);
+    //    End;
   End;
 End;
 

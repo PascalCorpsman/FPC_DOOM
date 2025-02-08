@@ -23,7 +23,6 @@ Var
   SCREENWIDTH: int = ORIGWIDTH;
   SCREENHEIGHT: int = ORIGHEIGHT;
   WIDESCREENDELTA: int; // [crispy] horizontal widescreen offset
-  ScaleOffX, ScaleOffY: Integer;
 
 Procedure I_RegisterWindowIcon(Const icon: P_unsigned_int; width, height: int);
 Procedure I_SetWindowTitle(Const title: String);
@@ -113,8 +112,6 @@ Begin
   SCREENWIDTH := ORIGWIDTH Shl crispy.hires;
   SCREENHEIGHT := ORIGHEIGHT Shl crispy.hires;
   WIDESCREENDELTA := 0;
-  ScaleOffX := (SCREENWIDTH - ORIGWIDTH) Div 2;
-  ScaleOffY := (SCREENHEIGHT - ORIGHEIGHT) Div 2;
 
   NONWIDEWIDTH := SCREENWIDTH;
 

@@ -627,8 +627,8 @@ Begin
       Else // top of texture at top
         rw_bottomtexturemid := worldlow;
     End;
-    rw_toptexturemid := rw_toptexturemid + sidedef^.rowoffset;
-    rw_bottomtexturemid := rw_bottomtexturemid + sidedef^.rowoffset;
+    rw_toptexturemid := fixed_t(rw_toptexturemid + sidedef^.rowoffset);
+    rw_bottomtexturemid := fixed_t(rw_bottomtexturemid + sidedef^.rowoffset);
 
     // allocate space for masked texture tables
     If (sidedef^.midtexture <> 0) Then Begin
