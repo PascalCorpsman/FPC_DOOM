@@ -775,7 +775,7 @@ Begin
     End;
   End;
 
-  //	DO BUTTONS
+  // DO BUTTONS
   For i := 0 To maxbuttons - 1 Do Begin
     If (buttonlist[i].btimer <> 0) Then Begin
       buttonlist[i].btimer := buttonlist[i].btimer - 1;
@@ -864,7 +864,6 @@ Procedure P_CrossSpecialLinePtr(line: pline_t; side: int; thing: Pmobj_t);
 Var
   ok: int;
 Begin
-
   //  line = &lines[linenum];
 
   If (gameversion <= exe_doom_1_2) Then Begin

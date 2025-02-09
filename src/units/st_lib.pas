@@ -41,6 +41,27 @@ Type
     data: int;
   End;
 
+  // Binary Icon widget
+  st_binicon_t = Record
+    // center-justified location of icon
+    x: int;
+    y: int;
+
+    // last icon value
+    oldval: boolean;
+
+    // pointer to current icon status
+    val: PBoolean;
+
+    // pointer to boolean
+    //  stating whether to update icon
+    _on: PBoolean;
+
+    p: Ppatch_t; // icon
+    data: int; // user data
+  End;
+  Pst_binicon_t = ^st_binicon_t;
+
 Procedure STlib_initNum(Out n: st_number_t;
   x: int;
   y: int;
@@ -48,6 +69,14 @@ Procedure STlib_initNum(Out n: st_number_t;
   num: P_int;
   _on: Pboolean;
   width: int);
+
+Procedure STlib_initBinIcon
+  (Out b: st_binicon_t;
+  x: int;
+  y: int;
+  i: ppatch_t;
+  val: Pboolean;
+  _on: Pboolean);
 
 Procedure STlib_init();
 
@@ -85,6 +114,24 @@ Begin
   n._on := _on;
   n.p := pl;
 End;
+
+Procedure STlib_initBinIcon
+  (Out b: st_binicon_t;
+  x: int;
+  y: int;
+  i: ppatch_t;
+  val: Pboolean;
+  _on: Pboolean);
+Begin
+  b.x := x;
+  b.y := y;
+  b.oldval := false;
+  b.val := val;
+  b._on := _on;
+  b.p := i;
+End;
+
+
 
 End.
 

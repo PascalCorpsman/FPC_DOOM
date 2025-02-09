@@ -27,6 +27,7 @@ Const
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
 
+Procedure ST_Init();
 Procedure ST_Start();
 Procedure ST_Ticker();
 
@@ -42,14 +43,16 @@ Procedure ST_DrawDemoTimer(time: int);
 Implementation
 
 Uses
-  info_types, doomstat, doomdata, tables, sounds
+  info_types, doomstat, doomdata, tables, sounds, doomtype
   , am_map
   , d_items, d_player, d_englsh, deh_misc, d_mode
   , g_game
-  , m_menu, m_fixed
+  , m_menu, m_fixed, m_random
   , p_mobj
   , st_lib, s_sound
   , v_patch, v_video
+  , w_wad
+  , z_zone
   ;
 
 Const
@@ -66,39 +69,170 @@ Const
   ST_AMMOX = (44 {- ST_WIDESCREENDELTA});
   ST_AMMOY = 171;
 
+  // Weapon pos.
+  ST_ARMSX = (111 {- ST_WIDESCREENDELTA});
+  ST_ARMSY = 172;
+  ST_ARMSBGX = (104 {- ST_WIDESCREENDELTA});
+  ST_ARMSBGY = 168;
+  ST_ARMSXSPACE = 12;
+  ST_ARMSYSPACE = 10;
+
+  // Number of status faces.
+  ST_NUMPAINFACES = 5;
+  ST_NUMSTRAIGHTFACES = 3;
+  ST_NUMTURNFACES = 2;
+  ST_NUMSPECIALFACES = 3;
+
+  ST_FACESTRIDE = (ST_NUMSTRAIGHTFACES + ST_NUMTURNFACES + ST_NUMSPECIALFACES);
+
+  ST_NUMEXTRAFACES = 2;
+
+  ST_NUMFACES = (ST_FACESTRIDE * ST_NUMPAINFACES + ST_NUMEXTRAFACES);
+
+  ST_WIDTH = ORIGWIDTH;
+  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
+  // Location of status bar
+  ST_X = 0;
+  ST_X2 = 104;
+
+  ST_FX = 143;
+  ST_FY = 169;
+
+Type
+  load_callback_t = Procedure(lumpname: String; variable: PPPatch_t);
+
 Var
-  st_widescreendelta: int;
-  st_stopped: boolean = true;
-  st_firsttime: Boolean;
+  // graphics are drawn to a backing screen and blitted to the real screen
+  st_backing_screen: Array Of pixel_t = Nil;
+
+  // main player in game
   plyr: ^player_t;
+
+  // ST_Start() has just been called
+  st_firsttime: Boolean;
+
+  // lump number for PLAYPAL
+  lu_palette: int;
+
+  //  // used for making messages go away
+  st_msgcounter: int = 0;
+
   // whether left-side main status bar is active
   st_statusbaron: boolean;
-  // value of st_chat before message popped up
-  st_oldchat: boolean;
-  // whether status bar chat is active
-  st_chat: boolean;
-  // current face index, used by w_faces
-  st_faceindex: int = 0;
-  st_palette: int = 0;
-  // used to use appopriately pained face
-  st_oldhealth: int = -1;
-
-  // 0-9, tall numbers
-  tallnum: Array[0..9] Of patch_t;
-
-  // ready-weapon widget
-  w_ready: st_number_t;
-
-  faceindex: int;
-  // holds key-type for each key box on bar
-  keyboxes: Array[0..2] Of int;
-  // used for evil grin
-  oldweaponsowned: Array[0..integer(NUMWEAPONS) - 1] Of boolean;
 
   // [crispy] distinguish classic status bar with background and player face from Crispy HUD
   st_crispyhud: boolean;
   st_classicstatusbar: boolean;
   st_statusbarface: boolean;
+
+  // whether status bar chat is active
+  st_chat: boolean;
+
+  // value of st_chat before message popped up
+  st_oldchat: boolean;
+
+  // !deathmatch
+  st_notdeathmatch: Boolean;
+
+  // !deathmatch && st_statusbaron
+  st_armson: boolean;
+
+  // !deathmatch
+  st_fragson: boolean;
+
+  // main bar left
+  sbar: ppatch_t;
+
+  // main bar right, for doom 1.0
+  sbarr: ppatch_t;
+
+  // 0-9, tall numbers
+  tallnum: Array[0..9] Of ppatch_t;
+
+  // tall % sign
+  tallpercent: ppatch_t;
+
+  // 0-9, short, yellow (,different!) numbers
+  shortnum: Array[0..9] Of ppatch_t;
+
+  // 3 key-cards, 3 skulls
+  keys: Array[0..integer(NUMCARDS) + 3 - 1] Of ppatch_t; // [crispy] support combined card and skull keys
+
+  // face status patches
+  faces: Array[0..integer(ST_NUMFACES) - 1] Of ppatch_t;
+
+  //  // face background
+  faceback: Array[0..MAXPLAYERS - 1] Of ppatch_t; // [crispy] killough 3/7/98: make array
+
+  // main bar right
+  armsbg: ppatch_t;
+
+  // weapon ownership patches
+  arms: Array[0..5, 0..1] Of ppatch_t;
+
+  // ready-weapon widget
+  w_ready: st_number_t;
+
+  //   // in deathmatch only, summary of frags stats
+  //  static st_number_t	w_frags;
+  //
+  //  // health widget
+  //  static st_percent_t	w_health;
+
+    // arms background
+  w_armsbg: st_binicon_t;
+
+
+  //  // weapon ownership widgets
+  //  static st_multicon_t	w_arms[6];
+  //  // [crispy] show SSG availability in the Shotgun slot of the arms widget
+  //  static int st_shotguns;
+
+  //  // face status widget
+  //  static st_multicon_t	w_faces;
+
+  //  // keycard widgets
+  //  static st_multicon_t	w_keyboxes[3];
+
+  //  // armor widget
+  //  static st_percent_t	w_armor;
+
+  //  // ammo widgets
+  //  static st_number_t	w_ammo[4];
+
+  //  // max ammo widgets
+  //  static st_number_t	w_maxammo[4];
+
+  //   // number of frags so far in deathmatch
+  //  static int	st_fragscount;
+
+  // used to use appopriately pained face
+  st_oldhealth: int = -1;
+
+  // used for evil grin
+  oldweaponsowned: Array[0..integer(NUMWEAPONS) - 1] Of boolean;
+
+  // count until face changes
+  st_facecount: int = 0;
+
+  // current face index, used by w_faces
+  faceindex: int;
+
+  // holds key-type for each key box on bar
+  keyboxes: Array[0..2] Of int;
+
+  //  // [crispy] blinking key or skull in the status bar
+  //  int		st_keyorskull[3];
+
+  // a random number per tick
+  st_randomnumber: int;
+
+  st_widescreendelta: int;
+  st_stopped: boolean = true;
+
+  // current face index, used by w_faces
+  st_faceindex: int = 0;
+  st_palette: int = 0;
 
 Procedure ST_Stop();
 Begin
@@ -166,31 +300,31 @@ Begin
   STlib_initNum(w_ready,
     ST_AMMOX,
     ST_AMMOY,
-    tallnum,
+    @tallnum[0],
     @plyr^.ammo[integer(weaponinfo[integer(plyr^.readyweapon)].ammo)],
     @st_statusbaron,
     ST_AMMOWIDTH);
-  //
-  //    // the last weapon type
-  //    w_ready.data = plyr->readyweapon;
-  //
-  //    // health percentage
-  //    STlib_initPercent(&w_health,
-  //		      ST_HEALTHX,
-  //		      ST_HEALTHY,
-  //		      tallnum,
-  //		      &plyr->health,
-  //		      &st_statusbaron,
-  //		      tallpercent);
-  //
-  //    // arms background
-  //    STlib_initBinIcon(&w_armsbg,
-  //		      ST_ARMSBGX,
-  //		      ST_ARMSBGY,
-  //		      armsbg,
-  //		      &st_notdeathmatch,
-  //		      &st_classicstatusbar);
-  //
+
+  // the last weapon type
+//    w_ready.data = plyr->readyweapon;
+//
+//    // health percentage
+//    STlib_initPercent(&w_health,
+//		      ST_HEALTHX,
+//		      ST_HEALTHY,
+//		      tallnum,
+//		      &plyr->health,
+//		      &st_statusbaron,
+//		      tallpercent);
+
+  // arms background
+  STlib_initBinIcon(w_armsbg,
+    ST_ARMSBGX,
+    ST_ARMSBGY,
+    armsbg,
+    @st_notdeathmatch,
+    @st_classicstatusbar);
+
   //    // weapons owned
   //    for(i=0;i<6;i++)
   //    {
@@ -328,87 +462,264 @@ Begin
   st_stopped := false;
 End;
 
+Procedure ST_updateWidgets();
+Begin
+  //    static int	largeammo = 1994; // means "n/a"
+  //    int		i;
+  //
+  //    // must redirect the pointer if the ready weapon has changed.
+  //    //  if (w_ready.data != plyr->readyweapon)
+  //    //  {
+  //    if (weaponinfo[plyr->readyweapon].ammo == am_noammo)
+  //	w_ready.num = &largeammo;
+  //    else
+  //	w_ready.num = &plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
+  //    //{
+  //    // static int tic=0;
+  //    // static int dir=-1;
+  //    // if (!(tic&15))
+  //    //   plyr->ammo[weaponinfo[plyr->readyweapon].ammo]+=dir;
+  //    // if (plyr->ammo[weaponinfo[plyr->readyweapon].ammo] == -100)
+  //    //   dir = 1;
+  //    // tic++;
+  //    // }
+  w_ready.data := int(plyr^.readyweapon);
+
+  //    // if (*w_ready.on)
+  //    //  STlib_updateNum(&w_ready, true);
+  //    // refresh weapon change
+  //    //  }
+  //
+  //    // update keycard multiple widgets
+  //    for (i=0;i<3;i++)
+  //    {
+  //	keyboxes[i] = plyr->cards[i] ? i : -1;
+  //
+  //	if (plyr->cards[i+3])
+  //	    keyboxes[i] = (keyboxes[i] == -1) ? i+3 : i+6; // [crispy] support combined card and skull keys
+  //
+  //	// [crispy] blinking key or skull in the status bar
+  //	if (plyr->tryopen[i])
+  //	{
+  //#if defined(CRISPY_KEYBLINK_WITH_SOUND)
+  //		if (!(plyr->tryopen[i] & (2*KEYBLINKMASK-1)))
+  //		{
+  //			S_StartSound(NULL, sfx_itemup);
+  //		}
+  //#endif
+  //#if defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
+  //		if (st_classicstatusbar && !(plyr->tryopen[i] & (KEYBLINKMASK-1)))
+  //		{
+  //			st_firsttime = true;
+  //		}
+  //#endif
+  //		plyr->tryopen[i]--;
+  //#if !defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
+  //		if (st_crispyhud)
+  //#endif
+  //		{
+  //			keyboxes[i] = (plyr->tryopen[i] & KEYBLINKMASK) ? i + st_keyorskull[i] : -1;
+  //		}
+  //
+  //		if (!plyr->tryopen[i])
+  //		{
+  //			w_keyboxes[i].oldinum = -1;
+  //		}
+  //	}
+  //    }
+  //
+  //    // refresh everything if this is him coming back to life
+  //    ST_updateFaceWidget();
+
+  // used by the w_armsbg widget
+  st_notdeathmatch := deathmatch = 0;
+
+  // used by w_arms[] widgets
+  st_armson := st_statusbaron And (deathmatch = 0);
+
+  //    // used by w_frags widget
+  //    st_fragson = deathmatch && st_statusbaron;
+  //    st_fragscount = 0;
+  //
+  //    for (i=0 ; i<MAXPLAYERS ; i++)
+  //    {
+  //	if (i != displayplayer)
+  //	    st_fragscount += plyr->frags[i];
+  //	else
+  //	    st_fragscount -= plyr->frags[i];
+  //    }
+
+  //    // get rid of chat window if up because of message
+  //    if (!--st_msgcounter)
+  //	st_chat = st_oldchat;
+
+End;
+
+
+Procedure ST_doPaletteStuff();
+Begin
+
+  //    int		palette;
+  //#ifndef CRISPY_TRUECOLOR
+  //    byte*	pal;
+  //#endif
+  //    int		cnt;
+  //    int		bzc;
+  //
+  //    cnt = plyr->damagecount;
+  //
+  //    if (plyr->powers[pw_strength])
+  //    {
+  //	// slowly fade the berzerk out
+  //  	bzc = 12 - (plyr->powers[pw_strength]>>6);
+  //
+  //	if (bzc > cnt)
+  //	    cnt = bzc;
+  //    }
+  //
+  //    // [crispy] A11Y
+  //    if (!a11y_palette_changes)
+  //    {
+  //	palette = 0;
+  //    }
+  //    else
+  //    if (cnt)
+  //    {
+  //	palette = (cnt+7)>>3;
+  //
+  //	if (palette >= NUMREDPALS)
+  //	    palette = NUMREDPALS-1;
+  //
+  //	// [crispy] tune down a bit so the menu remains legible
+  //	if (menuactive || paused)
+  //	    palette >>= 1;
+  //
+  //	palette += STARTREDPALS;
+  //    }
+  //
+  //    else if (plyr->bonuscount && plyr->health > 0) // [crispy] never show the yellow bonus palette for a dead player
+  //    {
+  //	palette = (plyr->bonuscount+7)>>3;
+  //
+  //	if (palette >= NUMBONUSPALS)
+  //	    palette = NUMBONUSPALS-1;
+  //
+  //	palette += STARTBONUSPALS;
+  //    }
+  //
+  //    else if ( plyr->powers[pw_ironfeet] > 4*32
+  //	      || plyr->powers[pw_ironfeet]&8)
+  //	palette = RADIATIONPAL;
+  //    else
+  //	palette = 0;
+  //
+  //    // In Chex Quest, the player never sees red.  Instead, the
+  //    // radiation suit palette is used to tint the screen green,
+  //    // as though the player is being covered in goo by an
+  //    // attacking flemoid.
+  //
+  //    if (gameversion == exe_chex
+  //     && palette >= STARTREDPALS && palette < STARTREDPALS + NUMREDPALS)
+  //    {
+  //        palette = RADIATIONPAL;
+  //    }
+  //
+  //    // [crispy] prevent palette changes when in help screen or Crispness menu
+  //    if (inhelpscreens)
+  //    {
+  //	palette = 0;
+  //    }
+  //
+  //    if (palette != st_palette)
+  //    {
+  //	st_palette = palette;
+  //#ifndef CRISPY_TRUECOLOR
+  //	pal = (byte *) W_CacheLumpNum (lu_palette, PU_CACHE)+palette*768;
+  //	I_SetPalette (pal);
+  //#else
+  //	I_SetPalette (palette);
+  //#endif
+  //    }
+
+End;
+
 Procedure ST_Ticker();
 Begin
-  //  st_randomnumber = M_Random();
-  //    ST_updateWidgets();
-  //    st_oldhealth = plyr->health;
-  //
-  //    // Do red-/gold-shifts from damage/items
-  //    ST_doPaletteStuff();
+  st_randomnumber := M_Random.M_Random();
+  ST_updateWidgets();
+  st_oldhealth := plyr^.health;
+
+  // Do red-/gold-shifts from damage/items
+  ST_doPaletteStuff();
 End;
 
 Procedure ST_refreshBackground(force: boolean);
 Begin
-  //    if (st_classicstatusbar || force)
-  //    {
-  //        V_UseBuffer(st_backing_screen);
-  //
-  //	// [crispy] this is our own local copy of R_FillBackScreen() to
-  //	// fill the entire background of st_backing_screen with the bezel pattern,
-  //	// so it appears to the left and right of the status bar in widescreen mode
-  //	if ((SCREENWIDTH >> crispy->hires) != ST_WIDTH)
-  //	{
-  //		byte *src;
-  //		pixel_t *dest;
-  //		const char *name = (gamemode == commercial) ? DEH_String("GRNROCK") : DEH_String("FLOOR7_2");
-  //
-  //		src = W_CacheLumpName(name, PU_CACHE);
-  //		dest = st_backing_screen;
-  //
-  //		// [crispy] use unified flat filling function
-  //		V_FillFlat(SCREENHEIGHT-(ST_HEIGHT<<crispy->hires), SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
-  //
-  //		// [crispy] preserve bezel bottom edge
-  //		if (scaledviewwidth == SCREENWIDTH)
-  //		{
-  //			int x;
-  //			patch_t *const patch = W_CacheLumpName(DEH_String("brdr_b"), PU_CACHE);
-  //
-  //			for (x = 0; x < WIDESCREENDELTA; x += 8)
-  //			{
-  //				V_DrawPatch(x - WIDESCREENDELTA, 0, patch);
-  //				V_DrawPatch(ORIGWIDTH + WIDESCREENDELTA - x - 8, 0, patch);
-  //			}
-  //		}
-  //	}
-  //
-  //	// [crispy] center unity rerelease wide status bar
-  //	if (SHORT(sbar->width) > ORIGWIDTH && SHORT(sbar->leftoffset) == 0)
-  //	{
-  //	    V_DrawPatch(ST_X + (ORIGWIDTH - SHORT(sbar->width)) / 2, 0, sbar);
-  //	}
-  //	else
-  //	{
-  //	    V_DrawPatch(ST_X, 0, sbar);
-  //	}
-  //
-  //	// draw right side of bar if needed (Doom 1.0)
-  //	if (sbarr)
-  //	    V_DrawPatch(ST_ARMSBGX, 0, sbarr);
-  //
-  //	// [crispy] back up arms widget background
-  //	if (!deathmatch)
-  //	    V_DrawPatch(ST_ARMSBGX, 0, armsbg);
-  //
-  //	// [crispy] killough 3/7/98: make face background change with displayplayer
-  //	if (netgame)
-  //	    V_DrawPatch(ST_FX, 0, faceback[displayplayer]);
-  //
-  //        V_RestoreBuffer();
-  //
-  //	// [crispy] copy entire SCREENWIDTH, to preserve the pattern
-  //	// to the left and right of the status bar in widescreen mode
-  //	if (!force)
-  //	{
-  //	    V_CopyRect(ST_X, 0, st_backing_screen, SCREENWIDTH >> crispy->hires, ST_HEIGHT, ST_X, ST_Y);
-  //	}
-  //	else if (WIDESCREENDELTA > 0 && !st_firsttime)
-  //	{
-  //	    V_CopyRect(0, 0, st_backing_screen, WIDESCREENDELTA, ST_HEIGHT, 0, ST_Y);
-  //	    V_CopyRect(ORIGWIDTH + WIDESCREENDELTA, 0, st_backing_screen, WIDESCREENDELTA, ST_HEIGHT, ORIGWIDTH + WIDESCREENDELTA, ST_Y);
-  //	}
-  //    }
+  If (st_classicstatusbar) Or (force) Then Begin
+
+    V_UseBuffer(st_backing_screen);
+
+    // [crispy] this is our own local copy of R_FillBackScreen() to
+    // fill the entire background of st_backing_screen with the bezel pattern,
+    // so it appears to the left and right of the status bar in widescreen mode
+    If ((SCREENWIDTH Shr crispy.hires) <> ST_WIDTH) Then Begin
+      Raise exception.create('Not planed to support widescreen mode ?');
+      //		byte *src;
+      //		pixel_t *dest;
+      //		const char *name = (gamemode == commercial) ? DEH_String("GRNROCK") : DEH_String("FLOOR7_2");
+      //
+      //		src = W_CacheLumpName(name, PU_CACHE);
+      //		dest = st_backing_screen;
+      //
+      //		// [crispy] use unified flat filling function
+      //		V_FillFlat(SCREENHEIGHT-(ST_HEIGHT<<crispy->hires), SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
+      //
+      //		// [crispy] preserve bezel bottom edge
+      //		if (scaledviewwidth == SCREENWIDTH)
+      //		{
+      //			int x;
+      //			patch_t *const patch = W_CacheLumpName(DEH_String("brdr_b"), PU_CACHE);
+      //
+      //			for (x = 0; x < WIDESCREENDELTA; x += 8)
+      //			{
+      //				V_DrawPatch(x - WIDESCREENDELTA, 0, patch);
+      //				V_DrawPatch(ORIGWIDTH + WIDESCREENDELTA - x - 8, 0, patch);
+      //			}
+      //		}
+    End;
+
+    // [crispy] center unity rerelease wide status bar
+    If (sbar^.width > ORIGWIDTH) And (sbar^.leftoffset = 0) Then Begin
+      V_DrawPatch(ST_X + (ORIGWIDTH - sbar^.width) Div 2, 0, sbar);
+    End
+    Else Begin
+      V_DrawPatch(ST_X, 0, sbar);
+    End;
+
+    // draw right side of bar if needed (Doom 1.0)
+    If assigned(sbarr) Then
+      V_DrawPatch(ST_ARMSBGX, 0, sbarr);
+
+    // [crispy] back up arms widget background
+    If (deathmatch = 0) Then
+      V_DrawPatch(ST_ARMSBGX, 0, armsbg);
+
+    // [crispy] killough 3/7/98: make face background change with displayplayer
+    If (netgame) Then
+      V_DrawPatch(ST_FX, 0, faceback[displayplayer]);
+
+    V_RestoreBuffer();
+
+    // [crispy] copy entire SCREENWIDTH, to preserve the pattern
+    // to the left and right of the status bar in widescreen mode
+    If (Not force) Then Begin
+      V_CopyRect(ST_X, 0, st_backing_screen, SCREENWIDTH Shr crispy.hires, ST_HEIGHT, ST_X, ST_Y);
+    End
+    Else If (WIDESCREENDELTA > 0) And (Not st_firsttime) Then Begin
+      V_CopyRect(0, 0, st_backing_screen, WIDESCREENDELTA, ST_HEIGHT, 0, ST_Y);
+      V_CopyRect(ORIGWIDTH + WIDESCREENDELTA, 0, st_backing_screen, WIDESCREENDELTA, ST_HEIGHT, ORIGWIDTH + WIDESCREENDELTA, ST_Y);
+    End;
+  End;
 End;
 
 Procedure ST_DrawDemoTimer(time: int);
@@ -417,16 +728,19 @@ Begin
 End;
 
 Procedure ST_drawWidgets(refresh: boolean);
+Var
+  i: int;
+  gibbed: boolean;
 Begin
-  //    int		i;
-  //    boolean gibbed = false;
-  //
-  //    // used by w_arms[] widgets
-  //    st_armson = st_statusbaron && !deathmatch;
-  //
-  //    // used by w_frags widget
-  //    st_fragson = deathmatch && st_statusbaron;
-  //
+
+  gibbed := false;
+
+  // used by w_arms[] widgets
+  st_armson := st_statusbaron And (deathmatch = 0);
+
+  // used by w_frags widget
+  st_fragson := (deathmatch <> 0) And st_statusbaron;
+
   //    dp_translation = ST_WidgetColor(hudcolor_ammo);
   //    STlib_updateNum(&w_ready, refresh);
   //    dp_translation = NULL;
@@ -1250,6 +1564,156 @@ Begin
     //    }
   End;
 End;
+
+// Iterates through all graphics to be loaded or unloaded, along with
+// the variable they use, invoking the specified callback function.
+
+Procedure ST_loadUnloadGraphics(callback: load_callback_t);
+Var
+  i, j: int;
+  facenum: int;
+  namebuf: String;
+Begin
+  // Load the numbers, tall and short
+  For i := 0 To 9 Do Begin
+
+    namebuf := format('STTNUM%d', [i]);
+    callback(namebuf, @tallnum[i]);
+
+    namebuf := format('STYSNUM%d', [i]);
+    callback(namebuf, @shortnum[i]);
+  End;
+
+  // Load percent key.
+  //Note: why not load STMINUS here, too?
+
+  callback('STTPRCNT', @tallpercent);
+
+  // key cards
+  For i := 0 To integer(NUMCARDS) - 1 Do Begin
+    namebuf := format('STKEYS%d', [i]);
+    callback(namebuf, @keys[i]);
+  End;
+
+  // arms background
+  callback('STARMS', @armsbg);
+
+  // arms ownership widgets
+  For i := 0 To 5 Do Begin
+    namebuf := format('STGNUM%d', [i + 2]);
+
+    // gray #
+    callback(namebuf, @arms[i][0]);
+
+    // yellow #
+    arms[i][1] := shortnum[i + 2];
+  End;
+
+  // face backgrounds for different color players
+  // [crispy] killough 3/7/98: add better support for spy mode by loading
+  // all player face backgrounds and using displayplayer to choose them:
+
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    namebuf := format('STFB%d', [i]);
+    callback(namebuf, @faceback[i]);
+  End;
+
+  // status bar background bits
+  If (W_CheckNumForName('STBAR') >= 0) Then Begin
+    callback('STBAR', @sbar);
+    sbarr := Nil;
+  End
+  Else Begin
+    callback('STMBARL', @sbar);
+    callback('STMBARR', @sbarr);
+  End;
+
+  // face states
+  facenum := 0;
+  For i := 0 To ST_NUMPAINFACES - 1 Do Begin
+    For j := 0 To ST_NUMSTRAIGHTFACES - 1 Do Begin
+      namebuf := format('STFST%d%d', [i, j]);
+      callback(namebuf, @faces[facenum]);
+      facenum := facenum + 1;
+    End;
+    namebuf := format('STFTR%d0', [i]); // turn right
+    callback(namebuf, @faces[facenum]);
+    facenum := facenum + 1;
+    namebuf := format('STFTL%d0', [i]); // turn left
+    callback(namebuf, @faces[facenum]);
+    facenum := facenum + 1;
+    namebuf := format('STFOUCH%d', [i]); // ouch!
+    callback(namebuf, @faces[facenum]);
+    facenum := facenum + 1;
+    namebuf := format('STFEVL%d', [i]); // evil grin ;)
+    callback(namebuf, @faces[facenum]);
+    facenum := facenum + 1;
+    namebuf := format('STFKILL%d', [i]); // pissed off
+    callback(namebuf, @faces[facenum]);
+    facenum := facenum + 1;
+  End;
+
+  callback('STFGOD0', @faces[facenum]);
+  facenum := facenum + 1;
+  callback('STFDEAD0', @faces[facenum]);
+  facenum := facenum + 1;
+End;
+
+Procedure ST_loadCallback(lumpname: String; variable: PPPatch_t);
+Begin
+  variable^ := W_CacheLumpName(lumpname, PU_STATIC);
+End;
+
+Procedure ST_loadGraphics();
+Begin
+  ST_loadUnloadGraphics(@ST_loadCallback);
+End;
+
+Procedure ST_loadData();
+Var
+  i: int;
+  lumpname: String;
+  lumpnum: int;
+Begin
+  lu_palette := W_GetNumForName('PLAYPAL');
+  ST_loadGraphics();
+
+  // [crispy] support combined card and skull keys (if provided by PWAD)
+  // i.e. only for display in the status bar
+  For i := integer(NUMCARDS) To integer(NUMCARDS) + 3 - 1 Do Begin
+    lumpname := format('STKEYS%d', [i]);
+    lumpnum := W_CheckNumForName(lumpname);
+    If (lumpnum <> -1) Then Begin
+      keys[i] := W_CacheLumpNum(lumpnum, PU_STATIC);
+    End
+    Else Begin
+      keys[i] := keys[i - 3];
+    End;
+  End;
+End;
+
+Procedure ST_Init();
+Begin
+  // [crispy] colorize the confusing 'behold' power-up menu
+  //    if (!DEH_HasStringReplacement(STSTR_BEHOLD) &&
+  //        !M_ParmExists("-nodeh"))
+  //    {
+  //	char str_behold[80];
+  //	M_snprintf(str_behold, sizeof(str_behold),
+  //	           "in%sV%suln, %sS%str, %sI%snviso, %sR%sad, %sA%sllmap, or %sL%site-amp",
+  //	           crstr[CR_GOLD], crstr[CR_NONE],
+  //	           crstr[CR_GOLD], crstr[CR_NONE],
+  //	           crstr[CR_GOLD], crstr[CR_NONE],
+  //	           crstr[CR_GOLD], crstr[CR_NONE],
+  //	           crstr[CR_GOLD], crstr[CR_NONE],
+  //	           crstr[CR_GOLD], crstr[CR_NONE]);
+  //	DEH_AddStringReplacement(STSTR_BEHOLD, str_behold);
+  //    }
+
+  ST_loadData();
+  setlength(st_backing_screen, MAXWIDTH * (ST_HEIGHT Shl 1) * sizeof(pixel_t)); // WTF: müsste hier nicht Crispy.hires +1 stehen ?
+End;
+
 
 End.
 

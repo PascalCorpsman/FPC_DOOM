@@ -17,8 +17,9 @@ Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t; crush: bo
 Implementation
 
 Uses
-  sounds
-  , d_loop
+  sounds, doomstat
+  , d_loop, d_mode
+  , m_fixed
   , p_map, p_setup, p_tick
   , s_sound
   ;
@@ -111,40 +112,37 @@ Begin
           floor^.speed := FLOORSPEED;
           floor^.floordestheight := P_FindHighestFloorSurrounding(sec);
         End;
-      //
-      //	  case lowerFloorToLowest:
-      //	    floor->direction = -1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight =
-      //		P_FindLowestFloorSurrounding(sec);
-      //	    break;
-      //
-      //	  case turboLower:
-      //	    floor->direction = -1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED * 4;
-      //	    floor->floordestheight =
-      //		P_FindHighestFloorSurrounding(sec);
-      //	    if (gameversion <= exe_doom_1_2 ||
-      //	        floor->floordestheight != sec->floorheight)
-      //		floor->floordestheight += 8*FRACUNIT;
-      //	    break;
-      //
-      //	  case raiseFloorCrush:
-      //	    floor->crush = true;
-      //	  case raiseFloor:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight =
-      //		P_FindLowestCeilingSurrounding(sec);
-      //	    if (floor->floordestheight > sec->ceilingheight)
-      //		floor->floordestheight = sec->ceilingheight;
-      //	    floor->floordestheight -= (8*FRACUNIT)*
-      //		(floortype == raiseFloorCrush);
-      //	    break;
-      //
+      lowerFloorToLowest: Begin
+          floor^.direction := -1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := P_FindLowestFloorSurrounding(sec);
+        End;
+
+      turboLower: Begin
+          floor^.direction := -1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED * 4;
+          floor^.floordestheight := P_FindHighestFloorSurrounding(sec);
+          If (gameversion <= exe_doom_1_2) Or (
+            floor^.floordestheight <> sec^.floorheight) Then
+            floor^.floordestheight := floor^.floordestheight + 8 * FRACUNIT;
+        End;
+
+      raiseFloorCrush,
+        raiseFloor: Begin
+          If floortype = raiseFloorCrush Then
+            floor^.crush := true;
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := P_FindLowestCeilingSurrounding(sec);
+          If (floor^.floordestheight > sec^.ceilingheight) Then
+            floor^.floordestheight := sec^.ceilingheight;
+          If (floortype = raiseFloorCrush) Then
+            floor^.floordestheight := floor^.floordestheight - (8 * FRACUNIT);
+        End;
+
       //	  case raiseFloorTurbo:
       //	    floor->direction = 1;
       //	    floor->sector = sec;
@@ -430,4 +428,5 @@ Finalization
   setlength(AllocatedFloors, 0);
 
 End.
+
 

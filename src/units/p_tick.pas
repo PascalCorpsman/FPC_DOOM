@@ -27,7 +27,7 @@ Uses
   doomdef, doomdata, info, sounds, tables
   , g_game
   , i_timer, i_system
-  , m_fixed
+  , m_fixed, m_menu
   , p_user, p_spec, p_mobj, p_local
   , r_main
   , s_sound, s_musinfo
@@ -152,14 +152,13 @@ Begin
   // run the tic
   If (paused <> 0) Then exit;
 
-  //    // pause if in menu and at least one tic has been run
-  //    if ( !netgame
-  //	 && menuactive
-  //	 && !demoplayback
-  //	 && players[consoleplayer].viewz != 1)
-  //    {
-  //	return;
-  //    }
+  // pause if in menu and at least one tic has been run
+  If (Not netgame)
+    And (menuactive)
+    And (Not demoplayback)
+    And (players[consoleplayer].viewz <> 1) Then Begin
+    exit;
+  End;
 
   For i := 0 To MAXPLAYERS - 1 Do Begin
     If (playeringame[i]) Then

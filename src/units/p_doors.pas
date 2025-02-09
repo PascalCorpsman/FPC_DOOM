@@ -458,23 +458,27 @@ End;
 //
 
 Procedure P_SpawnDoorCloseIn30(sec: Psector_t);
+Var
+  door: Pvldoor_t;
 Begin
-  Raise exception.create('Port me.');
-  //     vldoor_t*	door;
-  //
-  //    door = Z_Malloc ( sizeof(*door), PU_LEVSPEC, 0);
-  //
-  //    P_AddThinker (&door->thinker);
-  //
-  //    sec->specialdata = door;
-  //    sec->special = 0;
-  //
-  //    door->thinker.function.acp1 = (actionf_p1)T_VerticalDoor;
-  //    door->sector = sec;
-  //    door->direction = 0;
-  //    door->type = vld_normal;
-  //    door->speed = VDOORSPEED;
-  //    door->topcountdown = 30 * TICRATE;
+  new(door);
+  If Pvldoor_ts_cnt >= high(Pvldoor_ts) Then Begin
+    setlength(Pvldoor_ts, high(Pvldoor_ts) + 1025);
+  End;
+  Pvldoor_ts[Pvldoor_ts_cnt] := door;
+  inc(Pvldoor_ts_cnt);
+
+  P_AddThinker(@door^.thinker);
+
+  sec^.specialdata := door;
+  sec^.special := 0;
+
+  door^.thinker._function.acp1 := @T_VerticalDoor;
+  door^.sector := sec;
+  door^.direction := 0;
+  door^._type := vld_normal;
+  door^.speed := VDOORSPEED;
+  door^.topcountdown := 30 * TICRATE;
 End;
 
 //
@@ -482,26 +486,30 @@ End;
 //
 
 Procedure P_SpawnDoorRaiseIn5Mins(sec: Psector_t; secnum: int);
+Var
+  door: Pvldoor_t;
 Begin
-  Raise exception.create('Port me.');
-  //   vldoor_t*	door;
-  //
-  //    door = Z_Malloc ( sizeof(*door), PU_LEVSPEC, 0);
-  //
-  //    P_AddThinker (&door->thinker);
-  //
-  //    sec->specialdata = door;
-  //    sec->special = 0;
-  //
-  //    door->thinker.function.acp1 = (actionf_p1)T_VerticalDoor;
-  //    door->sector = sec;
-  //    door->direction = 2;
-  //    door->type = vld_raiseIn5Mins;
-  //    door->speed = VDOORSPEED;
-  //    door->topheight = P_FindLowestCeilingSurrounding(sec);
-  //    door->topheight -= 4*FRACUNIT;
-  //    door->topwait = VDOORWAIT;
-  //    door->topcountdown = 5 * 60 * TICRATE;
+  new(door);
+  If Pvldoor_ts_cnt >= high(Pvldoor_ts) Then Begin
+    setlength(Pvldoor_ts, high(Pvldoor_ts) + 1025);
+  End;
+  Pvldoor_ts[Pvldoor_ts_cnt] := door;
+  inc(Pvldoor_ts_cnt);
+
+  P_AddThinker(@door^.thinker);
+
+  sec^.specialdata := door;
+  sec^.special := 0;
+
+  door^.thinker._function.acp1 := @T_VerticalDoor;
+  door^.sector := sec;
+  door^.direction := 2;
+  door^._type := vld_raiseIn5Mins;
+  door^.speed := VDOORSPEED;
+  door^.topheight := P_FindLowestCeilingSurrounding(sec);
+  door^.topheight := door^.topheight - 4 * FRACUNIT;
+  door^.topwait := VDOORWAIT;
+  door^.topcountdown := 5 * 60 * TICRATE;
 End;
 
 Var

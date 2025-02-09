@@ -1033,7 +1033,7 @@ Begin
           G_DoCompleted();
         End;
       ga_victory: Begin
-          //	    F_StartFinale ();
+          F_StartFinale();
         End;
       ga_worlddone: Begin
           G_DoWorldDone();
@@ -1116,10 +1116,9 @@ Begin
     End;
 
     // [crispy] increase demo tics counter
-  //    if (demoplayback || demorecording)
-  //    {
-  //	    defdemotics++;
-  //    }
+    If (demoplayback) Or (demorecording) Then Begin
+      defdemotics := defdemotics + 1;
+    End;
 
     // check for special buttons
     For i := 0 To MAXPLAYERS - 1 Do Begin
@@ -1170,13 +1169,12 @@ Begin
   oldgamestate := gamestate;
   oldleveltime := leveltime;
 
-  //    // [crispy] no pause at intermission screen during demo playback
-  //    // to avoid desyncs (from prboom-plus)
-  //    if ((paused & 2 || (!demoplayback && menuactive && !netgame))
-  //        && gamestate != GS_LEVEL)
-  //    {
-  //    return;
-  //    }
+  // [crispy] no pause at intermission screen during demo playback
+  // to avoid desyncs (from prboom-plus)
+  If (((paused And 2) <> 0) Or ((Not demoplayback) And (menuactive) And (Not netgame)))
+    And (gamestate <> GS_LEVEL) Then Begin
+    exit;
+  End;
 
   // do main actions
   Case (gamestate) Of

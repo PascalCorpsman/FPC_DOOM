@@ -25,6 +25,7 @@ Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 
 Procedure V_RestoreBuffer();
 Procedure V_MarkRect(x, y, width, height: int);
+Procedure V_CopyRect(srcx, srcy: int; Const source: pixel_tArray; width, height, destx, desty: int);
 
 Var
   // The screen buffer; this is modified to draw things to the screen
@@ -94,6 +95,54 @@ Begin
     M_AddToBox(dirtybox, x, y);
     M_AddToBox(dirtybox, x + width - 1, y + height - 1);
   End;
+End;
+
+Procedure V_CopyRect(srcx, srcy: int; Const source: pixel_tArray; width,
+  height, destx, desty: int);
+Begin
+  hier gehts weiter, dann müsste man ggf schon was sehen ...
+//   pixel_t *src;
+//    pixel_t *dest;
+//
+//    srcx <<= crispy->hires;
+//    srcy <<= crispy->hires;
+//    width <<= crispy->hires;
+//    height <<= crispy->hires;
+//    destx <<= crispy->hires;
+//    desty <<= crispy->hires;
+//
+//#ifdef RANGECHECK
+//    if (srcx < 0
+//     || srcx + width > SCREENWIDTH
+//     || srcy < 0
+//     || srcy + height > SCREENHEIGHT
+//     || destx < 0
+//     || destx /* + width */ > SCREENWIDTH
+//     || desty < 0
+//     || desty /* + height */ > SCREENHEIGHT)
+//    {
+//        I_Error ("Bad V_CopyRect");
+//    }
+//#endif
+//
+//    // [crispy] prevent framebuffer overflow
+//    if (destx + width > SCREENWIDTH)
+//	width = SCREENWIDTH - destx;
+//    if (desty + height > SCREENHEIGHT)
+//	height = SCREENHEIGHT - desty;
+//
+//    V_MarkRect(destx, desty, width, height);
+//
+//    src = source + SCREENWIDTH * srcy + srcx;
+//    dest = dest_screen + SCREENWIDTH * desty + destx;
+//
+//    for ( ; height>0 ; height--)
+//    {
+//        memcpy(dest, src, width * sizeof(*dest));
+//        src += SCREENWIDTH;
+//        dest += SCREENWIDTH;
+//    }
+
 End;
 
 (*
@@ -299,4 +348,5 @@ Begin
 End;
 
 End.
+
 

@@ -1945,8 +1945,8 @@ Begin
   writeln('HU_Init: Setting up heads up display.');
   HU_Init();
 
-  //  writeln('ST_Init: Init status bar.');
-  //  ST_Init();
+  writeln('ST_Init: Init status bar.');
+  ST_Init();
 
   // If Doom II without a MAP01 lump, this is a store demo.
   // Moved this here so that MAP01 isn't constantly looked up
