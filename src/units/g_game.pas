@@ -96,6 +96,7 @@ Uses
   doomdata, doomstat, info, sounds, deh_misc, doomkey, statdump
   , am_map
   , d_main, d_loop, d_net, d_englsh
+  , f_finale
   , i_video, i_timer
   , hu_stuff
   , m_menu, m_argv, m_random, m_fixed, m_controls
@@ -332,59 +333,36 @@ End;
 Procedure G_WorldDone();
 Begin
   gameaction := ga_worlddone;
-  Raise exception.create('Juhee durch das Wi Menu sind wir durch, weiter gehts..');
+  If (secretexit) Then
+    // [crispy] special-casing for E1M10 "Sewers" support
+    // i.e. avoid drawing the splat for E1M9 already
+    If (Not crispy.havee1m10) Or (gameepisode <> 1) Or (gamemap <> 1) Then
+      players[consoleplayer].didsecret := true;
 
-  //    if (secretexit)
-  //      // [crispy] special-casing for E1M10 "Sewers" support
-  //      // i.e. avoid drawing the splat for E1M9 already
-  //      if (!crispy->havee1m10 || gameepisode != 1 || gamemap != 1)
-  //	players[consoleplayer].didsecret = true;
-  //
-  //    if ( gamemission == pack_nerve )
-  //    {
-  //	switch (gamemap)
-  //	{
-  //	  case 8:
-  //	    F_StartFinale ();
-  //	    break;
-  //	}
-  //    }
-  //    else
-  //    if ( gamemission == pack_master )
-  //    {
-  //	switch (gamemap)
-  //	{
-  //	  case 20:
-  //	    if (secretexit)
-  //		break;
-  //	  case 21:
-  //	    F_StartFinale ();
-  //	    break;
-  //	}
-  //    }
-  //    else
-  //    if ( gamemode == commercial )
-  //    {
-  //	switch (gamemap)
-  //	{
-  //	  case 15:
-  //	  case 31:
-  //	    if (!secretexit)
-  //		break;
-  //	  case 6:
-  //	  case 11:
-  //	  case 20:
-  //	  case 30:
-  //	    F_StartFinale ();
-  //	    break;
-  //	}
-  //    }
-  //    // [crispy] display tally screen after ExM8
-  //    else
-  //    if ( gamemap == 8 || (gameversion == exe_chex && gamemap == 5) )
-  //    {
-  //	gameaction = ga_victory;
-  //    }
+  If (gamemission = pack_nerve) Then Begin
+    Case (gamemap) Of
+      8: F_StartFinale();
+    End;
+  End
+  Else If (gamemission = pack_master) Then Begin
+    Case (gamemap) Of
+      20: If (secretexit) Then Begin
+        End;
+      21: F_StartFinale();
+    End;
+  End
+  Else If (gamemode = commercial) Then Begin
+    Case (gamemap) Of
+      15, 31: If (Not secretexit) Then Begin
+        End;
+
+      6, 11, 20, 30: F_StartFinale();
+    End;
+  End
+    // [crispy] display tally screen after ExM8
+  Else If (gamemap = 8) Or ((gameversion = exe_chex) And (gamemap = 5)) Then Begin
+    gameaction := ga_victory;
+  End;
 End;
 
 //
@@ -873,6 +851,145 @@ Begin
 End;
 
 //
+// G_DoLoadLevel
+//
+
+Procedure G_DoLoadLevel();
+Var
+  skytexturename: String;
+  i: int;
+Begin
+  // Set the sky map.
+  // First thing, we have a dummy sky texture name,
+  //  a flat. The data is in the WAD only because
+  //  we look for an actual index, instead of simply
+  //  setting one.
+
+  skyflatnum := R_FlatNumForName(SKYFLATNAME);
+
+  // The "Sky never changes in Doom II" bug was fixed in
+  // the id Anthology version of doom2.exe for Final Doom.
+  // [crispy] correct "Sky never changes in Doom II" bug
+  If ((gamemode = commercial)) And ((gameversion = exe_final2) Or (gameversion = exe_chex) Or (true)) Then Begin
+    If (gamemap < 12) Then Begin
+      If ((gameepisode = 2) Or (gamemission = pack_nerve)) And (gamemap >= 4) And (gamemap <= 8) Then
+        skytexturename := 'SKY3'
+      Else
+        skytexturename := 'SKY1';
+    End
+    Else If (gamemap < 21) Then Begin
+      // [crispy] BLACKTWR (MAP25) and TEETH (MAP31 and MAP32)
+      If ((gameepisode = 3) Or (gamemission = pack_master)) And (gamemap >= 19) Then
+        skytexturename := 'SKY3'
+      Else Begin
+        // [crispy] BLOODSEA and MEPHISTO (both MAP07)
+        If ((gameepisode = 3) Or (gamemission = pack_master)) And ((gamemap = 14) Or (gamemap = 15)) Then
+          skytexturename := 'SKY1'
+        Else
+          skytexturename := 'SKY2';
+      End;
+    End
+    Else Begin
+      skytexturename := 'SKY3';
+    End;
+    skytexture := R_TextureNumForName(skytexturename);
+  End;
+
+  // [crispy] sky texture scales
+  R_InitSkyMap();
+
+  levelstarttic := gametic; // for time calculation
+
+  If (wipegamestate = GS_LEVEL) Then Begin
+    wipegamestate := GS_NEG_1; // force a wipe
+  End;
+  gamestate := GS_LEVEL;
+
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    turbodetected[i] := false;
+    If (playeringame[i]) And (players[i].playerstate = PST_DEAD) Then Begin
+      players[i].playerstate := PST_REBORN;
+    End;
+    FillChar(players[i].frags[0], SizeOf(players[i].frags), 0);
+  End;
+
+  // [crispy] update the "singleplayer" variable
+  CheckCrispySingleplayer(Not demorecording And Not demoplayback And Not netgame);
+
+  //    // [crispy] double ammo
+  //    if (crispy->moreammo && !crispy->singleplayer)
+  //    {
+  //        const char message[] = "The -doubleammo option is not supported"
+  //                               " for demos and\n"
+  //                               " network play.";
+  //        if (!demo_p) demorecording = false;
+  //        I_Error(message);
+  //    }
+
+  // [crispy] pistol start
+  //    if (crispy->pistolstart)
+  //    {
+  //        if (crispy->singleplayer)
+  //        {
+  //            G_PlayerReborn(0);
+  //        }
+  //        else if ((demoplayback || netdemo) && !singledemo)
+  //        {
+  //            // no-op - silently ignore pistolstart when playing demo from the
+  //            // demo reel
+  //        }
+  //        else
+  //        {
+  //            const char message[] = "The -pistolstart option is not supported"
+  //                                   " for demos and\n"
+  //                                   " network play.";
+  //            if (!demo_p) demorecording = false;
+  //            I_Error(message);
+  //        }
+  //    }
+
+  P_SetupLevel(gameepisode, gamemap, 0, gameskill);
+  displayplayer := consoleplayer; // view the guy you are playing
+  gameaction := ga_nothing;
+  // Z_CheckHeap();
+
+  // clear cmd building stuff
+  FillChar(gamekeydown[0], sizeof(gamekeydown), 0);
+
+  //    joyxmove = joyymove = joystrafemove = joylook = 0;
+  //    mousex = mousey = 0;
+  //    memset(&localview, 0, sizeof(localview)); // [crispy]
+  //    memset(&carry, 0, sizeof(carry)); // [crispy]
+  //    memset(&prevcarry, 0, sizeof(prevcarry)); // [crispy]
+  //    memset(&basecmd, 0, sizeof(basecmd)); // [crispy]
+  sendpause := false;
+  sendsave := false;
+  paused := 0;
+  //    memset(mousearray, 0, sizeof(mousearray));
+  //    memset(joyarray, 0, sizeof(joyarray));
+  R_SetGoobers(false);
+
+  // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
+  // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
+  ST_Start();
+  HU_Start();
+  //
+  //    if (testcontrols)
+  //    {
+  //        players[consoleplayer].message = "Press escape to quit.";
+  //    }
+End;
+
+Procedure G_DoWorldDone();
+Begin
+  gamestate := GS_LEVEL;
+  gamemap := wminfo.next + 1;
+  G_DoLoadLevel();
+  gameaction := ga_nothing;
+  viewactive := true;
+End;
+
+//
 // G_Ticker
 // Make ticcmd_ts for the players.
 //
@@ -919,7 +1036,7 @@ Begin
           //	    F_StartFinale ();
         End;
       ga_worlddone: Begin
-          //	    G_DoWorldDone ();
+          G_DoWorldDone();
         End;
       ga_screenshot: Begin
           //	    // [crispy] redraw view without weapons and HUD
@@ -1243,136 +1360,6 @@ Begin
     ((key_speed < NUMKEYS) And (gamekeydown[key_alt_speed])) { ||
   (joybspeed < MAX_JOY_BUTTONS && joybuttons[joybspeed]) ||
   (mousebspeed < MAX_MOUSE_BUTTONS && mousebuttons[mousebspeed])};
-End;
-
-//
-// G_DoLoadLevel
-//
-
-Procedure G_DoLoadLevel();
-Var
-  skytexturename: String;
-  i: int;
-Begin
-  // Set the sky map.
-  // First thing, we have a dummy sky texture name,
-  //  a flat. The data is in the WAD only because
-  //  we look for an actual index, instead of simply
-  //  setting one.
-
-  skyflatnum := R_FlatNumForName(SKYFLATNAME);
-
-  // The "Sky never changes in Doom II" bug was fixed in
-  // the id Anthology version of doom2.exe for Final Doom.
-  // [crispy] correct "Sky never changes in Doom II" bug
-  If ((gamemode = commercial)) And ((gameversion = exe_final2) Or (gameversion = exe_chex) Or (true)) Then Begin
-    If (gamemap < 12) Then Begin
-      If ((gameepisode = 2) Or (gamemission = pack_nerve)) And (gamemap >= 4) And (gamemap <= 8) Then
-        skytexturename := 'SKY3'
-      Else
-        skytexturename := 'SKY1';
-    End
-    Else If (gamemap < 21) Then Begin
-      // [crispy] BLACKTWR (MAP25) and TEETH (MAP31 and MAP32)
-      If ((gameepisode = 3) Or (gamemission = pack_master)) And (gamemap >= 19) Then
-        skytexturename := 'SKY3'
-      Else Begin
-        // [crispy] BLOODSEA and MEPHISTO (both MAP07)
-        If ((gameepisode = 3) Or (gamemission = pack_master)) And ((gamemap = 14) Or (gamemap = 15)) Then
-          skytexturename := 'SKY1'
-        Else
-          skytexturename := 'SKY2';
-      End;
-    End
-    Else Begin
-      skytexturename := 'SKY3';
-    End;
-    skytexture := R_TextureNumForName(skytexturename);
-  End;
-
-  // [crispy] sky texture scales
-  R_InitSkyMap();
-
-  levelstarttic := gametic; // for time calculation
-
-  If (wipegamestate = GS_LEVEL) Then Begin
-    wipegamestate := GS_NEG_1; // force a wipe
-  End;
-  gamestate := GS_LEVEL;
-
-  For i := 0 To MAXPLAYERS - 1 Do Begin
-    turbodetected[i] := false;
-    If (playeringame[i]) And (players[i].playerstate = PST_DEAD) Then Begin
-      players[i].playerstate := PST_REBORN;
-    End;
-    FillChar(players[i].frags[0], SizeOf(players[i].frags), 0);
-  End;
-
-  // [crispy] update the "singleplayer" variable
-  CheckCrispySingleplayer(Not demorecording And Not demoplayback And Not netgame);
-
-  //    // [crispy] double ammo
-  //    if (crispy->moreammo && !crispy->singleplayer)
-  //    {
-  //        const char message[] = "The -doubleammo option is not supported"
-  //                               " for demos and\n"
-  //                               " network play.";
-  //        if (!demo_p) demorecording = false;
-  //        I_Error(message);
-  //    }
-
-  // [crispy] pistol start
-  //    if (crispy->pistolstart)
-  //    {
-  //        if (crispy->singleplayer)
-  //        {
-  //            G_PlayerReborn(0);
-  //        }
-  //        else if ((demoplayback || netdemo) && !singledemo)
-  //        {
-  //            // no-op - silently ignore pistolstart when playing demo from the
-  //            // demo reel
-  //        }
-  //        else
-  //        {
-  //            const char message[] = "The -pistolstart option is not supported"
-  //                                   " for demos and\n"
-  //                                   " network play.";
-  //            if (!demo_p) demorecording = false;
-  //            I_Error(message);
-  //        }
-  //    }
-
-  P_SetupLevel(gameepisode, gamemap, 0, gameskill);
-  displayplayer := consoleplayer; // view the guy you are playing
-  gameaction := ga_nothing;
-  // Z_CheckHeap();
-
-  // clear cmd building stuff
-  FillChar(gamekeydown[0], sizeof(gamekeydown), 0);
-
-  //    joyxmove = joyymove = joystrafemove = joylook = 0;
-  //    mousex = mousey = 0;
-  //    memset(&localview, 0, sizeof(localview)); // [crispy]
-  //    memset(&carry, 0, sizeof(carry)); // [crispy]
-  //    memset(&prevcarry, 0, sizeof(prevcarry)); // [crispy]
-  //    memset(&basecmd, 0, sizeof(basecmd)); // [crispy]
-  sendpause := false;
-  sendsave := false;
-  paused := 0;
-  //    memset(mousearray, 0, sizeof(mousearray));
-  //    memset(joyarray, 0, sizeof(joyarray));
-  R_SetGoobers(false);
-
-  // [crispy] jff 4/26/98 wake up the status bar in case were coming out of a DM demo
-  // [crispy] killough 5/13/98: in case netdemo has consoleplayer other than green
-  ST_Start();
-  HU_Start();
-  //
-  //    if (testcontrols)
-  //    {
-  //        players[consoleplayer].message = "Press escape to quit.";
-  //    }
 End;
 
 Procedure G_InitNew(skill: skill_t; episode: int; map: int);
