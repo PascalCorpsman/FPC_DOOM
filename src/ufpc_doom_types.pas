@@ -129,7 +129,7 @@ Type
     jump: int; // JUMP_OFF, JUMP_LOW, JUMP_HIGH -> ist aber nur im Singleplayer erlaubt !
     //    	int leveltime;
     mouselook: int; // ?
-    //    	int neghealth;
+    neghealth: int;
     overunder: int; // ?
     pitch: int; // ?
     //    	int playercoords;
@@ -270,6 +270,7 @@ Initialization
   Crispy.extautomap := 1;
   //  Crispy.gamma := 9; // default level is "OFF" for intermediate gamma levels
   Crispy.mouselook := 0;
+  Crispy.neghealth := 0;
   Crispy.overunder := 0;
   Crispy.pitch := 0;
   Crispy.secretmessage := SECRETMESSAGE_OFF;

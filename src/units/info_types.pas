@@ -1869,7 +1869,7 @@ Type
     // Is wp_nochange if not changing.
     pendingweapon: weapontype_t;
 
-    weaponowned: Array[weapontype_t] Of boolean; // War int
+    weaponowned: Array[weapontype_t] Of int; // ! das muss int Sein sonst stürzt das HUD ab !
     ammo: Array[0..integer(NUMAMMO) - 1] Of int;
     maxammo: Array[0..integer(NUMAMMO) - 1] Of int;
 

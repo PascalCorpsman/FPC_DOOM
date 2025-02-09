@@ -151,7 +151,7 @@ Begin
 
   // [crispy] force weapon switch if weapon not owned
   // only relevant when removing current weapon with TNTWEAPx cheat
-  If (Not player^.weaponowned[player^.readyweapon]) Then Begin
+  If (player^.weaponowned[player^.readyweapon] = 0) Then Begin
     ammo := am_clip; // [crispy] at least not am_noammo, see below
     count := INT_MAX;
   End;
@@ -166,36 +166,36 @@ Begin
   // Out of ammo, pick a weapon to change to.
   // Preferences are set here.
   Repeat
-    If (player^.weaponowned[wp_plasma]
-      ) And (player^.ammo[integer(am_cell)] <> 0)
+    If (player^.weaponowned[wp_plasma] <> 0)
+      And (player^.ammo[integer(am_cell)] <> 0)
     And ((gamemode <> shareware)) Then Begin
       player^.pendingweapon := wp_plasma;
     End
-    Else If (player^.weaponowned[wp_supershotgun])
+    Else If (player^.weaponowned[wp_supershotgun] <> 0)
       And (player^.ammo[integer(am_shell)] > 2)
     And (crispy.havessg) Then Begin
       player^.pendingweapon := wp_supershotgun;
     End
-    Else If (player^.weaponowned[wp_chaingun])
+    Else If (player^.weaponowned[wp_chaingun] <> 0)
       And (player^.ammo[integer(am_clip)] <> 0) Then Begin
       player^.pendingweapon := wp_chaingun;
     End
-    Else If (player^.weaponowned[wp_shotgun])
+    Else If (player^.weaponowned[wp_shotgun] <> 0)
       And (player^.ammo[integer(am_shell)] <> 0) Then Begin
       player^.pendingweapon := wp_shotgun;
     End
       // [crispy] allow to remove the pistol via TNTWEAP2
-    Else If (player^.ammo[integer(am_clip)] <> 0) And (player^.weaponowned[wp_pistol]) Then Begin
+    Else If (player^.ammo[integer(am_clip)] <> 0) And (player^.weaponowned[wp_pistol] <> 0) Then Begin
       player^.pendingweapon := wp_pistol;
     End
-    Else If (player^.weaponowned[wp_chainsaw]) Then Begin
+    Else If (player^.weaponowned[wp_chainsaw] <> 0) Then Begin
       player^.pendingweapon := wp_chainsaw;
     End
-    Else If (player^.weaponowned[wp_missile])
+    Else If (player^.weaponowned[wp_missile] <> 0)
       And (player^.ammo[integer(am_misl)] <> 0) Then Begin
       player^.pendingweapon := wp_missile;
     End
-    Else If (player^.weaponowned[wp_bfg])
+    Else If (player^.weaponowned[wp_bfg] <> 0)
       And (player^.ammo[integer(am_cell)] > 40)
     And (gamemode <> shareware) Then Begin
       player^.pendingweapon := wp_bfg;

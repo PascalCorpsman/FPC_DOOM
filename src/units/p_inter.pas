@@ -371,7 +371,7 @@ Begin
     am_clip: Begin
         If (player^.readyweapon = wp_fist) Then Begin
 
-          If (player^.weaponowned[wp_chaingun]) Then
+          If (player^.weaponowned[wp_chaingun] <> 0) Then
             player^.pendingweapon := wp_chaingun
           Else
             player^.pendingweapon := wp_pistol;
@@ -382,7 +382,7 @@ Begin
         If (player^.readyweapon = wp_fist)
           Or (player^.readyweapon = wp_pistol) Then Begin
 
-          If (player^.weaponowned[wp_shotgun]) Then
+          If (player^.weaponowned[wp_shotgun] <> 0) Then
             player^.pendingweapon := wp_shotgun;
         End;
       End;
@@ -390,14 +390,14 @@ Begin
     am_cell: Begin
         If (player^.readyweapon = wp_fist)
           Or (player^.readyweapon = wp_pistol) Then Begin
-          If (player^.weaponowned[wp_plasma]) Then
+          If (player^.weaponowned[wp_plasma] <> 0) Then
             player^.pendingweapon := wp_plasma;
         End;
       End;
 
     am_misl: Begin
         If (player^.readyweapon = wp_fist) Then Begin
-          If (player^.weaponowned[wp_missile]) Then
+          If (player^.weaponowned[wp_missile] <> 0) Then
             player^.pendingweapon := wp_missile;
         End;
       End;
@@ -422,13 +422,13 @@ Begin
     And (deathmatch <> 2)
     And (Not dropped) Then Begin
     // leave placed weapons forever on net games
-    If (player^.weaponowned[weapon]) Then Begin
+    If (player^.weaponowned[weapon] <> 0) Then Begin
       result := false;
       exit;
     End;
 
     player^.bonuscount := player^.bonuscount + BONUSADD;
-    player^.weaponowned[weapon] := true;
+    player^.weaponowned[weapon] := 1;
 
     If (deathmatch <> 0) Then
       P_GiveAmmo(player, weaponinfo[integer(weapon)].ammo, 5, false)
@@ -460,12 +460,11 @@ Begin
   Else
     gaveammo := false;
 
-  If (player^.weaponowned[weapon]) Then
+  If (player^.weaponowned[weapon] <> 0) Then
     gaveweapon := false
   Else Begin
-
     gaveweapon := true;
-    player^.weaponowned[weapon] := true;
+    player^.weaponowned[weapon] := 1;
     player^.pendingweapon := weapon;
   End;
 

@@ -2331,8 +2331,8 @@ Begin
   p^.neghealth := p^.health;
   p^.readyweapon := wp_pistol;
   p^.pendingweapon := wp_pistol;
-  p^.weaponowned[wp_fist] := true;
-  p^.weaponowned[wp_pistol] := true;
+  p^.weaponowned[wp_fist] := 1;
+  p^.weaponowned[wp_pistol] := 1;
   p^.ammo[integer(am_clip)] := deh_initial_bullets;
 
   For i := 0 To integer(NUMAMMO) - 1 Do Begin

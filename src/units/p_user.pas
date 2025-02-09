@@ -297,7 +297,7 @@ Begin
     newweapon := weapontype_t((cmd^.buttons And BT_WEAPONMASK) Shr BT_WEAPONSHIFT);
 
     If (newweapon = wp_fist)
-      And (player^.weaponowned[wp_chainsaw])
+      And (player^.weaponowned[wp_chainsaw] <> 0)
       And (Not ((player^.readyweapon = wp_chainsaw)
       And (player^.powers[integer(pw_strength)] <> 0))) Then Begin
       newweapon := wp_chainsaw;
@@ -305,12 +305,12 @@ Begin
 
     If (crispy.havessg)
       And (newweapon = wp_shotgun)
-      And (player^.weaponowned[wp_supershotgun])
+      And (player^.weaponowned[wp_supershotgun]<> 0)
       And (player^.readyweapon <> wp_supershotgun) Then Begin
       newweapon := wp_supershotgun;
     End;
 
-    If (player^.weaponowned[newweapon])
+    If (player^.weaponowned[newweapon]<> 0)
       And (newweapon <> player^.readyweapon) Then Begin
 
       // Do not go to plasma or BFG in shareware,

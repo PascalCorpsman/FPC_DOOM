@@ -6,15 +6,18 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , doomdef
+  , doomdef, doomtype
   , d_event
-  , i_video
+  , i_video, i_timer
   , m_cheat
   ;
 
 Const
   // Das wirkt sich auf viewheight aus, und das dann wohl auf die Sprites ..
   ST_HEIGHT = 32;
+  ST_WIDTH = ORIGWIDTH;
+  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
+
   CRISPY_HUD = 12;
 
   //cheatseq_t cheat_mus = CHEAT("idmus", 2);
@@ -26,6 +29,9 @@ Const
 
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
+
+  // graphics are drawn to a backing screen and blitted to the real screen
+  st_backing_screen: Array Of pixel_t = Nil;
 
 Procedure ST_Init();
 Procedure ST_Start();
@@ -43,12 +49,13 @@ Procedure ST_DrawDemoTimer(time: int);
 Implementation
 
 Uses
-  info_types, doomstat, doomdata, tables, sounds, doomtype
+  info_types, doomstat, doomdata, tables, sounds
   , am_map
   , d_items, d_player, d_englsh, deh_misc, d_mode
   , g_game
   , m_menu, m_fixed, m_random
-  , p_mobj
+  , p_mobj, p_local
+  , r_main
   , st_lib, s_sound
   , v_patch, v_video
   , w_wad
@@ -69,6 +76,11 @@ Const
   ST_AMMOX = (44 {- ST_WIDESCREENDELTA});
   ST_AMMOY = 171;
 
+  // HEALTH number pos.
+  ST_HEALTHWIDTH = 3;
+  ST_HEALTHX = (90 {- ST_WIDESCREENDELTA});
+  ST_HEALTHY = 171;
+
   // Weapon pos.
   ST_ARMSX = (111 {- ST_WIDESCREENDELTA});
   ST_ARMSY = 172;
@@ -76,6 +88,11 @@ Const
   ST_ARMSBGY = 168;
   ST_ARMSXSPACE = 12;
   ST_ARMSYSPACE = 10;
+
+  // ARMOR number pos.
+  ST_ARMORWIDTH = 3;
+  ST_ARMORX = (221 {+ ST_WIDESCREENDELTA});
+  ST_ARMORY = 171;
 
   // Number of status faces.
   ST_NUMPAINFACES = 5;
@@ -85,12 +102,20 @@ Const
 
   ST_FACESTRIDE = (ST_NUMSTRAIGHTFACES + ST_NUMTURNFACES + ST_NUMSPECIALFACES);
 
+  ST_TURNOFFSET = (ST_NUMSTRAIGHTFACES);
+  ST_OUCHOFFSET = (ST_TURNOFFSET + ST_NUMTURNFACES);
+  ST_EVILGRINOFFSET = (ST_OUCHOFFSET + 1);
+  ST_RAMPAGEOFFSET = (ST_EVILGRINOFFSET + 1);
+  ST_GODFACE = (ST_NUMPAINFACES * ST_FACESTRIDE);
+  ST_DEADFACE = (ST_GODFACE + 1);
+
   ST_NUMEXTRAFACES = 2;
 
   ST_NUMFACES = (ST_FACESTRIDE * ST_NUMPAINFACES + ST_NUMEXTRAFACES);
 
-  ST_WIDTH = ORIGWIDTH;
-  ST_Y = (ORIGHEIGHT - ST_HEIGHT);
+  ST_FACESX = 143 + 10; // WTF: Warum braucht es hier ein Offset ?
+  ST_FACESY = 168;
+
   // Location of status bar
   ST_X = 0;
   ST_X2 = 104;
@@ -98,12 +123,67 @@ Const
   ST_FX = 143;
   ST_FY = 169;
 
+  ST_MUCHPAIN = 20;
+
+  // Ammunition counter.
+  ST_AMMO0WIDTH = 3;
+  ST_AMMO0HEIGHT = 6;
+  ST_AMMO0X = (288 {+ ST_WIDESCREENDELTA});
+  ST_AMMO0Y = 173;
+  ST_AMMO1WIDTH = ST_AMMO0WIDTH;
+  ST_AMMO1X = (288 {+ ST_WIDESCREENDELTA});
+  ST_AMMO1Y = 179;
+  ST_AMMO2WIDTH = ST_AMMO0WIDTH;
+  ST_AMMO2X = (288 {+ ST_WIDESCREENDELTA});
+  ST_AMMO2Y = 191;
+  ST_AMMO3WIDTH = ST_AMMO0WIDTH;
+  ST_AMMO3X = (288 {+ ST_WIDESCREENDELTA});
+  ST_AMMO3Y = 185;
+
+  // Indicate maximum ammunition.
+// Only needed because backpack exists.
+  ST_MAXAMMO0WIDTH = 3;
+  ST_MAXAMMO0HEIGHT = 5;
+  ST_MAXAMMO0X = (314 {+ ST_WIDESCREENDELTA});
+  ST_MAXAMMO0Y = 173;
+  ST_MAXAMMO1WIDTH = ST_MAXAMMO0WIDTH;
+  ST_MAXAMMO1X = (314 {+ ST_WIDESCREENDELTA});
+  ST_MAXAMMO1Y = 179;
+  ST_MAXAMMO2WIDTH = ST_MAXAMMO0WIDTH;
+  ST_MAXAMMO2X = (314 {+ ST_WIDESCREENDELTA});
+  ST_MAXAMMO2Y = 191;
+  ST_MAXAMMO3WIDTH = ST_MAXAMMO0WIDTH;
+  ST_MAXAMMO3X = (314 {+ ST_WIDESCREENDELTA});
+  ST_MAXAMMO3Y = 185;
+  ST_EVILGRINCOUNT = (2 * TICRATE);
+  ST_TURNCOUNT = (1 * TICRATE);
+  ST_RAMPAGEDELAY = (2 * TICRATE);
+  ST_STRAIGHTFACECOUNT = (TICRATE Div 2);
+
+  // Key icon positions.
+  ST_KEY0WIDTH = 8;
+  ST_KEY0HEIGHT = 5;
+  ST_KEY0X = (239 {+ ST_WIDESCREENDELTA});
+  ST_KEY0Y = 171;
+  ST_KEY1WIDTH = ST_KEY0WIDTH;
+  ST_KEY1X = (239 {+ ST_WIDESCREENDELTA});
+  ST_KEY1Y = 181;
+  ST_KEY2WIDTH = ST_KEY0WIDTH;
+  ST_KEY2X = (239 {+ ST_WIDESCREENDELTA});
+  ST_KEY2Y = 191;
+
 Type
   load_callback_t = Procedure(lumpname: String; variable: PPPatch_t);
 
+  hudcolor_t =
+    (
+    hudcolor_ammo,
+    hudcolor_health,
+    hudcolor_frags,
+    hudcolor_armor
+    );
+
 Var
-  // graphics are drawn to a backing screen and blitted to the real screen
-  st_backing_screen: Array Of pixel_t = Nil;
 
   // main player in game
   plyr: ^player_t;
@@ -161,7 +241,7 @@ Var
   // face status patches
   faces: Array[0..integer(ST_NUMFACES) - 1] Of ppatch_t;
 
-  //  // face background
+  // face background
   faceback: Array[0..MAXPLAYERS - 1] Of ppatch_t; // [crispy] killough 3/7/98: make array
 
   // main bar right
@@ -173,38 +253,37 @@ Var
   // ready-weapon widget
   w_ready: st_number_t;
 
-  //   // in deathmatch only, summary of frags stats
+  // in deathmatch only, summary of frags stats
   //  static st_number_t	w_frags;
-  //
-  //  // health widget
-  //  static st_percent_t	w_health;
 
-    // arms background
+  // health widget
+  w_health: st_percent_t;
+
+  // arms background
   w_armsbg: st_binicon_t;
 
+  // weapon ownership widgets
+  w_arms: Array[0..5] Of st_multicon_t;
+  // [crispy] show SSG availability in the Shotgun slot of the arms widget
+  st_shotguns: int;
 
-  //  // weapon ownership widgets
-  //  static st_multicon_t	w_arms[6];
-  //  // [crispy] show SSG availability in the Shotgun slot of the arms widget
-  //  static int st_shotguns;
+  // face status widget
+  w_faces: st_multicon_t;
 
-  //  // face status widget
-  //  static st_multicon_t	w_faces;
+  // keycard widgets
+  w_keyboxes: Array[0..2] Of st_multicon_t;
 
-  //  // keycard widgets
-  //  static st_multicon_t	w_keyboxes[3];
+  // armor widget
+  w_armor: st_percent_t;
 
-  //  // armor widget
-  //  static st_percent_t	w_armor;
+  // ammo widgets
+  w_ammo: Array[0..3] Of st_number_t;
 
-  //  // ammo widgets
-  //  static st_number_t	w_ammo[4];
+  // max ammo widgets
+  w_maxammo: Array[0..3] Of st_number_t;
 
-  //  // max ammo widgets
-  //  static st_number_t	w_maxammo[4];
-
-  //   // number of frags so far in deathmatch
-  //  static int	st_fragscount;
+  // number of frags so far in deathmatch
+  st_fragscount: int;
 
   // used to use appopriately pained face
   st_oldhealth: int = -1;
@@ -266,7 +345,7 @@ Begin
   st_oldhealth := -1;
 
   For i := 0 To integer(NUMWEAPONS) - 1 Do Begin
-    oldweaponsowned[i] := plyr^.weaponowned[weapontype_t(i)];
+    oldweaponsowned[i] := odd(plyr^.weaponowned[weapontype_t(i)]);
   End;
 
   For i := 0 To 2 Do Begin
@@ -300,22 +379,22 @@ Begin
   STlib_initNum(w_ready,
     ST_AMMOX,
     ST_AMMOY,
-    @tallnum[0],
+    tallnum,
     @plyr^.ammo[integer(weaponinfo[integer(plyr^.readyweapon)].ammo)],
     @st_statusbaron,
     ST_AMMOWIDTH);
 
   // the last weapon type
-//    w_ready.data = plyr->readyweapon;
-//
-//    // health percentage
-//    STlib_initPercent(&w_health,
-//		      ST_HEALTHX,
-//		      ST_HEALTHY,
-//		      tallnum,
-//		      &plyr->health,
-//		      &st_statusbaron,
-//		      tallpercent);
+  w_ready.data := int(plyr^.readyweapon);
+
+  // health percentage
+  STlib_initPercent(w_health,
+    ST_HEALTHX,
+    ST_HEALTHY,
+    tallnum,
+    @plyr^.health,
+    @st_statusbaron,
+    tallpercent);
 
   // arms background
   STlib_initBinIcon(w_armsbg,
@@ -325,19 +404,18 @@ Begin
     @st_notdeathmatch,
     @st_classicstatusbar);
 
-  //    // weapons owned
-  //    for(i=0;i<6;i++)
-  //    {
-  //        STlib_initMultIcon(&w_arms[i],
-  //                           ST_ARMSX+(i%3)*ST_ARMSXSPACE,
-  //                           ST_ARMSY+(i/3)*ST_ARMSYSPACE,
-  //                           arms[i],
-  //                           &plyr->weaponowned[i+1],
-  //                           &st_armson);
-  //    }
-  //    // [crispy] show SSG availability in the Shotgun slot of the arms widget
-  //    w_arms[1].inum = &st_shotguns;
-  //
+  // weapons owned
+  For i := 0 To 5 Do Begin
+    STlib_initMultIcon(w_arms[i],
+      ST_ARMSX + (i Mod 3) * ST_ARMSXSPACE,
+      ST_ARMSY + (i Div 3) * ST_ARMSYSPACE,
+      arms[i],
+      @plyr^.weaponowned[weapontype_t(i + 1)],
+      @st_armson);
+  End;
+  // [crispy] show SSG availability in the Shotgun slot of the arms widget
+  w_arms[1].inum := @st_shotguns;
+
   //    // frags sum
   //    STlib_initNum(&w_frags,
   //		  ST_FRAGSX,
@@ -346,111 +424,110 @@ Begin
   //		  &st_fragscount,
   //		  &st_fragson,
   //		  ST_FRAGSWIDTH);
-  //
-  //    // faces
-  //    STlib_initMultIcon(&w_faces,
-  //		       ST_FACESX,
-  //		       ST_FACESY,
-  //		       faces,
-  //		       &st_faceindex,
-  //		       &st_statusbarface);
-  //
-  //    // armor percentage - should be colored later
-  //    STlib_initPercent(&w_armor,
-  //		      ST_ARMORX,
-  //		      ST_ARMORY,
-  //		      tallnum,
-  //		      &plyr->armorpoints,
-  //		      &st_statusbaron, tallpercent);
-  //
-  //    // keyboxes 0-2
-  //    STlib_initMultIcon(&w_keyboxes[0],
-  //		       ST_KEY0X,
-  //		       ST_KEY0Y,
-  //		       keys,
-  //		       &keyboxes[0],
-  //		       &st_statusbaron);
-  //
-  //    STlib_initMultIcon(&w_keyboxes[1],
-  //		       ST_KEY1X,
-  //		       ST_KEY1Y,
-  //		       keys,
-  //		       &keyboxes[1],
-  //		       &st_statusbaron);
-  //
-  //    STlib_initMultIcon(&w_keyboxes[2],
-  //		       ST_KEY2X,
-  //		       ST_KEY2Y,
-  //		       keys,
-  //		       &keyboxes[2],
-  //		       &st_statusbaron);
-  //
-  //    // ammo count (all four kinds)
-  //    STlib_initNum(&w_ammo[0],
-  //		  ST_AMMO0X,
-  //		  ST_AMMO0Y,
-  //		  shortnum,
-  //		  &plyr->ammo[0],
-  //		  &st_statusbaron,
-  //		  ST_AMMO0WIDTH);
-  //
-  //    STlib_initNum(&w_ammo[1],
-  //		  ST_AMMO1X,
-  //		  ST_AMMO1Y,
-  //		  shortnum,
-  //		  &plyr->ammo[1],
-  //		  &st_statusbaron,
-  //		  ST_AMMO1WIDTH);
-  //
-  //    STlib_initNum(&w_ammo[2],
-  //		  ST_AMMO2X,
-  //		  ST_AMMO2Y,
-  //		  shortnum,
-  //		  &plyr->ammo[2],
-  //		  &st_statusbaron,
-  //		  ST_AMMO2WIDTH);
-  //
-  //    STlib_initNum(&w_ammo[3],
-  //		  ST_AMMO3X,
-  //		  ST_AMMO3Y,
-  //		  shortnum,
-  //		  &plyr->ammo[3],
-  //		  &st_statusbaron,
-  //		  ST_AMMO3WIDTH);
-  //
-  //    // max ammo count (all four kinds)
-  //    STlib_initNum(&w_maxammo[0],
-  //		  ST_MAXAMMO0X,
-  //		  ST_MAXAMMO0Y,
-  //		  shortnum,
-  //		  &plyr->maxammo[0],
-  //		  &st_statusbaron,
-  //		  ST_MAXAMMO0WIDTH);
-  //
-  //    STlib_initNum(&w_maxammo[1],
-  //		  ST_MAXAMMO1X,
-  //		  ST_MAXAMMO1Y,
-  //		  shortnum,
-  //		  &plyr->maxammo[1],
-  //		  &st_statusbaron,
-  //		  ST_MAXAMMO1WIDTH);
-  //
-  //    STlib_initNum(&w_maxammo[2],
-  //		  ST_MAXAMMO2X,
-  //		  ST_MAXAMMO2Y,
-  //		  shortnum,
-  //		  &plyr->maxammo[2],
-  //		  &st_statusbaron,
-  //		  ST_MAXAMMO2WIDTH);
-  //
-  //    STlib_initNum(&w_maxammo[3],
-  //		  ST_MAXAMMO3X,
-  //		  ST_MAXAMMO3Y,
-  //		  shortnum,
-  //		  &plyr->maxammo[3],
-  //		  &st_statusbaron,
-  //		  ST_MAXAMMO3WIDTH);
 
+  // faces
+  STlib_initMultIcon(w_faces,
+    ST_FACESX,
+    ST_FACESY,
+    faces,
+    @st_faceindex,
+    @st_statusbarface);
+
+  // armor percentage - should be colored later
+  STlib_initPercent(w_armor,
+    ST_ARMORX,
+    ST_ARMORY,
+    tallnum,
+    @plyr^.armorpoints,
+    @st_statusbaron, tallpercent);
+
+  // keyboxes 0-2
+  STlib_initMultIcon(w_keyboxes[0],
+    ST_KEY0X,
+    ST_KEY0Y,
+    keys,
+    @keyboxes[0],
+    @st_statusbaron);
+
+  STlib_initMultIcon(w_keyboxes[1],
+    ST_KEY1X,
+    ST_KEY1Y,
+    keys,
+    @keyboxes[1],
+    @st_statusbaron);
+
+  STlib_initMultIcon(w_keyboxes[2],
+    ST_KEY2X,
+    ST_KEY2Y,
+    keys,
+    @keyboxes[2],
+    @st_statusbaron);
+
+  // ammo count (all four kinds)
+  STlib_initNum(w_ammo[0],
+    ST_AMMO0X,
+    ST_AMMO0Y,
+    shortnum,
+    @plyr^.ammo[0],
+    @st_statusbaron,
+    ST_AMMO0WIDTH);
+
+  STlib_initNum(w_ammo[1],
+    ST_AMMO1X,
+    ST_AMMO1Y,
+    shortnum,
+    @plyr^.ammo[1],
+    @st_statusbaron,
+    ST_AMMO1WIDTH);
+
+  STlib_initNum(w_ammo[2],
+    ST_AMMO2X,
+    ST_AMMO2Y,
+    shortnum,
+    @plyr^.ammo[2],
+    @st_statusbaron,
+    ST_AMMO2WIDTH);
+
+  STlib_initNum(w_ammo[3],
+    ST_AMMO3X,
+    ST_AMMO3Y,
+    shortnum,
+    @plyr^.ammo[3],
+    @st_statusbaron,
+    ST_AMMO3WIDTH);
+
+  // max ammo count (all four kinds)
+  STlib_initNum(w_maxammo[0],
+    ST_MAXAMMO0X,
+    ST_MAXAMMO0Y,
+    shortnum,
+    @plyr^.maxammo[0],
+    @st_statusbaron,
+    ST_MAXAMMO0WIDTH);
+
+  STlib_initNum(w_maxammo[1],
+    ST_MAXAMMO1X,
+    ST_MAXAMMO1Y,
+    shortnum,
+    @plyr^.maxammo[1],
+    @st_statusbaron,
+    ST_MAXAMMO1WIDTH);
+
+  STlib_initNum(w_maxammo[2],
+    ST_MAXAMMO2X,
+    ST_MAXAMMO2Y,
+    shortnum,
+    @plyr^.maxammo[2],
+    @st_statusbaron,
+    ST_MAXAMMO2WIDTH);
+
+  STlib_initNum(w_maxammo[3],
+    ST_MAXAMMO3X,
+    ST_MAXAMMO3Y,
+    shortnum,
+    @plyr^.maxammo[3],
+    @st_statusbaron,
+    ST_MAXAMMO3WIDTH);
 End;
 
 Procedure ST_Start;
@@ -462,74 +539,287 @@ Begin
   st_stopped := false;
 End;
 
-Procedure ST_updateWidgets();
+
+Function ST_calcPainOffset(): int;
+Const
+  lastcalc: int = 0;
+  oldhealth: int = -1;
+Var
+  health: int;
+
 Begin
-  //    static int	largeammo = 1994; // means "n/a"
-  //    int		i;
-  //
-  //    // must redirect the pointer if the ready weapon has changed.
-  //    //  if (w_ready.data != plyr->readyweapon)
-  //    //  {
-  //    if (weaponinfo[plyr->readyweapon].ammo == am_noammo)
-  //	w_ready.num = &largeammo;
-  //    else
-  //	w_ready.num = &plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
-  //    //{
-  //    // static int tic=0;
-  //    // static int dir=-1;
-  //    // if (!(tic&15))
-  //    //   plyr->ammo[weaponinfo[plyr->readyweapon].ammo]+=dir;
-  //    // if (plyr->ammo[weaponinfo[plyr->readyweapon].ammo] == -100)
-  //    //   dir = 1;
-  //    // tic++;
-  //    // }
+  If plyr^.health > 100 Then Begin
+    health := 100;
+  End
+  Else Begin
+    health := plyr^.health;
+  End;
+
+  If (health <> oldhealth) Then Begin
+    lastcalc := ST_FACESTRIDE * (((100 - health) * ST_NUMPAINFACES) Div 101);
+    oldhealth := health;
+  End;
+  result := lastcalc;
+End;
+
+//
+// This is a not-very-pretty routine which handles
+//  the face states and their timing.
+// the precedence of expressions is:
+//  dead > evil grin > turned head > straight ahead
+//
+// [crispy] fix status bar face hysteresis
+
+Procedure ST_updateFaceWidget();
+Const
+  lastattackdown: int = -1;
+  priority: int = 0;
+Var
+  i: int;
+  badguyangle: angle_t;
+  diffang: angle_t;
+  doevilgrin: boolean;
+  // [crispy] fix status bar face hysteresis
+  painoffset: int;
+  invul: boolean;
+Begin
+
+  // [crispy] no evil grin or rampage face in god mode
+  invul := ((plyr^.cheats And int(CF_GODMODE)) <> 0) Or (plyr^.powers[int(pw_invulnerability)] <> 0);
+
+  painoffset := ST_calcPainOffset();
+
+  If (priority < 10) Then Begin
+    // dead
+    If (plyr^.health = 0) Then Begin
+      priority := 9;
+      painoffset := 0;
+      faceindex := ST_DEADFACE;
+      st_facecount := 1;
+    End;
+  End;
+
+  If (priority < 9) Then Begin
+
+    If (plyr^.bonuscount <> 0) Then Begin
+
+      // picking up bonus
+      doevilgrin := false;
+
+      For i := 0 To int(NUMWEAPONS) - 1 Do Begin
+        If (oldweaponsowned[i] <> odd(plyr^.weaponowned[weapontype_t(i)])) Then Begin
+          doevilgrin := true;
+          oldweaponsowned[i] := odd(plyr^.weaponowned[weapontype_t(i)]);
+        End;
+      End;
+      // [crispy] no evil grin in god mode
+      If (doevilgrin) And (Not invul) Then Begin
+
+        // evil grin if just picked up weapon
+        priority := 8;
+        st_facecount := ST_EVILGRINCOUNT;
+        faceindex := ST_EVILGRINOFFSET;
+      End;
+    End;
+  End;
+
+  If (priority < 8) Then Begin
+
+    If (plyr^.damagecount <> 0)
+      And assigned(plyr^.attacker)
+      And (plyr^.attacker <> plyr^.mo) Then Begin
+      // being attacked
+      priority := 7;
+
+      // [crispy] show "Ouch Face" as intended
+      If (st_oldhealth - plyr^.health > ST_MUCHPAIN) Then Begin
+        // [crispy] raise "Ouch Face" priority
+        priority := 8;
+        st_facecount := ST_TURNCOUNT;
+        faceindex := ST_OUCHOFFSET;
+      End
+      Else Begin
+        badguyangle := R_PointToAngle2(plyr^.mo^.x,
+          plyr^.mo^.y,
+          plyr^.attacker^.x,
+          plyr^.attacker^.y);
+
+        If (badguyangle > plyr^.mo^.angle) Then Begin
+
+          // whether right or left
+          diffang := angle_t(badguyangle - plyr^.mo^.angle);
+          i := ord(diffang > ANG180);
+        End
+        Else Begin
+          // whether left or right
+          diffang := angle_t(plyr^.mo^.angle - badguyangle);
+          i := ord(diffang <= ANG180);
+        End; // confusing, aint it?
+
+        st_facecount := ST_TURNCOUNT;
+
+        If (diffang < ANG45) Then Begin
+          // head-on
+          faceindex := ST_RAMPAGEOFFSET;
+        End
+        Else If (i <> 0) Then Begin
+          // turn face right
+          faceindex := ST_TURNOFFSET;
+        End
+        Else Begin
+          // turn face left
+          faceindex := ST_TURNOFFSET + 1;
+        End;
+      End;
+    End;
+  End;
+
+  If (priority < 7) Then Begin
+    // getting hurt because of your own damn stupidity
+    If (plyr^.damagecount <> 0) Then Begin
+      // [crispy] show "Ouch Face" as intended
+      If (st_oldhealth - plyr^.health > ST_MUCHPAIN) Then Begin
+        priority := 7;
+        st_facecount := ST_TURNCOUNT;
+        faceindex := ST_OUCHOFFSET;
+      End
+      Else Begin
+        priority := 6;
+        st_facecount := ST_TURNCOUNT;
+        faceindex := ST_RAMPAGEOFFSET;
+      End;
+    End;
+  End;
+
+  If (priority < 6) Then Begin
+
+    // rapid firing
+    If (plyr^.attackdown) Then Begin
+      If (lastattackdown = -1) Then
+        lastattackdown := ST_RAMPAGEDELAY
+      Else Begin
+        // [crispy] no rampage face in god mode
+        lastattackdown := lastattackdown - 1;
+        If (lastattackdown = 0) And (Not invul) Then Begin
+          priority := 5;
+          faceindex := ST_RAMPAGEOFFSET;
+          st_facecount := 1;
+          lastattackdown := 1;
+        End;
+      End;
+    End
+    Else
+      lastattackdown := -1;
+  End;
+
+  If (priority < 5) Then Begin
+
+    // invulnerability
+    If (invul) Then Begin
+
+      priority := 4;
+      painoffset := 0;
+      faceindex := ST_GODFACE;
+      st_facecount := 1;
+    End;
+  End;
+
+  // look left or look right if the facecount has timed out
+  If (st_facecount = 0) Then Begin
+
+    faceindex := st_randomnumber Mod 3;
+    st_facecount := ST_STRAIGHTFACECOUNT;
+    priority := 0;
+  End;
+
+  st_facecount := st_facecount - 1;
+
+  // [crispy] fix status bar face hysteresis
+  st_faceindex := painoffset + faceindex;
+End;
+
+Procedure ST_updateWidgets();
+Const
+  largeammo: int = 1994; // means "n/a"
+Var
+  i: int;
+Begin
+
+  // must redirect the pointer if the ready weapon has changed.
+  //  if (w_ready.data != plyr->readyweapon)
+  //  {
+  If (weaponinfo[int(plyr^.readyweapon)].ammo = am_noammo) Then
+    w_ready.num := @largeammo
+  Else
+    w_ready.num := @plyr^.ammo[int(weaponinfo[int(plyr^.readyweapon)].ammo)];
+  //{
+  // static int tic=0;
+  // static int dir=-1;
+  // if (!(tic&15))
+  //   plyr->ammo[weaponinfo[plyr->readyweapon].ammo]+=dir;
+  // if (plyr->ammo[weaponinfo[plyr->readyweapon].ammo] == -100)
+  //   dir = 1;
+  // tic++;
+  // }
   w_ready.data := int(plyr^.readyweapon);
 
-  //    // if (*w_ready.on)
-  //    //  STlib_updateNum(&w_ready, true);
-  //    // refresh weapon change
-  //    //  }
-  //
-  //    // update keycard multiple widgets
-  //    for (i=0;i<3;i++)
-  //    {
-  //	keyboxes[i] = plyr->cards[i] ? i : -1;
-  //
-  //	if (plyr->cards[i+3])
-  //	    keyboxes[i] = (keyboxes[i] == -1) ? i+3 : i+6; // [crispy] support combined card and skull keys
-  //
-  //	// [crispy] blinking key or skull in the status bar
-  //	if (plyr->tryopen[i])
-  //	{
-  //#if defined(CRISPY_KEYBLINK_WITH_SOUND)
-  //		if (!(plyr->tryopen[i] & (2*KEYBLINKMASK-1)))
-  //		{
-  //			S_StartSound(NULL, sfx_itemup);
-  //		}
-  //#endif
-  //#if defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
-  //		if (st_classicstatusbar && !(plyr->tryopen[i] & (KEYBLINKMASK-1)))
-  //		{
-  //			st_firsttime = true;
-  //		}
-  //#endif
-  //		plyr->tryopen[i]--;
-  //#if !defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
-  //		if (st_crispyhud)
-  //#endif
-  //		{
-  //			keyboxes[i] = (plyr->tryopen[i] & KEYBLINKMASK) ? i + st_keyorskull[i] : -1;
-  //		}
-  //
-  //		if (!plyr->tryopen[i])
-  //		{
-  //			w_keyboxes[i].oldinum = -1;
-  //		}
-  //	}
-  //    }
-  //
-  //    // refresh everything if this is him coming back to life
-  //    ST_updateFaceWidget();
+  // if (*w_ready.on)
+  //  STlib_updateNum(&w_ready, true);
+  // refresh weapon change
+  //  }
+
+  // update keycard multiple widgets
+  For i := 0 To 2 Do Begin
+
+    If plyr^.cards[card_t(i)] Then Begin
+      keyboxes[i] := i;
+    End
+    Else Begin
+      keyboxes[i] := -1;
+    End;
+
+    If (plyr^.cards[card_t(i + 3)]) Then Begin
+      If (keyboxes[i] = -1) Then Begin
+        keyboxes[i] := i + 3; // [crispy] support combined card and skull keys
+      End
+      Else Begin
+        keyboxes[i] := i + 6; // [crispy] support combined card and skull keys
+      End;
+    End;
+    // [crispy] blinking key or skull in the status bar
+    If (plyr^.tryopen[card_t(i)] <> 0) Then Begin
+      //#if defined(CRISPY_KEYBLINK_WITH_SOUND)
+      //		if (!(plyr^.tryopen[i] & (2*KEYBLINKMASK-1)))
+      //		{
+      //			S_StartSound(NULL, sfx_itemup);
+      //		}
+      //#endif
+      //#if defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
+      //		if (st_classicstatusbar && !(plyr^.tryopen[i] & (KEYBLINKMASK-1)))
+      //		{
+      //			st_firsttime = true;
+      //		}
+      //#endif
+      plyr^.tryopen[card_t(i)] := plyr^.tryopen[card_t(i)] - 1;
+      //#if !defined(CRISPY_KEYBLINK_IN_CLASSIC_HUD)
+      //		if (st_crispyhud)then
+      //#endif
+      Begin
+        If (plyr^.tryopen[card_t(i)] And KEYBLINKMASK) <> 0 Then Begin
+          keyboxes[i] := i + st_keyorskull[card_t(i)];
+        End
+        Else Begin
+          keyboxes[i] := -1;
+        End;
+      End;
+      If (plyr^.tryopen[card_t(i)] = 0) Then Begin
+        w_keyboxes[i].oldinum := -1;
+      End;
+    End;
+  End;
+
+  // refresh everything if this is him coming back to life
+  ST_updateFaceWidget();
 
   // used by the w_armsbg widget
   st_notdeathmatch := deathmatch = 0;
@@ -537,24 +827,22 @@ Begin
   // used by w_arms[] widgets
   st_armson := st_statusbaron And (deathmatch = 0);
 
-  //    // used by w_frags widget
-  //    st_fragson = deathmatch && st_statusbaron;
-  //    st_fragscount = 0;
-  //
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //    {
-  //	if (i != displayplayer)
-  //	    st_fragscount += plyr->frags[i];
-  //	else
-  //	    st_fragscount -= plyr->frags[i];
-  //    }
+  // used by w_frags widget
+  st_fragson := (deathmatch <> 0) And st_statusbaron;
+  st_fragscount := 0;
 
-  //    // get rid of chat window if up because of message
-  //    if (!--st_msgcounter)
-  //	st_chat = st_oldchat;
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    If (i <> displayplayer) Then
+      st_fragscount := st_fragscount + plyr^.frags[i]
+    Else
+      st_fragscount := st_fragscount - plyr^.frags[i];
+  End;
 
+  // get rid of chat window if up because of message
+  st_msgcounter := st_msgcounter - 1;
+  If (st_msgcounter = 0) Then
+    st_chat := st_oldchat;
 End;
-
 
 Procedure ST_doPaletteStuff();
 Begin
@@ -727,12 +1015,151 @@ Begin
   Raise Exception.Create('Port me.');
 End;
 
+// [crispy] return ammo/health/armor widget color
+
+Function ST_WidgetColor(i: int): TBytes;
+Begin
+  If ((crispy.coloredhud And COLOREDHUD_BAR) = 0) Then Begin
+    result := Nil;
+    exit;
+  End;
+  Raise exception.Create('Port me.');
+  //    switch (i)
+  //    {
+  //        case hudcolor_ammo:
+  //        {
+  //            if (weaponinfo[plyr->readyweapon].ammo == am_noammo)
+  //            {
+  //                return NULL;
+  //            }
+  //            else
+  //            {
+  //                int ammo =  plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
+  //                int fullammo = maxammo[weaponinfo[plyr->readyweapon].ammo];
+  //
+  //                if (ammo < fullammo/4)
+  //                    return cr[CR_RED];
+  //                else if (ammo < fullammo/2)
+  //                    return cr[CR_GOLD];
+  //                else if (ammo <= fullammo)
+  //                    return cr[CR_GREEN];
+  //                else
+  //                    return cr[CR_BLUE];
+  //            }
+  //            break;
+  //        }
+  //        case hudcolor_health:
+  //        {
+  //            int health = plyr->health;
+  //
+  //            // [crispy] Invulnerability powerup and God Mode cheat turn Health values gray
+  //            if (plyr->cheats & CF_GODMODE ||
+  //                plyr->powers[pw_invulnerability])
+  //                return cr[CR_GRAY];
+  //            else if (health < 25)
+  //                return cr[CR_RED];
+  //            else if (health < 50)
+  //                return cr[CR_GOLD];
+  //            else if (health <= 100)
+  //                return cr[CR_GREEN];
+  //            else
+  //                return cr[CR_BLUE];
+  //
+  //            break;
+  //        }
+  //        case hudcolor_frags:
+  //        {
+  //            int frags = st_fragscount;
+  //
+  //            if (frags < 0)
+  //                return cr[CR_RED];
+  //            else if (frags == 0)
+  //                return cr[CR_GOLD];
+  //            else
+  //                return cr[CR_GREEN];
+  //
+  //            break;
+  //        }
+  //        case hudcolor_armor:
+  //        {
+  //	    // [crispy] Invulnerability powerup and God Mode cheat turn Armor values gray
+  //	    if (plyr->cheats & CF_GODMODE ||
+  //                plyr->powers[pw_invulnerability])
+  //                return cr[CR_GRAY];
+  //	    // [crispy] color by armor type
+  //	    else if (plyr->armortype >= 2)
+  //                return cr[CR_BLUE];
+  //	    else if (plyr->armortype == 1)
+  //                return cr[CR_GREEN];
+  //	    else if (plyr->armortype == 0)
+  //                return cr[CR_RED];
+  ///*
+  //            // [crispy] alternatively, color by armor points
+  //            int armor = plyr->armorpoints;
+  //
+  //            if (armor < 25)
+  //                return cr[CR_RED];
+  //            else if (armor < 50)
+  //                return cr[CR_GOLD];
+  //            else if (armor <= 100)
+  //                return cr[CR_GREEN];
+  //            else
+  //                return cr[CR_BLUE];
+  //*/
+  //            break;
+  //        }
+  //    }
+  //
+  result := Nil;
+End;
+
+// [crispy] draw the gibbed death state frames in the Health widget
+// in sync with the actual player sprite
+
+Function ST_PlayerIsGibbed(): Boolean;
+Begin
+  Raise exception.create('Port me.');
+  //       const int state = plyr->mo->state - states;
+  //
+  //       return (plyr->health <= 0 &&
+  //               ((state >= S_PLAY_XDIE1 && state <= S_PLAY_XDIE9) ||
+  //               state == S_GIBS));
+End;
+
+Procedure ST_DrawGibbedPlayerSprites();
+Begin
+  Raise exception.create('Port me.');
+  //        state_t const *state = plyr->mo->state;
+  //	spritedef_t *sprdef;
+  //	spriteframe_t *sprframe;
+  //	patch_t *patch;
+  //
+  //	sprdef = &sprites[state->sprite];
+  //
+  //	// [crispy] the TNT1 sprite is not supposed to be rendered anyway
+  //	if (!sprdef->numframes && plyr->mo->sprite == SPR_TNT1)
+  //	{
+  //		return;
+  //	}
+  //
+  //	sprframe = &sprdef->spriteframes[state->frame & FF_FRAMEMASK];
+  //	patch = W_CacheLumpNum(sprframe->lump[0] + firstspritelump, PU_CACHE);
+  //
+  //	if (plyr->mo->flags & MF_TRANSLATION)
+  //	{
+  //		dp_translation = translationtables - 256 +
+  //		                 ((plyr->mo->flags & MF_TRANSLATION) >> (MF_TRANSSHIFT - 8));
+  //	}
+  //
+  //	V_DrawPatch(ST_HEALTHX - 17, 186, patch);
+  //	dp_translation = NULL;
+End;
+
 Procedure ST_drawWidgets(refresh: boolean);
 Var
   i: int;
   gibbed: boolean;
 Begin
-
   gibbed := false;
 
   // used by w_arms[] widgets
@@ -741,89 +1168,90 @@ Begin
   // used by w_frags widget
   st_fragson := (deathmatch <> 0) And st_statusbaron;
 
-  //    dp_translation = ST_WidgetColor(hudcolor_ammo);
-  //    STlib_updateNum(&w_ready, refresh);
-  //    dp_translation = NULL;
-  //
-  //    // [crispy] draw "special widgets" in the Crispy HUD
-  //    if (st_crispyhud)
-  //    {
-  //	// [crispy] draw berserk pack instead of no ammo if appropriate
-  //	if (plyr->readyweapon == wp_fist && plyr->powers[pw_strength])
-  //	{
-  //		static int lump = -1;
-  //		patch_t *patch;
-  //
-  //		if (lump == -1)
-  //		{
-  //			lump = W_CheckNumForName(DEH_String("PSTRA0"));
-  //
-  //			if (lump == -1)
-  //			{
-  //				lump = W_CheckNumForName(DEH_String("MEDIA0"));
-  //			}
-  //		}
-  //
-  //		patch = W_CacheLumpNum(lump, PU_CACHE);
-  //
-  //		// [crispy] (23,179) is the center of the Ammo widget
-  //		V_DrawPatch(ST_AMMOX - 21 - SHORT(patch->width)/2 + SHORT(patch->leftoffset),
-  //		            179 - SHORT(patch->height)/2 + SHORT(patch->topoffset),
-  //		            patch);
-  //
-  //	}
-  //
-  //	// [crispy] draw the gibbed death state frames in the Health widget
-  //	// in sync with the actual player sprite
-  //	if ((gibbed = ST_PlayerIsGibbed()))
-  //	{
-  //		ST_DrawGibbedPlayerSprites();
-  //	}
-  //   }
-  //
-  //    for (i=0;i<4;i++)
-  //    {
-  //	STlib_updateNum(&w_ammo[i], refresh);
-  //	STlib_updateNum(&w_maxammo[i], refresh);
-  //    }
-  //
-  //    if (!gibbed)
-  //    {
-  //    dp_translation = ST_WidgetColor(hudcolor_health);
-  //    // [crispy] negative player health
-  //    w_health.n.num = crispy->neghealth ? &plyr->neghealth : &plyr->health;
-  //    STlib_updatePercent(&w_health, refresh);
-  //    }
-  //    dp_translation = ST_WidgetColor(hudcolor_armor);
-  //    STlib_updatePercent(&w_armor, refresh);
-  //    dp_translation = NULL;
-  //
-  //    STlib_updateBinIcon(&w_armsbg, refresh);
-  //
-  //    // [crispy] show SSG availability in the Shotgun slot of the arms widget
-  //    st_shotguns = plyr->weaponowned[wp_shotgun] | plyr->weaponowned[wp_supershotgun];
-  //
-  //    for (i=0;i<6;i++)
-  //	STlib_updateMultIcon(&w_arms[i], refresh);
-  //
-  //    // [crispy] draw the actual face widget background
-  //    if (st_crispyhud && (screenblocks % 3 == 0))
-  //    {
-  //		if (netgame)
-  //		V_DrawPatch(ST_FX, ST_Y + 1, faceback[displayplayer]);
-  //		else
-  //		V_CopyRect(ST_FX + WIDESCREENDELTA, 1, st_backing_screen, SHORT(faceback[0]->width), ST_HEIGHT - 1, ST_FX + WIDESCREENDELTA, ST_Y + 1);
-  //    }
-  //
-  //    STlib_updateMultIcon(&w_faces, refresh);
-  //
-  //    for (i=0;i<3;i++)
-  //	STlib_updateMultIcon(&w_keyboxes[i], refresh);
-  //
+  dp_translation := ST_WidgetColor(int(hudcolor_ammo));
+  STlib_updateNum(@w_ready, refresh);
+  dp_translation := Nil;
+
+  // [crispy] draw "special widgets" in the Crispy HUD
+  If (st_crispyhud) Then Begin
+    Raise exception.create('Port me.');
+    //	// [crispy] draw berserk pack instead of no ammo if appropriate
+    //	if (plyr->readyweapon == wp_fist && plyr->powers[pw_strength])
+    //	{
+    //		static int lump = -1;
+    //		patch_t *patch;
+    //
+    //		if (lump == -1)
+    //		{
+    //			lump = W_CheckNumForName(DEH_String("PSTRA0"));
+    //
+    //			if (lump == -1)
+    //			{
+    //				lump = W_CheckNumForName(DEH_String("MEDIA0"));
+    //			}
+    //		}
+    //
+    //		patch = W_CacheLumpNum(lump, PU_CACHE);
+    //
+    //		// [crispy] (23,179) is the center of the Ammo widget
+    //		V_DrawPatch(ST_AMMOX - 21 - SHORT(patch->width)/2 + SHORT(patch->leftoffset),
+    //		            179 - SHORT(patch->height)/2 + SHORT(patch->topoffset),
+    //		            patch);
+    //
+    //	}
+
+     // [crispy] draw the gibbed death state frames in the Health widget
+     // in sync with the actual player sprite
+    gibbed := ST_PlayerIsGibbed();
+    If (gibbed) Then Begin
+      ST_DrawGibbedPlayerSprites();
+    End;
+  End;
+
+  For i := 0 To 3 Do Begin
+    STlib_updateNum(@w_ammo[i], refresh);
+    STlib_updateNum(@w_maxammo[i], refresh);
+  End;
+
+  If (Not gibbed) Then Begin
+    dp_translation := ST_WidgetColor(int(hudcolor_health));
+    // [crispy] negative player health
+    If crispy.neghealth <> 0 Then Begin
+      w_health.n.num := @plyr^.neghealth;
+    End
+    Else Begin
+      w_health.n.num := @plyr^.health;
+    End;
+    STlib_updatePercent(@w_health, refresh);
+  End;
+  dp_translation := ST_WidgetColor(int(hudcolor_armor));
+  STlib_updatePercent(@w_armor, refresh);
+  dp_translation := Nil;
+
+  STlib_updateBinIcon(@w_armsbg, refresh);
+
+  // [crispy] show SSG availability in the Shotgun slot of the arms widget
+  st_shotguns := ord(plyr^.weaponowned[wp_shotgun] Or plyr^.weaponowned[wp_supershotgun]);
+
+  For i := 0 To 5 Do
+    STlib_updateMultIcon(@w_arms[i], refresh);
+
+  // [crispy] draw the actual face widget background
+  If (st_crispyhud) And (screenblocks Mod 3 = 0) Then Begin
+    If (netgame) Then
+      V_DrawPatch(ST_FX, ST_Y + 1, faceback[displayplayer])
+    Else
+      V_CopyRect(ST_FX + WIDESCREENDELTA, 1, st_backing_screen, faceback[0]^.width, ST_HEIGHT - 1, ST_FX + WIDESCREENDELTA, ST_Y + 1);
+  End;
+  STlib_updateMultIcon(@w_faces, refresh);
+
+  For i := 0 To 2 Do
+    STlib_updateMultIcon(@w_keyboxes[i], refresh);
+
   //    dp_translation = ST_WidgetColor(hudcolor_frags);
   //    STlib_updateNum(&w_frags, refresh);
-  //
-  //    dp_translation = NULL;
+
+  dp_translation := Nil;
 End;
 
 Procedure ST_doRefresh();
@@ -861,8 +1289,7 @@ Begin
   //        ST_createWidgets();
   //    }
 
-  //    if (crispy->cleanscreenshot == 2)
-  //        return;
+  If (crispy.cleanscreenshot = 2) Then exit;
 
   // [crispy] translucent HUD
   If (st_crispyhud And (screenblocks Mod 3 = 2)) Then
@@ -1008,7 +1435,7 @@ Begin
 
         For i := 0 To integer(NUMWEAPONS) - 1 Do
           If (WeaponAvailable(i)) Then // [crispy] only give available weapons
-            plyr^.weaponowned[weapontype_t(i)] := true;
+            plyr^.weaponowned[weapontype_t(i)] := 1;
 
         For i := 0 To integer(NUMAMMO) - 1 Do
           plyr^.ammo[i] := plyr^.maxammo[i];
@@ -1029,7 +1456,7 @@ Begin
 
         For i := 0 To integer(NUMWEAPONS) - 1 Do
           If (WeaponAvailable(i)) Then // [crispy] only give available weapons
-            plyr^.weaponowned[weapontype_t(i)] := true;
+            plyr^.weaponowned[weapontype_t(i)] := 1;
 
         For i := 0 To integer(NUMAMMO) - 1 Do
           plyr^.ammo[i] := plyr^.maxammo[i];
