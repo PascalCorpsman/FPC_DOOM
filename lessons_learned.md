@@ -67,6 +67,61 @@ begin
 end;
 ```
 
+### >> is not shr for signed datatypes
+In DOOM there are no floating point numbers, instead so called "fixed" comma numbers are used. The dataformat currency is used more or less the same way, but with decimal shifting.
+Here is a example:
+
+Lets say you want to deal with floating point numbers but you do not have access to a machine with a numerical coprocessor (so it was on most machines during development of DOOM, and it is still when developing embedded software for µ-Controllers). Let say you only need to know if a value is .5  or .0 at the right side of the decimal separator. Easiest way is to multiply the value by two and do all calculations in integers. Only at the very end, when plotting to the screen you need to convert the number now to float (and there are tricks to not do this as well..).
+
+Here is how this looks in code:
+
+```pascal
+var 
+  x:single;
+  y:integer;
+Begin
+  x := 1.5;
+  y := 3;    // 3 is 1.5 shl 2
+
+```
+As long as you divide y by 2 or shr it by 1 when prompting, x and y are the same. But y has the benefit, that calculations with y do not need a floating point unit. There are also downsides when dealing with fixed comma numbers, this comes in when multiplying them or with the fact that you reduce the available numbers per bit. If you want to play a little with fixed comma values i recomend this [example](https://github.com/PascalCorpsman/mini_projects/tree/main/miniprojects/Fixed_Comma).
+
+
+So whats the point, C has >> and FPC has shr ? As long as you deal with positive numbers everything behaves the same. The problem is when dealing with negative numbers.
+
+```cpp
+typedef unsigned int angle_t;
+typedef int fixed_t;
+
+angle_t a = 16;
+fixed_t b = 16;
+fixed_t c = -1;
+
+a >>= 1; // a is now 8
+b >>= 1; // b is now 8
+c >>= 1; // c is now -1
+```
+Translates to this:
+
+```pascal
+type angle_t = uint32;
+type fixed_t = int32;
+
+var
+  a: angle_t;
+  b,c: fixed_t;
+Begin
+  a := 16;
+  b := 16;
+  c := -1;
+  a := a shr 1; // a is now 8
+  b := SarLongint(b, 1); // b is now 8
+  c := SarLongint(c, 1); // c is now -1
+  c := -1;
+  c := c shr 1; // c is now 2147483647 and this is wrong, that is because the shr operator does not take the highes bit into account !
+  // if you are using int64 you need the SarInt64 function
+```
+
 ### Evaluation of boolean expressions
 
 The "!" is small and can be overseen easily, also c does not require braces here nor is the bit test masked.
