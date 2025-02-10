@@ -41,6 +41,7 @@ ports, but that version only supports DirectX and therefore only supports Window
 
 ## Lessons learned ?
 As this section is not interesting for everyone i extracted this into a separate section [lessons learned](lessons_learned.md).
+Furthermore there are some special points when porting a "old" DOS application to a modern "Linux/Windows" application, which i handle in the section [DOOM vs. LCL](doom_vs_lcl.md).
 
 ## progress:
 <!-- 
