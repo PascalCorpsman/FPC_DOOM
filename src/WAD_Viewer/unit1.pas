@@ -244,6 +244,7 @@ Procedure TForm1.LoadWadFile(Const Filename: String);
 Var
   s, i: Integer;
 Begin
+  W_ResetAndFreeALL;
   If Not W_AddFile(Filename) Then Begin
     showmessage('Error, could not load: ' + Filename);
   End;

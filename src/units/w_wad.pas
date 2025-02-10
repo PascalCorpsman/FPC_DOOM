@@ -35,6 +35,7 @@ Type
    *)
 
 Function W_AddFile(filename: String): Boolean;
+Procedure W_ResetAndFreeALL; // Reset everything, like brand as new..
 Procedure W_Reload();
 
 Function W_CheckNumForName(name: String): lumpindex_t;
@@ -205,6 +206,20 @@ Begin
   sl.free;
 
   result := true;
+End;
+
+Procedure W_ResetAndFreeALL;
+Var
+  i: Integer;
+Begin
+  setlength(lumpinfo, 0);
+
+  WadFilename := '';
+  setlength(WadMem, 0);
+  setlength(Lumps, 0);
+  For i := 0 To high(PatchLumps) Do
+    setlength(PatchLumps[i], 0);
+  setlength(PatchLumps, 0);
 End;
 
 // The Doom reload hack. The idea here is that if you give a WAD file to -file
