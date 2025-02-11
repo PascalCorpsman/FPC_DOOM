@@ -71,3 +71,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.02.06) enable SFX engine [Video](documentation/DOOM_Sound.mp4)
 - (2025.02.08) reached finish screen of level 1 ![](documentation/Hanger_Finished.gif)
 - (2025.02.09) reached level 2 ![](documentation/e1m2.png) <br> still no HUD and not all secrets in level 1 possible
+- (2025.02.11) finally ported everything to play e1m1 100% all without using cheats ![](documentation/e1m1_100.png)
