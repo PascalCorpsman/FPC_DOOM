@@ -783,7 +783,7 @@ Begin
 
   S_StartSound(actor, sfx_shotgn);
   A_FaceTarget(actor);
-  bangle := actor^.angle;
+  bangle := int(actor^.angle);
   slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
 
   For i := 0 To 2 Do Begin

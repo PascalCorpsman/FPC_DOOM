@@ -356,7 +356,7 @@ Begin
   // Switches that other things can activate.
   If (thing^.player = Nil) Then Begin
     // never open secret doors
-    If ((line^.flags And ML_SECRET) <> 0) Then Begin
+    If (line = Nil) Or ((line^.flags And ML_SECRET) <> 0) Then Begin
       result := false;
       exit;
     End;
