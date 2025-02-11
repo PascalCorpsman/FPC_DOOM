@@ -94,34 +94,6 @@ Const
   // Time interval for item respawning.
   ITEMQUESIZE = 128;
 
-  //void P_RespawnSpecials (void);
-
-  //mobj_t*
-  //P_SpawnMobj
-  //( fixed_t	x,
-  //  fixed_t	y,
-  //  fixed_t	z,
-  //  mobjtype_t	type );
-
-  //void 	P_RemoveMobj (mobj_t* th);
-  //mobj_t* P_SubstNullMobj (mobj_t* th);
-  //boolean	P_SetMobjState (mobj_t* mobj, statenum_t state);
-  //void 	P_MobjThinker (mobj_t* mobj);
-  //mobj_t *Crispy_PlayerSO (int p); // [crispy] weapon sound sources
-  //
-  //void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z);
-  //void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, int damage, mobj_t* target);
-  //mobj_t* P_SpawnMissile (mobj_t* source, mobj_t* dest, mobjtype_t type);
-  //void	P_SpawnPlayerMissile (mobj_t* source, mobjtype_t type);
-  //
-  //void	P_SpawnPuffSafe (fixed_t x, fixed_t y, fixed_t z, boolean safe);
-
-  //
-  // P_ENEMY
-  //
-  //void P_NoiseAlert (mobj_t* target, mobj_t* emmiter);
-
-
 Type
   //
   // P_MAPUTL

@@ -16,20 +16,22 @@ Procedure A_Detonate(mo: Pmobj_t);
 Procedure A_Stop(actor: Pmobj_t);
 Procedure A_Mushroom(actor: Pmobj_t);
 
-
 Procedure A_FireOldBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 
 Implementation
 
 Uses
-  p_map
+  sounds
+  , m_random
+  , p_map, p_inter, p_enemy
+  , s_sound
   ;
 
 // killough 11/98: kill an object
 
 Procedure A_Die(actor: Pmobj_t);
 Begin
-  //  P_DamageMobj(actor, NULL, NULL, actor->health);
+  P_DamageMobj(actor, Nil, Nil, actor^.health);
 End;
 
 //
@@ -38,14 +40,15 @@ End;
 //
 
 Procedure A_BetaSkullAttack(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  //  int damage;
-  //  if (!actor->target || actor->target->type == MT_SKULL)
-  //    return;
-  //  S_StartSound(actor, actor->info->attacksound);
-  //  A_FaceTarget(actor);
-  //  damage = (P_Random(/* pr_skullfly */)%8+1)*actor->info->damage;
-  //  P_DamageMobj(actor->target, actor, actor, damage);
+  If (actor^.target = Nil) Or (actor^.target^._type = MT_SKULL) Then exit;
+
+  S_StartSound(actor, actor^.info^.attacksound);
+  A_FaceTarget(actor);
+  damage := (P_Random((* pr_skullfly *)) Mod 8 + 1) * actor^.info^.damage;
+  P_DamageMobj(actor^.target, actor, actor, damage);
 End;
 
 //
@@ -72,6 +75,8 @@ End;
 
 Procedure A_Mushroom(actor: Pmobj_t);
 Begin
+  Exception.Create('Port me.');
+
   //  int i, j, n = actor->info->damage;
   //
   //  // Mushroom parameters are part of code pointer's state
@@ -106,6 +111,8 @@ End;
 
 Procedure A_FireOldBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
+  Exception.Create('Port me.');
+
   //  int type = MT_PLASMA1;
   //  extern void P_CheckMissileSpawn (mobj_t* th);
   //

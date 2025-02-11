@@ -14,6 +14,8 @@ Procedure P_SpawnStrobeFlash(sector: Psector_t; fastOrSlow: int; inSync: int);
 Procedure P_SpawnGlowingLight(sector: Psector_t);
 Procedure P_SpawnFireFlicker(sector: Psector_t);
 
+Procedure EV_LightTurnOn(line: Pline_t; bright: int);
+
 Implementation
 
 Uses
@@ -223,6 +225,45 @@ Begin
   //    flick->maxlight = sector->lightlevel;
   //    flick->minlight = P_FindMinSurroundingLight(sector,sector->lightlevel)+16;
   //    flick->count = 4;
+End;
+
+Procedure EV_LightTurnOn(line: Pline_t; bright: int);
+Begin
+  Raise exception.create('Port me.');
+  //   int		i;
+  //   int		j;
+  //   sector_t*	sector;
+  //   sector_t*	temp;
+  //   line_t*	templine;
+  //
+  //   sector = sectors;
+  //
+  //   for (i=0;i<numsectors;i++, sector++)
+  //   {
+  //if (sector->tag == line->tag)
+  //{
+  //    // bright = 0 means to search
+  //    // for highest light level
+  //    // surrounding sector
+  //    if (!bright)
+  //    {
+  //	for (j = 0;j < sector->linecount; j++)
+  //	{
+  //	    templine = sector->lines[j];
+  //	    temp = getNextSector(templine,sector);
+  //
+  //	    if (!temp)
+  //		continue;
+  //
+  //	    if (temp->lightlevel > bright)
+  //		bright = temp->lightlevel;
+  //	}
+  //    }
+  //    sector-> lightlevel = bright;
+  //    // [crispy] A11Y
+  //    sector->rlightlevel = sector->lightlevel;
+  //}
+  //   }
 End;
 
 Var

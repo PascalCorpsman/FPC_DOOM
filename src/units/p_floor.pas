@@ -11,6 +11,7 @@ Uses
   ;
 
 Function EV_DoFloor(line: Pline_t; floortype: floor_e): int;
+Function EV_BuildStairs(line: Pline_t; _type: stair_e): int;
 
 Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t; crush: boolean; floorOrCeiling: int; direction: int): result_e;
 
@@ -261,6 +262,124 @@ Begin
 End;
 
 //
+// BUILD A STAIRCASE!
+//
+
+Function EV_BuildStairs(line: Pline_t; _type: stair_e): int;
+Begin
+  exception.create('Port me.');
+  //   int			secnum;
+  //   int			height;
+  //   int			i;
+  //   int			newsecnum;
+  //   int			texture;
+  //   int			ok;
+  //   int			rtn;
+  //
+  //   sector_t*		sec;
+  //   sector_t*		tsec;
+  //
+  //   floormove_t*	floor;
+  //
+  //   fixed_t		stairsize = 0;
+  //   fixed_t		speed = 0;
+  //
+  //   secnum = -1;
+  //   rtn = 0;
+  //   while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
+  //   {
+  //sec = &sectors[secnum];
+  //
+  //// ALREADY MOVING?  IF SO, KEEP GOING...
+  //if (sec->specialdata)
+  //    continue;
+  //
+  //// new floor thinker
+  //rtn = 1;
+  //floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
+  //P_AddThinker (&floor->thinker);
+  //sec->specialdata = floor;
+  //floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
+  //floor->direction = 1;
+  //floor->sector = sec;
+  //switch(type)
+  //{
+  //  case build8:
+  //    speed = FLOORSPEED/4;
+  //    stairsize = 8*FRACUNIT;
+  //    break;
+  //  case turbo16:
+  //    speed = FLOORSPEED*4;
+  //    stairsize = 16*FRACUNIT;
+  //    break;
+  //}
+  //floor->speed = speed;
+  //height = sec->floorheight + stairsize;
+  //floor->floordestheight = height;
+  //// Initialize
+  //floor->type = lowerFloor;
+  //// e6y
+  //// Uninitialized crush field will not be equal to 0 or 1 (true)
+  //// with high probability. So, initialize it with any other value
+  //floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
+  //
+  //texture = sec->floorpic;
+  //
+  //// Find next sector to raise
+  //// 1.	Find 2-sided line with same sector side[0]
+  //// 2.	Other side is the next sector to raise
+  //do
+  //{
+  //    ok = 0;
+  //    for (i = 0;i < sec->linecount;i++)
+  //    {
+  //	if ( !((sec->lines[i])->flags & ML_TWOSIDED) )
+  //	    continue;
+  //
+  //	tsec = (sec->lines[i])->frontsector;
+  //	newsecnum = tsec-sectors;
+  //
+  //	if (secnum != newsecnum)
+  //	    continue;
+  //
+  //	tsec = (sec->lines[i])->backsector;
+  //	newsecnum = tsec - sectors;
+  //
+  //	if (tsec->floorpic != texture)
+  //	    continue;
+  //
+  //	height += stairsize;
+  //
+  //	if (tsec->specialdata)
+  //	    continue;
+  //
+  //	sec = tsec;
+  //	secnum = newsecnum;
+  //	floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
+  //
+  //	P_AddThinker (&floor->thinker);
+  //
+  //	sec->specialdata = floor;
+  //	floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
+  //	floor->direction = 1;
+  //	floor->sector = sec;
+  //	floor->speed = speed;
+  //	floor->floordestheight = height;
+  //	// Initialize
+  //	floor->type = lowerFloor;
+  //	// e6y
+  //	// Uninitialized crush field will not be equal to 0 or 1 (true)
+  //	// with high probability. So, initialize it with any other value
+  //	floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
+  //	ok = 1;
+  //	break;
+  //    }
+  //} while(ok);
+  //   }
+  //   return rtn;
+End;
+
+//
 // Move a plane (floor or ceiling) and check for crushing
 //
 
@@ -428,5 +547,4 @@ Finalization
   setlength(AllocatedFloors, 0);
 
 End.
-
 

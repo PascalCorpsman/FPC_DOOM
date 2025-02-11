@@ -5,13 +5,15 @@ Unit s_musinfo;
 Interface
 
 Uses
-  Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  , info_types
+  ;
 
 Type
   musinfo_t = Record
-    //    mobj_t * mapthing;
-    //    mobj_t * lastmapthing;
-    //    int tics;
+    mapthing: Pmobj_t;
+    lastmapthing: Pmobj_t;
+    tics: int;
     //    int current_item;
     //    int items[MAX_MUS_ENTRIES];
     from_savegame: boolean;

@@ -244,6 +244,12 @@ Type
   End;
   Pfloormove_t = ^floormove_t;
 
+  stair_e =
+    (
+    build8, // slowly build by 8
+    turbo16 // quickly build by 16
+    );
+
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();
@@ -263,14 +269,16 @@ Function P_FindMinSurroundingLight(sector: Psector_t; max: int): int;
 Function P_FindSectorFromLineTag(line: Pline_t; start: int): int;
 Function P_FindNextHighestFloor(sec: Psector_t; currentheight: int): fixed_t;
 
+Function EV_DoDonut(line: Pline_t): int;
+
 Implementation
 
 Uses
   doomstat, doomdata, sounds
-  , d_loop, d_mode
+  , d_loop, d_mode, d_player
   , i_timer, i_system, i_sound
   , g_game
-  , m_menu
+  , m_menu, m_random
   , p_tick, p_setup, p_floor, p_switch, p_doors, p_plats, p_lights, p_ceilng, p_mobj, p_inter
   , r_draw, r_plane, r_data, r_swirl
   , s_sound
@@ -551,7 +559,7 @@ Begin
     End;
   End;
 
-  //	Init line EFFECTs
+  // Init line EFFECTs
   numlinespecials := 0;
 
   For i := 0 To numlines - 1 Do Begin
@@ -579,7 +587,7 @@ Begin
     End;
   End;
 
-  //	Init other misc stuff
+  // Init other misc stuff
   For i := 0 To MAXCEILINGS - 1 Do
     activeceilings[i] := Nil;
 
@@ -628,7 +636,6 @@ Const
   error: Psector_t = Nil;
 Var
   sector: Psector_t;
-  //    extern int showMessages;
   sfx_id: sfxenum_t;
   str_count: String;
 Begin
@@ -657,16 +664,13 @@ Begin
     16,
       // SUPER HELLSLIME DAMAGE
     4: Begin
-        Raise exception.create('Port me.');
-
-        //	// STROBE HURT
-        //	// [crispy] no nukage damage with NOCLIP cheat
-        //	if ((!player^.powers[pw_ironfeet]
-        //	    || (P_Random()<5) ) && !(player^.mo^.flags & MF_NOCLIP))
-        //	{
-        //	    if (!(leveltime&0x1f))
-        //		P_DamageMobj (player^.mo, Nil, Nil, 20);
-        //	}
+        // STROBE HURT
+        // [crispy] no nukage damage with NOCLIP cheat
+        If ((player^.powers[int(pw_ironfeet)] = 0)
+          Or (P_Random() < 5)) And ((player^.mo^.flags And MF_NOCLIP) = 0) Then Begin
+          If ((leveltime And $1F) = 0) Then
+            P_DamageMobj(player^.mo, Nil, Nil, 20);
+        End;
       End;
     9: Begin
         // SECRET SECTOR
@@ -701,15 +705,14 @@ Begin
         sector^.special := 0;
       End;
     11: Begin
-        Raise exception.create('Port me.');
-        //	// EXIT SUPER DAMAGE! (for E1M8 finale)
-        //	player^.cheats &= ~CF_GODMODE;
-        //
-        //	if (!(leveltime&0x1f))
-        //	    P_DamageMobj (player^.mo, Nil, Nil, 20);
-        //
-        //	if (player^.health <= 10)
-        //	    G_ExitLevel();
+        // EXIT SUPER DAMAGE! (for E1M8 finale)
+        player^.cheats := player^.cheats And Not int(CF_GODMODE);
+
+        If ((leveltime And $1F) = 0) Then
+          P_DamageMobj(player^.mo, Nil, Nil, 20);
+
+        If (player^.health <= 10) Then
+          G_ExitLevel();
       End;
   Else Begin
       // [crispy] ignore unknown special sectors
@@ -1571,6 +1574,112 @@ Begin
     End;
   End;
   result := min;
+End;
+
+//
+// Special Stuff that can not be categorized
+//
+
+Function EV_DoDonut(line: Pline_t): int;
+Begin
+  exception.create('Port me.');
+  // sector_t*		s1;
+  //   sector_t*		s2;
+  //   sector_t*		s3;
+  //   int			secnum;
+  //   int			rtn;
+  //   int			i;
+  //   floormove_t*	floor;
+  //   fixed_t s3_floorheight;
+  //   short s3_floorpic;
+  //
+  //   secnum = -1;
+  //   rtn = 0;
+  //   while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
+  //   {
+  //s1 = &sectors[secnum];
+  //
+  //// ALREADY MOVING?  IF SO, KEEP GOING...
+  //if (s1->specialdata)
+  //    continue;
+  //
+  //rtn = 1;
+  //s2 = getNextSector(s1->lines[0],s1);
+  //
+  //       // Vanilla Doom does not check if the linedef is one sided.  The
+  //       // game does not crash, but reads invalid memory and causes the
+  //       // sector floor to move "down" to some unknown height.
+  //       // DOSbox prints a warning about an invalid memory access.
+  //       //
+  //       // I'm not sure exactly what invalid memory is being read.  This
+  //       // isn't something that should be done, anyway.
+  //       // Just print a warning and return.
+  //
+  //       if (s2 == NULL)
+  //       {
+  //           fprintf(stderr,
+  //                   "EV_DoDonut: linedef had no second sidedef! "
+  //                   "Unexpected behavior may occur in Vanilla Doom. \n");
+  //    break;
+  //       }
+  //
+  //for (i = 0; i < s2->linecount; i++)
+  //{
+  //    s3 = s2->lines[i]->backsector;
+  //
+  //    if (s3 == s1)
+  //	continue;
+  //
+  //           if (s3 == NULL)
+  //           {
+  //               // e6y
+  //               // s3 is NULL, so
+  //               // s3->floorheight is an int at 0000:0000
+  //               // s3->floorpic is a short at 0000:0008
+  //               // Trying to emulate
+  //
+  //               fprintf(stderr,
+  //                       "EV_DoDonut: WARNING: emulating buffer overrun due to "
+  //                       "NULL back sector. "
+  //                       "Unexpected behavior may occur in Vanilla Doom.\n");
+  //
+  //               DonutOverrun(&s3_floorheight, &s3_floorpic, line, s1);
+  //           }
+  //           else
+  //           {
+  //               s3_floorheight = s3->floorheight;
+  //               s3_floorpic = s3->floorpic;
+  //           }
+  //
+  //    //	Spawn rising slime
+  //    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
+  //    P_AddThinker (&floor->thinker);
+  //    s2->specialdata = floor;
+  //    floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
+  //    floor->type = donutRaise;
+  //    floor->crush = false;
+  //    floor->direction = 1;
+  //    floor->sector = s2;
+  //    floor->speed = FLOORSPEED / 2;
+  //    floor->texture = s3_floorpic;
+  //    floor->newspecial = 0;
+  //    floor->floordestheight = s3_floorheight;
+  //
+  //    //	Spawn lowering donut-hole
+  //    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
+  //    P_AddThinker (&floor->thinker);
+  //    s1->specialdata = floor;
+  //    floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
+  //    floor->type = lowerFloor;
+  //    floor->crush = false;
+  //    floor->direction = -1;
+  //    floor->sector = s1;
+  //    floor->speed = FLOORSPEED / 2;
+  //    floor->floordestheight = s3_floorheight;
+  //    break;
+  //}
+  //   }
+  //   return rtn;
 End;
 
 End.

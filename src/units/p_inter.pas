@@ -179,7 +179,6 @@ Begin
 
   If (target^.health <= 0) Then exit;
 
-
   If (target^.flags And MF_SKULLFLY) <> 0 Then Begin
     target^.momx := 0;
     target^.momy := 0;
@@ -406,7 +405,6 @@ Begin
   result := true;
 End;
 
-
 //
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
@@ -512,6 +510,69 @@ Begin
 End;
 
 //
+// P_GiveCard
+//
+
+Procedure P_GiveCard(player: Pplayer_t; card: card_t);
+Begin
+  If (player^.cards[card]) Then exit;
+  If netgame Then Begin
+    player^.bonuscount := player^.bonuscount + BONUSADD; // [crispy] Fix "Key pickup resets palette"
+  End
+  Else Begin
+    player^.bonuscount := player^.bonuscount + 0; // [crispy] Fix "Key pickup resets palette"
+  End;
+  player^.cards[card] := true;
+End;
+
+//
+// P_GivePower
+//
+
+Function P_GivePower(player: Pplayer_t; power: int (*powertype_t*)): boolean;
+Begin
+  If (power = int(pw_invulnerability)) Then Begin
+    player^.powers[power] := INVULNTICS;
+    result := true;
+    exit;
+  End;
+
+  If (power = int(pw_invisibility)) Then Begin
+    player^.powers[power] := INVISTICS;
+    player^.mo^.flags := player^.mo^.flags Or MF_SHADOW;
+    result := true;
+    exit;
+  End;
+
+  If (power = int(pw_infrared)) Then Begin
+    player^.powers[power] := INFRATICS;
+    Result := true;
+    exit;
+  End;
+
+  If (power = int(pw_ironfeet)) Then Begin
+    player^.powers[power] := IRONTICS;
+    Result := true;
+    exit;
+  End;
+
+  If (power = int(pw_strength)) Then Begin
+    P_GiveBody(player, 100);
+    player^.powers[power] := 1;
+    Result := true;
+    exit;
+  End;
+
+  If (player^.powers[power] <> 0) Then Begin
+    result := false; // already got it
+    exit;
+  End;
+
+  player^.powers[power] := 1;
+  result := true;
+End;
+
+//
 // P_TouchSpecialThing
 //
 
@@ -539,7 +600,6 @@ Begin
 
   // Identify by sprite.
   Case (special^.sprite) Of
-
     // armor
     SPR_ARM1: Begin
         If (Not P_GiveArmor(player, deh_green_armor_class)) Then exit;
@@ -571,89 +631,81 @@ Begin
         player^.message := GOTARMBONUS;
       End;
 
-    //      case SPR_SOUL:
-    //	player^.health += deh_soulsphere_health;
-    //	if (player^.health > deh_max_soulsphere)
-    //	    player^.health = deh_max_soulsphere;
-    //	player^.mo^.health = player^.health;
-    //	player^.message = DEH_String(GOTSUPER);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
-    //
-    //      case SPR_MEGA:
-    //	if (gamemode != commercial)
-    //	    return;
-    //	player^.health = deh_megasphere_health;
-    //	player^.mo^.health = player^.health;
-    //        // We always give armor type 2 for the megasphere; dehacked only
-    //        // affects the MegaArmor.
-    //	P_GiveArmor (player, 2);
-    //	player^.message = DEH_String(GOTMSPHERE);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
-    //
-    //	// cards
-    //	// leave cards for everyone
-    //      case SPR_BKEY:
-    //	if (!player^.cards[it_bluecard])
-    //	    player^.message = DEH_String(GOTBLUECARD);
-    //	P_GiveCard (player, it_bluecard);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
-    //
-    //      case SPR_YKEY:
-    //	if (!player^.cards[it_yellowcard])
-    //	    player^.message = DEH_String(GOTYELWCARD);
-    //	P_GiveCard (player, it_yellowcard);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
-    //
-    //      case SPR_RKEY:
-    //	if (!player^.cards[it_redcard])
-    //	    player^.message = DEH_String(GOTREDCARD);
-    //	P_GiveCard (player, it_redcard);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
-    //
-    //      case SPR_BSKU:
-    //	if (!player^.cards[it_blueskull])
-    //	    player^.message = DEH_String(GOTBLUESKUL);
-    //	P_GiveCard (player, it_blueskull);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
-    //
-    //      case SPR_YSKU:
-    //	if (!player^.cards[it_yellowskull])
-    //	    player^.message = DEH_String(GOTYELWSKUL);
-    //	P_GiveCard (player, it_yellowskull);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
-    //
-    //      case SPR_RSKU:
-    //	if (!player^.cards[it_redskull])
-    //	    player^.message = DEH_String(GOTREDSKULL);
-    //	P_GiveCard (player, it_redskull);
-    //	sound = sfx_keyup; // [NS] Optional key pickup sound.
-    //	if (!netgame)
-    //	    break;
-    //	return;
+    SPR_SOUL: Begin
+        player^.health := player^.health + deh_soulsphere_health;
+        If (player^.health > deh_max_soulsphere) Then
+          player^.health := deh_max_soulsphere;
+        player^.mo^.health := player^.health;
+        player^.message := GOTSUPER;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-     // medikits, heals
+    SPR_MEGA: Begin
+        If (gamemode <> commercial) Then exit;
+        player^.health := deh_megasphere_health;
+        player^.mo^.health := player^.health;
+        // We always give armor type 2 for the megasphere; dehacked only
+        // affects the MegaArmor.
+        P_GiveArmor(player, 2);
+        player^.message := GOTMSPHERE;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
+
+    // cards
+    // leave cards for everyone
+    SPR_BKEY: Begin
+        If (Not player^.cards[it_bluecard]) Then
+          player^.message := GOTBLUECARD;
+        P_GiveCard(player, it_bluecard);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    SPR_YKEY: Begin
+        If (Not player^.cards[it_yellowcard]) Then
+          player^.message := GOTYELWCARD;
+        P_GiveCard(player, it_yellowcard);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    SPR_RKEY: Begin
+        If (Not player^.cards[it_redcard]) Then
+          player^.message := GOTREDCARD;
+        P_GiveCard(player, it_redcard);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    SPR_BSKU: Begin
+        If (Not player^.cards[it_blueskull]) Then
+          player^.message := GOTBLUESKUL;
+        P_GiveCard(player, it_blueskull);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    SPR_YSKU: Begin
+        If (Not player^.cards[it_yellowskull]) Then
+          player^.message := GOTYELWSKUL;
+        P_GiveCard(player, it_yellowskull);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    SPR_RSKU: Begin
+        If (Not player^.cards[it_redskull]) Then
+          player^.message := GOTREDSKULL;
+        P_GiveCard(player, it_redskull);
+        sound := sfx_keyup; // [NS] Optional key pickup sound.
+        If (netgame) Then exit;
+      End;
+
+    // medikits, heals
     SPR_STIM: Begin
         If (Not P_GiveBody(player, 10)) Then exit;
-
         player^.message := GOTSTIM;
       End;
 
@@ -666,59 +718,52 @@ Begin
           player^.message := GOTMEDIKIT;
       End;
 
-    //	// power ups
-    //      case SPR_PINV:
-    //	if (!P_GivePower (player, pw_invulnerability))
-    //	    return;
-    //	player^.message = DEH_String(GOTINVUL);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
+    // power ups
+    SPR_PINV: Begin
+        If (Not P_GivePower(player, int(pw_invulnerability))) Then exit;
+        player^.message := GOTINVUL;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
+    SPR_PSTR: Begin
+        If (Not P_GivePower(player, int(pw_strength))) Then exit;
+        player^.message := GOTBERSERK;
+        If (player^.readyweapon <> wp_fist) Then
+          player^.pendingweapon := wp_fist;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-    //      case SPR_PSTR:
-    //	if (!P_GivePower (player, pw_strength))
-    //	    return;
-    //	player^.message = DEH_String(GOTBERSERK);
-    //	if (player^.readyweapon != wp_fist)
-    //	    player^.pendingweapon = wp_fist;
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
+    SPR_PINS: Begin
+        If (Not P_GivePower(player, int(pw_invisibility))) Then exit;
+        player^.message := GOTINVIS;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-    //      case SPR_PINS:
-    //	if (!P_GivePower (player, pw_invisibility))
-    //	    return;
-    //	player^.message = DEH_String(GOTINVIS);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
+    SPR_SUIT: Begin
+        If (Not P_GivePower(player, int(pw_ironfeet))) Then exit;
+        player^.message := GOTSUIT;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-    //      case SPR_SUIT:
-    //	if (!P_GivePower (player, pw_ironfeet))
-    //	    return;
-    //	player^.message = DEH_String(GOTSUIT);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
+    SPR_PMAP: Begin
+        If (Not P_GivePower(player, int(pw_allmap))) Then exit;
+        player^.message := GOTMAP;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-    //      case SPR_PMAP:
-    //	if (!P_GivePower (player, pw_allmap))
-    //	    return;
-    //	player^.message = DEH_String(GOTMAP);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
+    SPR_PVIS: Begin
+        If (Not P_GivePower(player, int(pw_infrared))) Then exit;
+        player^.message := GOTVISOR;
+        If (gameversion > exe_doom_1_2) Then
+          sound := sfx_getpow;
+      End;
 
-    //      case SPR_PVIS:
-    //	if (!P_GivePower (player, pw_infrared))
-    //	    return;
-    //	player^.message = DEH_String(GOTVISOR);
-    //	if (gameversion > exe_doom_1_2)
-    //	    sound = sfx_getpow;
-    //	break;
-
-     // ammo
-     // [NS] Give half ammo for drops of all types.
+    // ammo
+    // [NS] Give half ammo for drops of all types.
     SPR_CLIP: Begin
         (*
         If (special^.flags And MF_DROPPED) <> 0 Then Begin
@@ -734,33 +779,28 @@ Begin
 
     SPR_AMMO: Begin
         If (Not P_GiveAmmo(player, am_clip, 5, dropped)) Then exit;
-
         player^.message := GOTCLIPBOX;
       End;
 
-    //      case SPR_ROCK:
-    //	if (!P_GiveAmmo (player, am_misl,1,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTROCKET);
-    //	break;
+    SPR_ROCK: Begin
+        If (Not P_GiveAmmo(player, am_misl, 1, dropped)) Then exit;
+        player^.message := GOTROCKET;
+      End;
 
-    //      case SPR_BROK:
-    //	if (!P_GiveAmmo (player, am_misl,5,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTROCKBOX);
-    //	break;
+    SPR_BROK: Begin
+        If (Not P_GiveAmmo(player, am_misl, 5, dropped)) Then exit;
+        player^.message := GOTROCKBOX;
+      End;
 
-    //      case SPR_CELL:
-    //	if (!P_GiveAmmo (player, am_cell,1,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTCELL);
-    //	break;
+    SPR_CELL: Begin
+        If (Not P_GiveAmmo(player, am_cell, 1, dropped)) Then exit;
+        player^.message := GOTCELL;
+      End;
 
-    //      case SPR_CELP:
-    //	if (!P_GiveAmmo (player, am_cell,5,dropped))
-    //	    return;
-    //	player^.message = DEH_String(GOTCELLBOX);
-    //	break;
+    SPR_CELP: Begin
+        If (Not P_GiveAmmo(player, am_cell, 5, dropped)) Then exit;
+        player^.message := GOTCELLBOX;
+      End;
 
     SPR_SHEL: Begin
         If (Not P_GiveAmmo(player, am_shell, 1, dropped)) Then exit;
@@ -772,23 +812,22 @@ Begin
         player^.message := GOTSHELLBOX;
       End;
 
-    //      case SPR_BPAK:
-    //	if (!player^.backpack)
-    //	{
-    //	    for (i=0 ; i<NUMAMMO ; i++)
-    //		player^.maxammo[i] *= 2;
-    //	    player^.backpack = true;
-    //	}
-    //	for (i=0 ; i<NUMAMMO ; i++)
-    //	    P_GiveAmmo (player, i, 1, false);
-    //	player^.message = DEH_String(GOTBACKPACK);
-    //	break;
+    SPR_BPAK: Begin
+        If (Not player^.backpack) Then Begin
+          For i := 0 To int(NUMAMMO) - 1 Do Begin
+            player^.maxammo[i] := player^.maxammo[i] * 2;
+          End;
+          player^.backpack := true;
+        End;
+        For i := 0 To int(NUMAMMO) - 1 Do
+          P_GiveAmmo(player, ammotype_t(i), 1, false);
+        player^.message := GOTBACKPACK;
+      End;
 
-     // weapons
-     // [NS] Give half ammo for all dropped weapons.
+    // weapons
+    // [NS] Give half ammo for all dropped weapons.
     SPR_BFUG: Begin
         If (Not P_GiveWeapon(player, wp_bfg, dropped)) Then exit;
-
         player^.message := GOTBFG9000;
         sound := sfx_wpnup;
       End;
@@ -796,7 +835,6 @@ Begin
     SPR_MGUN: Begin
         If (Not P_GiveWeapon(player, wp_chaingun,
           (special^.flags And MF_DROPPED) <> 0)) Then exit;
-
         player^.message := GOTCHAINGUN;
         sound := sfx_wpnup;
       End;
@@ -835,16 +873,15 @@ Begin
       End;
 
     // [NS] Beta pickups.
-    //      case SPR_BON3:
-    //	player^.message = DEH_String(BETA_BONUS3);
-    //	break;
+    SPR_BON3: Begin
+        player^.message := BETA_BONUS3;
+      End;
 
-    //      case SPR_BON4:
-    //	player^.message = DEH_String(BETA_BONUS4);
-    //  break;
+    SPR_BON4: Begin
+        player^.message := BETA_BONUS4;
+      End;
 
   Else Begin
-      Raise exception.create('port me: ' + inttostr(integer(special^.sprite)));
       I_Error('P_SpecialThing: Unknown gettable thing');
     End;
   End;

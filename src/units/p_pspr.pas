@@ -381,32 +381,31 @@ Begin
 End;
 
 Procedure A_Punch(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Var
+  angle: angle_t;
+  damage: int;
+  slope: int;
 Begin
-  Raise Exception.Create('Port me.');
-  //     angle_t	angle;
-  //    int		damage;
-  //    int		slope;
-  //
-  //    if (!player) return; // [crispy] let pspr action pointers get called from mobj states
-  //    damage = (P_Random ()%10+1)<<1;
-  //
-  //    if (player->powers[pw_strength])
-  //	damage *= 10;
-  //
-  //    angle = player->mo->angle;
-  //    angle += P_SubRandom() << 18;
-  //    slope = P_AimLineAttack (player->mo, angle, MELEERANGE);
-  //    P_LineAttack (player->mo, angle, MELEERANGE, slope, damage);
-  //
-  //    // turn to face target
-  //    if (linetarget)
-  //    {
-  //	S_StartSound (player->so, sfx_punch); // [crispy] weapon sound source
-  //	player->mo->angle = R_PointToAngle2 (player->mo->x,
-  //					     player->mo->y,
-  //					     linetarget->x,
-  //					     linetarget->y);
-  //    }
+  If (player = Nil) Then exit; // [crispy] let pspr action pointers get called from mobj states
+  damage := (P_Random() Mod 10 + 1) Shl 1;
+
+  If (player^.powers[int(pw_strength)] <> 0) Then
+    damage := damage * 10;
+
+  angle := player^.mo^.angle;
+  angle := angle_t(angle + P_SubRandom() Shl 18);
+  slope := P_AimLineAttack(player^.mo, angle, MELEERANGE);
+  P_LineAttack(player^.mo, angle, MELEERANGE, slope, damage);
+
+  // turn to face target
+  If assigned(linetarget) Then Begin
+
+    S_StartSound(player^.so, sfx_punch); // [crispy] weapon sound source
+    player^.mo^.angle := R_PointToAngle2(player^.mo^.x,
+      player^.mo^.y,
+      linetarget^.x,
+      linetarget^.y);
+  End;
 End;
 
 //
@@ -462,7 +461,6 @@ Procedure P_BulletSlope(mo: Pmobj_t);
 Var
   an: angle_t;
 Begin
-
   If (critical^.freeaim = FREEAIM_DIRECT) Then Begin
     bulletslope := PLAYER_SLOPE(mo^.player);
   End
@@ -796,7 +794,7 @@ Begin
   psp^.sx2 := psp^.sx;
   psp^.sy2 := psp^.sy;
   If (psp^.state <> Nil) And ((crispy.bobfactor <> 0) Or (crispy.centerweapon <> 0) Or (crispy.uncapped <> 0)) Then Begin
-    Raise exception.create('Need port.');
+    Raise exception.create('Port me.');
     // [crispy] don't center vertically during lowering and raising states
    //	if (psp^.state^.misc1 ||
    //	    psp^.state^.action.acp3 == (actionf_p3)A_Lower ||

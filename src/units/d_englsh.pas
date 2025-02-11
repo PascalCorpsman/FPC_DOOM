@@ -85,32 +85,32 @@ Const
   GOTSTIM = 'Picked up a stimpack.';
   GOTMEDINEED = 'Picked up a medikit that you REALLY need!';
   GOTMEDIKIT = 'Picked up a medikit.';
-  //  #define GOTSUPER	"Supercharge!"
+  GOTSUPER = 'Supercharge!';
 
-  //  #define GOTBLUECARD	"Picked up a blue keycard."
-  //  #define GOTYELWCARD	"Picked up a yellow keycard."
-  //  #define GOTREDCARD	"Picked up a red keycard."
-  //  #define GOTBLUESKUL	"Picked up a blue skull key."
-  //  #define GOTYELWSKUL	"Picked up a yellow skull key."
-  //  #define GOTREDSKULL	"Picked up a red skull key."
+  GOTBLUECARD = 'Picked up a blue keycard.';
+  GOTYELWCARD = 'Picked up a yellow keycard.';
+  GOTREDCARD = 'Picked up a red keycard.';
+  GOTBLUESKUL = 'Picked up a blue skull key.';
+  GOTYELWSKUL = 'Picked up a yellow skull key.';
+  GOTREDSKULL = 'Picked up a red skull key.';
 
-  //  #define GOTINVUL	"Invulnerability!"
-  //  #define GOTBERSERK	"Berserk!"
-  //  #define GOTINVIS	"Partial Invisibility"
-  //  #define GOTSUIT	"Radiation Shielding Suit"
-  //  #define GOTMAP	"Computer Area Map"
-  //  #define GOTVISOR	"Light Amplification Visor"
-  //  #define GOTMSPHERE	"MegaSphere!"
+  GOTINVUL = 'Invulnerability!';
+  GOTBERSERK = 'Berserk!';
+  GOTINVIS = 'Partial Invisibility';
+  GOTSUIT = 'Radiation Shielding Suit';
+  GOTMAP = 'Computer Area Map';
+  GOTVISOR = 'Light Amplification Visor';
+  GOTMSPHERE = 'MegaSphere!';
 
   GOTCLIP = 'Picked up a clip.';
   GOTCLIPBOX = 'Picked up a box of bullets.';
-  //  #define GOTROCKET	"Picked up a rocket."
-  //  #define GOTROCKBOX	"Picked up a box of rockets."
-  //  #define GOTCELL	"Picked up an energy cell."
-  //  #define GOTCELLBOX	"Picked up an energy cell pack."
+  GOTROCKET = 'Picked up a rocket.';
+  GOTROCKBOX = 'Picked up a box of rockets.';
+  GOTCELL = 'Picked up an energy cell.';
+  GOTCELLBOX = 'Picked up an energy cell pack.';
   GOTSHELLS = 'Picked up 4 shotgun shells.';
   GOTSHELLBOX = 'Picked up a box of shotgun shells.';
-  //  #define GOTBACKPACK	"Picked up a backpack full of ammo!"
+  GOTBACKPACK = 'Picked up a backpack full of ammo!';
 
   GOTBFG9000 = 'You got the BFG9000!  Oh, yes.';
   GOTCHAINGUN = 'You got the chaingun!';
@@ -120,9 +120,9 @@ Const
   GOTSHOTGUN = 'You got the shotgun!';
   GOTSHOTGUN2 = 'You got the super shotgun!';
 
-  //  // [NS] Beta pickups.
-  //  #define BETA_BONUS3	"Picked up an evil sceptre."
-  //  #define BETA_BONUS4	"Picked up an unholy bible."
+  // [NS] Beta pickups.
+  BETA_BONUS3 = 'Picked up an evil sceptre.';
+  BETA_BONUS4 = 'Picked up an unholy bible.';
 
   //
   // P_Doors.C

@@ -5,7 +5,9 @@ Unit doomdef;
 Interface
 
 Uses
-  ufpc_doom_types, Classes, SysUtils;
+  ufpc_doom_types, Classes, SysUtils
+  ,i_timer
+  ;
 
 Const
   // The maximum number of players, multiplayer/networking.
@@ -22,6 +24,17 @@ Const
 
   // Deaf monsters/do not react to sound.
   MTF_AMBUSH = 8;
+
+
+  //
+  // Power up durations,
+  //  how many seconds till expiration,
+  //  assuming TICRATE is 35 ticks/second.
+  //
+  INVULNTICS = (30 * TICRATE);
+  INVISTICS = (60 * TICRATE);
+  INFRATICS = (120 * TICRATE);
+  IRONTICS = (60 * TICRATE);
 
   // The current state of the game: whether we are
   // playing, gazing at the intermission screen,

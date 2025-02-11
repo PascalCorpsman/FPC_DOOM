@@ -1114,7 +1114,7 @@ Begin
   End;
   // interpolate weapon bobbing
   If (crispy.uncapped <> 0) Then Begin
-    Raise exception.create('not ported.');
+    Raise exception.create('Port me.');
     //        static int     oldx1, x1_saved;
     //        static fixed_t oldtexturemid, texturemid_saved;
     //        static int     oldlump = -1;

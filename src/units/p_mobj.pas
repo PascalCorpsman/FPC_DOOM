@@ -152,7 +152,7 @@ Uses
   , m_random
   , p_setup, p_maputl, p_pspr, p_tick, p_map, p_spec, p_inter
   , r_things, r_data, r_sky, r_main
-  , s_sound, st_stuff
+  , s_sound, st_stuff, s_musinfo
   , v_patch
   , w_wad
   , z_zone
@@ -414,12 +414,12 @@ Begin
   th^.momy := FixedMul(th^.info^.speed, finesine[an]);
 
   dist := P_AproxDistance(dest^.x - source^.x, dest^.y - source^.y);
-  dist := dist div th^.info^.speed;
+  dist := dist Div th^.info^.speed;
 
   If (dist < 1) Then
     dist := 1;
 
-  th^.momz := (dest^.z - source^.z) div dist;
+  th^.momz := (dest^.z - source^.z) Div dist;
   P_CheckMissileSpawn(th);
 
   result := th;
@@ -986,7 +986,7 @@ End;
 
 Procedure P_NightmareRespawn(mobj: Pmobj_t);
 Begin
-  Raise exception.create('P_NightmareRespawn');
+  Raise exception.create('Port me.');
   //    fixed_t		x;
   //    fixed_t		y;
   //    fixed_t		z;
@@ -1042,11 +1042,28 @@ Begin
   P_RemoveMobj(mobj);
 End;
 
+// [crispy] support MUSINFO lump (dynamic music changing)
+
+Procedure MusInfoThinker(thing: Pmobj_t);
+Begin
+  If (musinfo.mapthing <> thing) And (
+    thing^.subsector^.sector = players[displayplayer].mo^.subsector^.sector) Then Begin
+    musinfo.lastmapthing := musinfo.mapthing;
+    musinfo.mapthing := thing;
+    If leveltime <> 0 Then Begin
+      musinfo.tics := 30;
+    End
+    Else Begin
+      musinfo.tics := 0;
+    End;
+  End;
+End;
+
 Procedure P_MobjThinker(mobj: Pmobj_t);
 Begin
   // [crispy] support MUSINFO lump (dynamic music changing)
   If (mobjtype_t(mobj^._type) = MT_MUSICSOURCE) Then Begin
-    //MusInfoThinker(mobj);
+    MusInfoThinker(mobj);
     exit;
   End;
   // [crispy] suppress interpolation of player missiles for the first tic
@@ -1103,7 +1120,6 @@ Begin
       exit;
 
     If (Not respawnmonsters) Then exit;
-
 
     mobj^.movecount := mobj^.movecount + 1;
 

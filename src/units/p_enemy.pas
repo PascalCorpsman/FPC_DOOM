@@ -772,29 +772,25 @@ Begin
 End;
 
 Procedure A_SPosAttack(actor: Pmobj_t);
+Var
+  i: Int;
+  angle: Int;
+  bangle: Int;
+  damage: Int;
+  slope: Int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    int		i;
-  //    int		angle;
-  //    int		bangle;
-  //    int		damage;
-  //    int		slope;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    S_StartSound (actor, sfx_shotgn);
-  //    A_FaceTarget (actor);
-  //    bangle = actor->angle;
-  //    slope = P_AimLineAttack (actor, bangle, MISSILERANGE);
-  //
-  //    for (i=0 ; i<3 ; i++)
-  //    {
-  //	angle = bangle + (P_SubRandom() << 20);
-  //	damage = ((P_Random()%5)+1)*3;
-  //	P_LineAttack (actor, angle, MISSILERANGE, slope, damage);
-  //    }
+  S_StartSound(actor, sfx_shotgn);
+  A_FaceTarget(actor);
+  bangle := actor^.angle;
+  slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
+
+  For i := 0 To 2 Do Begin
+    angle := angle_t(bangle + (P_SubRandom() Shl 20));
+    damage := ((P_Random() Mod 5) + 1) * 3;
+    P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+  End;
 End;
 
 Procedure A_Scream(actor: Pmobj_t);
@@ -1349,43 +1345,36 @@ Begin
 End;
 
 Procedure A_CPosAttack(actor: Pmobj_t);
+Var
+  angle: int;
+  bangle: int;
+  damage: int;
+  slope: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //   int		angle;
-  //    int		bangle;
-  //    int		damage;
-  //    int		slope;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    S_StartSound (actor, sfx_shotgn);
-  //    A_FaceTarget (actor);
-  //    bangle = actor->angle;
-  //    slope = P_AimLineAttack (actor, bangle, MISSILERANGE);
-  //
-  //    angle = bangle + (P_SubRandom() << 20);
-  //    damage = ((P_Random()%5)+1)*3;
-  //    P_LineAttack (actor, angle, MISSILERANGE, slope, damage);
+  S_StartSound(actor, sfx_shotgn);
+  A_FaceTarget(actor);
+  bangle := int(actor^.angle);
+  slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
+
+  angle := angle_t(bangle + (P_SubRandom() Shl 20));
+  damage := ((P_Random() Mod 5) + 1) * 3;
+  P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
 End;
 
 Procedure A_CPosRefire(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
-
   // keep firing unless target got out of sight
-//    A_FaceTarget (actor);
-//
-//    if (P_Random () < 40)
-//	return;
-//
-//    if (!actor->target
-//	|| actor->target->health <= 0
-//	|| !P_CheckSight (actor, actor->target) )
-//    {
-//	P_SetMobjState (actor, actor->info->seestate);
-//    }
+  A_FaceTarget(actor);
+
+  If (P_Random() < 40) Then exit;
+
+  If (actor^.target = Nil)
+    Or (actor^.target^.health <= 0)
+    Or (Not P_CheckSight(actor, actor^.target)) Then Begin
+    P_SetMobjState(actor, actor^.info^.seestate);
+  End;
 End;
 
 Procedure A_TroopAttack(actor: Pmobj_t);
@@ -1541,15 +1530,12 @@ End;
 
 Procedure A_BspiAttack(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    // launch a missile
-  //    P_SpawnMissile (actor, actor->target, MT_ARACHPLAZ);
+  A_FaceTarget(actor);
+
+  // launch a missile
+  P_SpawnMissile(actor, actor^.target, MT_ARACHPLAZ);
 End;
 
 Procedure A_Hoof(mo: Pmobj_t);
@@ -1560,28 +1546,10 @@ End;
 
 Procedure A_CyberAttack(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //  if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    P_SpawnMissile (actor, actor->target, MT_ROCKET);
-End;
-//
-// A_PainAttack
-// Spawn a lost soul and launch it at the target
-//
-
-Procedure A_PainAttack(actor: Pmobj_t);
-Begin
-  Raise exception.create('Port me.');
-
-  //   if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    A_PainShootSkull (actor, actor->angle);
+  A_FaceTarget(actor);
+  P_SpawnMissile(actor, actor^.target, MT_ROCKET);
 End;
 
 //
@@ -1648,6 +1616,19 @@ Begin
   //
   //    newmobj->target = actor->target;
   //    A_SkullAttack (newmobj);
+End;
+
+//
+// A_PainAttack
+// Spawn a lost soul and launch it at the target
+//
+
+Procedure A_PainAttack(actor: Pmobj_t);
+Begin
+  If (actor^.target = Nil) Then exit;
+
+  A_FaceTarget(actor);
+  A_PainShootSkull(actor, actor^.angle);
 End;
 
 Procedure A_PainDie(actor: Pmobj_t);

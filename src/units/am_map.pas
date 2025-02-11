@@ -380,7 +380,7 @@ End;
 
 Procedure AM_drawFline_Smooth(fl: Pfline_t; color: int);
 Begin
-  Raise exception.create('AM_drawFline_Smooth, not ported.');
+  Raise exception.create('Port me.');
   //      int X0 = fl->a.x, Y0 = fl->a.y, X1 = fl->b.x, Y1 = fl->b.y;
   //    pixel_t* BaseColor = &color_shades[color * NUMSHADES];
   //

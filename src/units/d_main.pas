@@ -1680,7 +1680,7 @@ Begin
 
   // Check for -file in shareware
   If (modifiedgame And (gamevariant <> freedoom)) Then Begin
-    Raise exception.create('Not ported.');
+    Raise exception.create('Port me.');
     // These are the lumps that will be checked in IWAD,
     // if any one is not present, execution will be aborted.
    //	char name[23][8]=

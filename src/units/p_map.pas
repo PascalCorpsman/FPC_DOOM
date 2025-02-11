@@ -101,6 +101,10 @@ Var
 Var
   dummy_mobj: mobj_t;
 
+  bombsource: Pmobj_t;
+  bombspot: Pmobj_t;
+  bombdamage: int;
+
 Procedure LaserThinkerDummyProcedure();
 Begin
   Raise exception.create('LaserThinkerDummyProcedure, shall never be called.');
@@ -256,34 +260,83 @@ Begin
 End;
 
 //
+// PIT_RadiusAttack
+// "bombsource" is the creature
+// that caused the explosion at "bombspot".
+//
+
+Function PIT_RadiusAttack(thing: Pmobj_t): boolean;
+Var
+  dx: fixed_t;
+  dy: fixed_t;
+  dist: fixed_t;
+Begin
+  If ((thing^.flags And MF_SHOOTABLE) = 0) Then Begin
+    result := true;
+    exit;
+  End;
+
+  // Boss spider and cyborg
+  // take no damage from concussion.
+  If (thing^._type = MT_CYBORG)
+    Or (thing^._type = MT_SPIDER) Then Begin
+    result := true;
+    exit;
+  End;
+
+  dx := abs(thing^.x - bombspot^.x);
+  dy := abs(thing^.y - bombspot^.y);
+  If dx > dy Then Begin
+    dist := dx;
+  End
+  Else Begin
+    dist := dy;
+  End;
+  dist := SarLongint(dist - thing^.radius, FRACBITS);
+
+  If (dist < 0) Then
+    dist := 0;
+
+  If (dist >= bombdamage) Then Begin
+    result := true; // out of range
+    exit;
+  End;
+
+  If (P_CheckSight(thing, bombspot)) Then Begin
+    // must be in direct path
+    P_DamageMobj(thing, bombspot, bombsource, bombdamage - dist);
+  End;
+
+  result := true;
+End;
+
+//
 // P_RadiusAttack
 // Source is the creature that caused the explosion at spot.
 //
 
 Procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; damage: int);
+Var
+  x: int;
+  y: int;
+  xl: int;
+  xh: int;
+  yl: int;
+  yh: int;
+  dist: fixed_t;
 Begin
-  //   int		x;
-  //    int		y;
-  //
-  //    int		xl;
-  //    int		xh;
-  //    int		yl;
-  //    int		yh;
-  //
-  //    fixed_t	dist;
-  //
-  //    dist = (damage+MAXRADIUS)<<FRACBITS;
-  //    yh = (spot->y + dist - bmaporgy)>>MAPBLOCKSHIFT;
-  //    yl = (spot->y - dist - bmaporgy)>>MAPBLOCKSHIFT;
-  //    xh = (spot->x + dist - bmaporgx)>>MAPBLOCKSHIFT;
-  //    xl = (spot->x - dist - bmaporgx)>>MAPBLOCKSHIFT;
-  //    bombspot = spot;
-  //    bombsource = source;
-  //    bombdamage = damage;
-  //
-  //    for (y=yl ; y<=yh ; y++)
-  //	for (x=xl ; x<=xh ; x++)
-  //	    P_BlockThingsIterator (x, y, PIT_RadiusAttack );
+  dist := fixed_t((damage + MAXRADIUS) Shl FRACBITS);
+  yh := SarLongint(spot^.y + dist - bmaporgy, MAPBLOCKSHIFT);
+  yl := SarLongint(spot^.y - dist - bmaporgy, MAPBLOCKSHIFT);
+  xh := SarLongint(spot^.x + dist - bmaporgx, MAPBLOCKSHIFT);
+  xl := SarLongint(spot^.x - dist - bmaporgx, MAPBLOCKSHIFT);
+  bombspot := spot;
+  bombsource := source;
+  bombdamage := damage;
+
+  For y := yl To yh Do
+    For x := xl To xh Do
+      P_BlockThingsIterator(x, y, @PIT_RadiusAttack);
 End;
 
 Procedure P_LineLaser(t1: pmobj_t; angle: angle_t; distance: fixed_t;
@@ -585,7 +638,6 @@ Begin
     @PTR_ShootTraverse);
 End;
 
-
 Function PTR_UseTraverse(_in: Pintercept_t): Boolean;
 Var
   side: int;
@@ -630,7 +682,6 @@ Var
   x1, y1,
     x2, y2: fixed_t;
 Begin
-
   usething := player^.mo;
 
   angle := player^.mo^.angle Shr ANGLETOFINESHIFT;
@@ -1300,8 +1351,6 @@ Function P_ThingHeightClip(thing: Pmobj_t): boolean;
 Var
   onfloor: boolean;
 Begin
-
-
   onfloor := (thing^.z = thing^.floorz);
 
   P_CheckPosition(thing, thing^.x, thing^.y);

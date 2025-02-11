@@ -14,6 +14,8 @@ Function EV_DoDoor(line: Pline_t; _type: vldoor_e): int;
 
 Procedure EV_VerticalDoor(line: Pline_t; thing: Pmobj_t);
 
+Function EV_DoLockedDoor(line: Pline_t; _type: vldoor_e; thing: Pmobj_t): int;
+
 Procedure P_SpawnDoorCloseIn30(sec: Psector_t);
 Procedure P_SpawnDoorRaiseIn5Mins(sec: Psector_t; secnum: int);
 
@@ -355,7 +357,7 @@ Begin
             // In Vanilla, door^.direction is set, even though
             // "specialdata" might not actually point at a door.
 
-            Raise exception.create('EV_VerticalDoor, Error, missing implementation.');
+            Raise exception.create('Port me.');
             //                if (door^.thinker.function.acp1 == (actionf_p1) T_VerticalDoor)
             //                {
             //                    door^.direction = -1;	// start going down immediately
@@ -451,6 +453,66 @@ Begin
   // find the top and bottom of the movement range
   door^.topheight := P_FindLowestCeilingSurrounding(sec);
   door^.topheight := door^.topheight - 4 * FRACUNIT;
+End;
+
+//
+// EV_DoLockedDoor
+// Move a locked door up/down
+//
+
+Function EV_DoLockedDoor(line: Pline_t; _type: vldoor_e; thing: Pmobj_t): int;
+Begin
+  Raise exception.create('Port me.');
+  // player_t * p;
+  //   p = thing->player;
+  //
+  //   if (!p)
+  //return 0;
+  //
+  //   switch(line->special)
+  //   {
+  //     case 99:	// Blue Lock
+  //     case 133:
+  //if (!p->cards[it_bluecard] && !p->cards[it_blueskull])
+  //{
+  //    p->message = DEH_String(PD_BLUEO);
+  //    // [NS] Locked door sound.
+  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
+  //    // [crispy] blinking key or skull in the status bar
+  //    p->tryopen[it_bluecard] = KEYBLINKTICS;
+  //    return 0;
+  //}
+  //break;
+  //
+  //     case 134: // Red Lock
+  //     case 135:
+  //if (!p->cards[it_redcard] && !p->cards[it_redskull])
+  //{
+  //    p->message = DEH_String(PD_REDO);
+  //    // [NS] Locked door sound.
+  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
+  //    // [crispy] blinking key or skull in the status bar
+  //    p->tryopen[it_redcard] = KEYBLINKTICS;
+  //    return 0;
+  //}
+  //break;
+  //
+  //     case 136:	// Yellow Lock
+  //     case 137:
+  //if (!p->cards[it_yellowcard] &&
+  //    !p->cards[it_yellowskull])
+  //{
+  //    p->message = DEH_String(PD_YELLOWO);
+  //    // [NS] Locked door sound.
+  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
+  //    // [crispy] blinking key or skull in the status bar
+  //    p->tryopen[it_yellowcard] = KEYBLINKTICS;
+  //    return 0;
+  //}
+  //break;
+  //   }
+  //
+  //   return EV_DoDoor(line,type);
 End;
 
 //
