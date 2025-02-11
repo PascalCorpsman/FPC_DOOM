@@ -755,7 +755,6 @@ Begin
 
   // if contacted a special line, add it to the list
   If (ld^.special <> 0) Then Begin
-
     // [crispy] remove SPECHIT limit
     If (numspechit >= spechit_max) Then Begin
       If spechit_max <> 0 Then Begin
@@ -766,6 +765,7 @@ Begin
       End;
       setlength(spechit, spechit_max);
     End;
+
     spechit[numspechit] := ld;
     numspechit := numspechit + 1;
 
@@ -1119,7 +1119,6 @@ Begin
 
   // if any special lines were hit, do the effect
   If ((thing^.flags And (MF_TELEPORT Or MF_NOCLIP)) = 0) Then Begin
-
     While (numspechit > 0) Do Begin
       numspechit := numspechit - 1;
       // see if the line was crossed

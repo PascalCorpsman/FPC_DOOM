@@ -14,6 +14,7 @@ Var
   activeplats: Array[0..MAXPLATS - 1] Of pplat_t;
 
 Function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: int): int;
+Procedure EV_StopPlat(line: Pline_t);
 
 Implementation
 
@@ -259,6 +260,22 @@ Begin
     secnum := P_FindSectorFromLineTag(line, secnum);
   End;
   result := rtn;
+End;
+
+Procedure EV_StopPlat(line: Pline_t);
+Begin
+  Raise exception.create('Port me.');
+  //      int		j;
+  //
+  //    for (j = 0;j < MAXPLATS;j++)
+  //	if (activeplats[j]
+  //	    && ((activeplats[j])->status != in_stasis)
+  //	    && ((activeplats[j])->tag == line->tag))
+  //	{
+  //	    (activeplats[j])->oldstatus = (activeplats[j])->status;
+  //	    (activeplats[j])->status = in_stasis;
+  //	    (activeplats[j])->thinker.function.acv = (actionf_v)NULL;
+  //	}
 End;
 
 Var

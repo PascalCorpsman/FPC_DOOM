@@ -15,13 +15,15 @@ Procedure P_SpawnGlowingLight(sector: Psector_t);
 Procedure P_SpawnFireFlicker(sector: Psector_t);
 
 Procedure EV_LightTurnOn(line: Pline_t; bright: int);
+Procedure EV_StartLightStrobing(line: Pline_t);
+Procedure EV_TurnTagLightsOff(line: Pline_t);
 
 Implementation
 
 Uses
   a11y_weapon_pspr
   , m_random
-  , p_spec, p_tick
+  , p_spec, p_tick, p_setup
   ;
 
 Var
@@ -264,6 +266,67 @@ Begin
   //    sector->rlightlevel = sector->lightlevel;
   //}
   //   }
+End;
+
+//
+// Start strobing lights (usually from a trigger)
+//
+
+Procedure EV_StartLightStrobing(line: Pline_t);
+Var
+  secnum: int;
+  sec: Psector_t;
+Begin
+  secnum := -1;
+  secnum := P_FindSectorFromLineTag(line, secnum);
+  While (secnum >= 0) Do Begin
+
+    sec := @sectors[secnum];
+    If assigned(sec^.specialdata) Then Begin
+      secnum := P_FindSectorFromLineTag(line, secnum);
+      continue;
+    End;
+
+    P_SpawnStrobeFlash(sec, SLOWDARK, 0);
+    secnum := P_FindSectorFromLineTag(line, secnum);
+  End;
+End;
+
+//
+// TURN LINE'S TAG LIGHTS OFF
+//
+
+Procedure EV_TurnTagLightsOff(line: Pline_t);
+Begin
+  Raise exception.create('Port me.');
+  //    int			i;
+  //    int			j;
+  //    int			min;
+  //    sector_t*		sector;
+  //    sector_t*		tsec;
+  //    line_t*		templine;
+  //
+  //    sector = sectors;
+  //
+  //    for (j = 0;j < numsectors; j++, sector++)
+  //    {
+  //	if (sector->tag == line->tag)
+  //	{
+  //	    min = sector->lightlevel;
+  //	    for (i = 0;i < sector->linecount; i++)
+  //	    {
+  //		templine = sector->lines[i];
+  //		tsec = getNextSector(templine,sector);
+  //		if (!tsec)
+  //		    continue;
+  //		if (tsec->lightlevel < min)
+  //		    min = tsec->lightlevel;
+  //	    }
+  //	    sector->lightlevel = min;
+  //	    // [crispy] A11Y
+  //	    sector->rlightlevel = sector->lightlevel;
+  //	}
+  //    }
 End;
 
 Var

@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="101">
+    <Units Count="102">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -451,6 +451,10 @@
         <Filename Value="../Sample/OpenGL/uopengl_ascii_font.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit100>
+      <Unit101>
+        <Filename Value="units/p_telept.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit101>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

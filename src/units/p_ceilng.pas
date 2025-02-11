@@ -15,6 +15,7 @@ Var
 Procedure P_ActivateInStasisCeiling(line: Pline_t);
 
 Function EV_DoCeiling(line: Pline_t; _type: ceiling_e): int;
+Function EV_CeilingCrushStop(line: Pline_t): int;
 
 Implementation
 
@@ -117,6 +118,36 @@ Begin
   //P_AddActiveCeiling(ceiling);
   //   }
   //   return rtn;
+End;
+
+//
+// EV_CeilingCrushStop
+// Stop a ceiling from crushing!
+//
+
+Function EV_CeilingCrushStop(line: Pline_t): int;
+Begin
+  Raise Exception.Create('Port me.');
+  //      int		i;
+  //    int		rtn;
+  //
+  //    rtn = 0;
+  //    for (i = 0;i < MAXCEILINGS;i++)
+  //    {
+  //	if (activeceilings[i]
+  //	    && (activeceilings[i]->tag == line->tag)
+  //	    && (activeceilings[i]->direction != 0))
+  //	{
+  //	    activeceilings[i]->olddirection = activeceilings[i]->direction;
+  //	    activeceilings[i]->thinker.function.acv = (actionf_v)NULL;
+  //	    activeceilings[i]->direction = 0;		// in-stasis
+  //	    rtn = 1;
+  //	}
+  //    }
+  //
+  //
+  //    return rtn;
+
 End;
 
 End.
