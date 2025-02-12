@@ -43,6 +43,10 @@ ports, but that version only supports DirectX and therefore only supports Window
 As this section is not interesting for everyone i extracted this into a separate section [lessons learned](lessons_learned.md).
 Furthermore there are some special points when porting a "old" DOS application to a modern "Linux/Windows" application, which i handle in the section [DOOM vs. LCL](doom_vs_lcl.md).
 
+## Difference to other source ports and key mappings
+
+As i am not doing a 100% source port but more a port for me and my education (or personal needs), FPC DOOM will not be like Vanilla DOOM and even not like Crispy DOOM. To See the differences look [here](differences.md)
+
 ## progress:
 <!-- 
 Homepage used to create .gif images: https://ezgif.com/maker
