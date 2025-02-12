@@ -115,6 +115,8 @@ Function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): int;
 
 Function R_PointToAngle2(x1, y1, x2, y2: fixed_t): angle_t;
 
+Procedure R_SetViewSize(blocks, detail: int);
+
 Implementation
 
 Uses

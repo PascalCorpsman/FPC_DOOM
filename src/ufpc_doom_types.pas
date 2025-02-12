@@ -289,7 +289,7 @@ Initialization
   Crispy.cleanscreenshot := 0;
   Crispy.screenshotmsg := 0;
   Crispy.snowflakes := 0;
-  Crispy.fistisquit := false;
+  Crispy.fistisquit := false; // by Corpsman
   Crispy.flashinghom := false;
   Crispy.fliplevels := false;
   Crispy.flipweapons := false;

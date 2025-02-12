@@ -27,7 +27,9 @@ Var
   key_speed: int;
   key_alt_speed: int;
   //extern int key_demospeed;  // [crispy]
-  //
+  key_view_zoomin: int; // Corpsman
+  key_view_zoomout: int; // Corpsman
+
   key_jump: int;
   //extern int key_toggleautorun;
   //extern int key_togglenovert;
@@ -248,6 +250,9 @@ Begin
   key_map_overlay := VK_O; // [crispy]
   key_map_rotate := VK_R; // [crispy]
 
+  key_view_zoomin := VK_ADD;
+  key_view_zoomout := VK_SUBTRACT;
+
   key_pause := VK_PAUSE;
 
   key_weapon1 := VK_1;
@@ -271,7 +276,7 @@ Begin
   key_strafeleft := VK_A;
   key_straferight := VK_D;
   key_use := VK_SPACE;
-  key_strafe := KEY_RALT;
+  key_strafe := KEY_RALT; // TODO: Eigentlich sollte man den zum Strafen nehmen nicht A und D ...
 
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden
   key_menu_activate := KEY_BACKSPACE;

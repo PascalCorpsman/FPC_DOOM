@@ -776,8 +776,8 @@ Begin
     R_RenderPlayerView(@players[displayplayer]);
 
     // [crispy] Crispy HUD
-    //        if (screenblocks >= CRISPY_HUD)
-    //            ST_Drawer(false, true);
+    If (screenblocks >= CRISPY_HUD) Then
+      ST_Drawer(false, true);
   End;
 
   // [crispy] in automap overlay mode,

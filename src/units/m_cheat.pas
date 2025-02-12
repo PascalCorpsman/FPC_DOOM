@@ -20,6 +20,7 @@ Type
   End;
 
 Function cht_CheckCheat(Var cht: cheatseq_t; key: char): int;
+Procedure cht_GetParam(Var cht: cheatseq_t; Out buffer: String);
 
 Implementation
 
@@ -61,6 +62,11 @@ Begin
     result := 1;
   End;
 
+End;
+
+Procedure cht_GetParam(Var cht: cheatseq_t; Out buffer: String);
+Begin
+  buffer := cht.parameter_buf;
 End;
 
 End.

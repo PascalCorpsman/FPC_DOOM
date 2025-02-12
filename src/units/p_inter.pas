@@ -33,6 +33,7 @@ Const
 
 Procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: int);
 Procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
+Function P_GivePower(player: Pplayer_t; power: int (*powertype_t*)): boolean;
 
 Implementation
 

@@ -416,7 +416,7 @@ Const
   STSTR_NCOFF = 'No Clipping Mode OFF';
 
   //  #define STSTR_BEHOLD	"inVuln, Str, Inviso, Rad, Allmap, or Lite-amp"
-  //  #define STSTR_BEHOLDX	"Power-up Toggled"
+  STSTR_BEHOLDX = 'Power-up Toggled';
 
   //  #define STSTR_CHOPPERS	"... doesn't suck - GM"
   //  #define STSTR_CLEV		"Changing Level..."
