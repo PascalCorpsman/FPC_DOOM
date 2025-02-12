@@ -308,7 +308,7 @@ Var
   y: int;
 Begin
   If (mi^._on^)
-    And ((mi^.oldinum <>  mi^.inum^) Or (refresh))
+    And ((mi^.oldinum <> mi^.inum^) Or (refresh))
     And ((mi^.inum^ <> -1)) Then Begin
 
     If (mi^.oldinum <> -1) Then Begin
@@ -320,8 +320,11 @@ Begin
       If (y - ST_Y < 0) Then
         I_Error('updateMultIcon: y - ST_Y < 0');
 
-      If (screenblocks < CRISPY_HUD) Or ((automapactive) And (crispy.automapoverlay = 0)) Then
-        V_CopyRect(x + WIDESCREENDELTA, y - ST_Y, st_backing_screen, w, h, x + WIDESCREENDELTA, y);
+      If (screenblocks < CRISPY_HUD) Or ((automapactive) And (crispy.automapoverlay = 0)) Then Begin
+        //V_CopyRect(x + WIDESCREENDELTA, y - ST_Y, st_backing_screen, w, h, x + WIDESCREENDELTA, y);
+        // WTF: Hack für w_faces (Achtung 3 mal)
+        V_CopyRect(x - 10 * WIDESCREENDELTA, y - ST_Y, st_backing_screen, w + 4 * WIDESCREENDELTA, h, x - 10 * WIDESCREENDELTA, y);
+      End;
     End;
     V_DrawPatch(mi^.x, mi^.y, mi^.p[mi^.inum^]);
     mi^.oldinum := mi^.inum^;

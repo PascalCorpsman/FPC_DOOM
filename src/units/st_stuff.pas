@@ -113,7 +113,7 @@ Const
 
   ST_NUMFACES = (ST_FACESTRIDE * ST_NUMPAINFACES + ST_NUMEXTRAFACES);
 
-  ST_FACESX = 143 + 10; // WTF: Warum braucht es hier ein Offset ?
+  ST_FACESX = 143 + 10; // WTF: Hack für w_faces (Achtung 3 mal)
   ST_FACESY = 168;
 
   // Location of status bar
@@ -1243,7 +1243,10 @@ Begin
     Else
       V_CopyRect(ST_FX + WIDESCREENDELTA, 1, st_backing_screen, faceback[0]^.width, ST_HEIGHT - 1, ST_FX + WIDESCREENDELTA, ST_Y + 1);
   End;
+  // WTF: Hack für w_faces (Achtung 3 mal)
+  WIDESCREENDELTA := 1;
   STlib_updateMultIcon(@w_faces, refresh);
+  WIDESCREENDELTA := 0;
 
   For i := 0 To 2 Do
     STlib_updateMultIcon(@w_keyboxes[i], refresh);
@@ -1295,14 +1298,18 @@ Begin
   If (st_crispyhud And (screenblocks Mod 3 = 2)) Then
     dp_translucent := true;
 
-  If (st_firsttime) Then Begin
+  (*
+   * Das Diff draw funktioniert zwar prinzipiel, glitcht aber doch ab und zu
+   * -> wir haben die Rechenpower das auch einfach jedes mal neu zu rendern ..
+   *)
+  //If (st_firsttime) Then Begin
     // If just after ST_Start(), refresh all
-    ST_doRefresh();
-  End
-  Else Begin
+  ST_doRefresh();
+  //End
+  //Else Begin
     // Otherwise, update as little as possible
-    ST_diffDraw();
-  End;
+    //ST_diffDraw();
+  //End;
 
   dp_translucent := false;
 End;
