@@ -17,10 +17,10 @@ Translates to this:
 
 ```pascal
 // Pascal
-if (x = 2) then begin
+If (x = 2) Then Begin
   result := 1;
   exit;
-end;
+End;
 result := 0;
 ```
 
@@ -58,16 +58,15 @@ Translates to this:
 
 ```pascal
 // Pascal
-var X:integer;
+Var X:integer;
 ..
 x := fancy_functioncall();
-if (x <> 0) then 
-begin
+If (x <> 0) Then Begin
   ..
-end;
+End;
 ```
 
-### >> is not shr for signed datatypes
+### >> is not Shr for signed datatypes
 In DOOM there are no floating point numbers, instead so called "fixed" comma numbers are used. The dataformat currency is used more or less the same way, but with decimal shifting.
 Here is a example:
 
@@ -76,12 +75,12 @@ Lets say you want to deal with floating point numbers but you do not have access
 Here is how this looks in code:
 
 ```pascal
-var 
-  x:single;
-  y:integer;
+Var 
+  x: single;
+  y: integer;
 Begin
   x := 1.5;
-  y := 3;    // 3 is 1.5 shl 2
+  y := 3;    // 3 is 1.5 Shl 2
 
 ```
 As long as you divide y by 2 or shr it by 1 when prompting, x and y are the same. But y has the benefit, that calculations with y do not need a floating point unit. There are also downsides when dealing with fixed comma numbers, this comes in when multiplying them or with the fact that you reduce the available numbers per bit. If you want to play a little with fixed comma values i recomend this [example](https://github.com/PascalCorpsman/mini_projects/tree/main/miniprojects/Fixed_Comma).
@@ -104,21 +103,21 @@ c >>= 1; // c is now -1
 Translates to this:
 
 ```pascal
-type angle_t = uint32;
-type fixed_t = int32;
+Type angle_t = uint32;
+Type fixed_t = int32;
 
-var
+Var
   a: angle_t;
-  b,c: fixed_t;
+  b, c: fixed_t;
 Begin
   a := 16;
   b := 16;
   c := -1;
-  a := a shr 1; // a is now 8
+  a := a Shr 1; // a is now 8
   b := SarLongint(b, 1); // b is now 8
   c := SarLongint(c, 1); // c is now -1
   c := -1;
-  c := c shr 1; // c is now 2147483647 and this is wrong, that is because the shr operator does not take the highes bit into account !
+  c := c Shr 1; // c is now 2147483647 and this is wrong, that is because the Shr operator does not take the highes bit into account !
   // if you are using int64 you need the SarInt64 function
 ```
 
@@ -168,22 +167,22 @@ typedef struct
 Can be reduced to:
 
 ```pascal
-type 
-  cheatseq_t = record
+Type 
+  cheatseq_t = Record
     // settings for this cheat
     sequence: String;
     parameter_chars: integer;
 
     // state used during the game
     chars_read: integer; 
-    parameter_buf:String;
+    parameter_buf: String;
   end;
 ``` 
 ⚠️ But be carefull, as you now shifted the readindex of the first character from C = 0 to FPC = 1 ⚠️
 
 ## Loops
 
-### repeat vs. while
+### Repeat vs. While
 ```cpp
 do
 {
@@ -193,9 +192,9 @@ do
 Translates to this:
 
 ```pascal
-repeat
+Repeat
 ..
-until (not running); // Attention you need to invert the condition here!
+Until (Not running); // Attention you need to invert the condition here!
 ```
 
 ### iterating through an array
@@ -213,14 +212,14 @@ for (int i = 0, sector = sectors; i < numsectors; i++, sector++)
 Translates to this:
 
 ```pascal
-var
+Var
   sectors: array of int;
   i, numsectors: integer;
 ..
-for i := 0 to numsectors - 1 do 
-begin
+For i := 0 To numsectors - 1 Do 
+Begin
   sectors[i] := i + 1;
-end;
+End;
 ```
 
 ## Pointers
@@ -236,10 +235,10 @@ j = i + 2; // j points now to the 3. element
 Translates to this:
 
 ```pascal
-var
-  i:array[0..9] of integer;
-  j:^integer;
-begin
+Var
+  i: Array[0..9] Of integer;
+  j: ^integer;
+Begin
   // j := @i + 2; // This is wrong !!!
   j := @i[2];
 ```
@@ -255,8 +254,8 @@ int index = ld-lines;
 Translates to this:
 
 ```pascal
-var
-  lines: array of lines_t;
+Var
+  lines: Array Of lines_t;
   ld: ^lines_t;
   index: integer;
 // lets assume lines is correct defined and somewhere in the code ld was set to one of its elements
@@ -285,20 +284,20 @@ b = a + 4; // This is the worst, as the sizeof operator is not used ! better wou
 ```
 Translates to this:
 ```pascal
-type 
-  big_data_t = record
+Type 
+  big_data_t = Record
     a: integer;
     b: integer;
     c: integer;
-  end;
-  small_data_t = record
+  End;
+  small_data_t = Record
     b: integer;
     c: integer;
-  end;
-var
+  End;
+Var
   a: ^big_data_t;
   b: ^small_data_t;
-begin
+Begin
   // Let point a to something valid
   b := pointer(a) + sizeof(integer);
 ```
@@ -331,7 +330,7 @@ Translates to this:
     height: short;
     leftoffset: short; // pixels to the left of origin
     topoffset: short; // pixels below the origin
-    columnofs: array[0 .. 65535] of int; // only [width] used <- this is actually wrong but disables the upper range check for all DOOM usecases and thats what we want here.
+    columnofs: Array[0 .. 65535] Of int; // only [width] used <- this is actually wrong but disables the upper range check for all DOOM usecases and thats what we want here.
   End; 
 ```
 <!---
