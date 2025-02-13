@@ -10,6 +10,9 @@ In Vanilla Doom it is possible to "zoom" the viewport to be very small and inste
 ### Silent fist option
 In DOOM every weapon makes noises and therefore wakes up all the enemies. In FPC_DOOM you could set the "fistisquit" flag. If set, "shooting" by punching with the fist does not make any noise. But if you do not kill a opponent in one shot, this opponent will scream and that will be heared. This feature makes most sense when playing in bersek mode.
 
+### Savegames
+Savegames are not compatible to any other DOOM version!
+
 ## Key settings
 
 The following keys are used (given on a german keyboard layout):
