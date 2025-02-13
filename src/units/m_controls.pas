@@ -279,7 +279,7 @@ Begin
   key_strafe := KEY_RALT; // TODO: Eigentlich sollte man den zum Strafen nehmen nicht A und D ...
 
   // TODO: Das muss natürlich alles "Dynamisch" gemacht werden und aus der Config geladen werden
-  key_menu_activate := KEY_BACKSPACE;
+  key_menu_activate := KEY_ESCAPE;
   key_menu_up := KEY_UPARROW;
   key_menu_down := KEY_DOWNARROW;
   key_menu_left := KEY_LEFTARROW;

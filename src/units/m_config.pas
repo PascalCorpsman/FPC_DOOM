@@ -12,6 +12,8 @@ Procedure M_MakeDirectory(Const dir: String);
 Procedure M_LoadDefaults();
 Procedure M_SetConfigFilenames(Const main_config: String; Const extra_config: String);
 
+Function M_GetSaveGameDir(iwadname: String): String;
+
 Implementation
 
 Uses m_argv;
@@ -121,6 +123,58 @@ Begin
   default_extra_config := extra_config;
 End;
 
-End.
+Function M_GetSaveGameDir(iwadname: String): String;
+Var
+  p: int;
+  savegamedir, topdir: String;
+Begin
 
+  //!
+  // @arg <directory>
+  //
+  // Specify a path from which to load and save games. If the directory
+  // does not exist then it will automatically be created.
+  //
+
+  p := M_CheckParmWithArgs('-savedir', 1);
+  If (p <> 0) Then Begin
+    savegamedir := myargv[p + 1];
+    If (Not DirectoryExists(savegamedir)) Then Begin
+      ForceDirectories(savegamedir);
+    End;
+
+    // add separator at end just in case
+    savegamedir := IncludeTrailingPathDelimiter(savegamedir);
+
+    writeln(format('Save directory changed to %s.', [savegamedir]));
+  End
+    //#ifdef _WIN32
+    //    // In -cdrom mode, we write savegames to a specific directory
+    //    // in addition to configs.
+    //
+    //    else if (M_ParmExists("-cdrom"))
+    //    {
+    //        savegamedir = M_StringDuplicate(configdir);
+    //    }
+    //#endif
+    //    // If not "doing" a configuration directory (Windows), don't "do"
+    //    // a savegame directory, either.
+    //    else if (!strcmp(configdir, exedir))
+    //    {
+    //	savegamedir = M_StringDuplicate("");
+    //    }
+  Else Begin
+    // ~/.local/share/chocolate-doom/savegames
+    topdir := IncludeTrailingPathDelimiter(GetAppConfigDir(false)) + 'savegames';
+    ForceDirectories(topdir);
+
+    // eg. ~/.local/share/chocolate-doom/savegames/doom2.wad/
+
+    savegamedir := IncludeTrailingPathDelimiter(IncludeTrailingPathDelimiter(topdir) + iwadname);
+    ForceDirectories(savegamedir);
+  End;
+  result := savegamedir;
+End;
+
+End.
 

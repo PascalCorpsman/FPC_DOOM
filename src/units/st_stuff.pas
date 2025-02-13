@@ -28,6 +28,11 @@ Const
   cheat_commercial_noclip: cheatseq_t = (sequence: 'idclip'; parameter_chars: 0);
   cheat_weapon: cheatseq_t = (sequence: 'tntweap'; parameter_chars: 1);
 
+  cheat_clev: cheatseq_t = (sequence: 'idclev'; parameter_chars: 2);
+
+  // [crispy] pseudo cheats to eat up the first digit typed after a cheat expecting two parameters
+  cheat_clev1: cheatseq_t = (sequence: 'idclev'; parameter_chars: 1);
+
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
 
@@ -52,10 +57,10 @@ Implementation
 Uses
   math, info_types, doomstat, doomdata, tables, sounds, info
   , am_map
-  , d_items, d_player, d_englsh, deh_misc, d_mode
+  , d_items, d_player, d_englsh, deh_misc, d_mode, d_loop
   , g_game
   , m_menu, m_fixed, m_random, m_controls
-  , p_mobj, p_local, p_inter
+  , p_mobj, p_local, p_inter, p_setup
   , r_main
   , st_lib, s_sound
   , v_patch, v_video, v_trans
@@ -89,6 +94,11 @@ Const
   ST_ARMSBGY = 168;
   ST_ARMSXSPACE = 12;
   ST_ARMSYSPACE = 10;
+
+  // Frags pos.
+  ST_FRAGSX = (138 {- ST_WIDESCREENDELTA});
+  ST_FRAGSY = 171;
+  ST_FRAGSWIDTH = 2;
 
   // ARMOR number pos.
   ST_ARMORWIDTH = 3;
@@ -255,7 +265,7 @@ Var
   w_ready: st_number_t;
 
   // in deathmatch only, summary of frags stats
-  //  static st_number_t	w_frags;
+  w_frags: st_number_t;
 
   // health widget
   w_health: st_percent_t;
@@ -371,11 +381,16 @@ End;
 Procedure ST_createWidgets();
 Var
   i: int;
+  before: weapontype_t;
+
 Begin
   // [crispy] re-calculate WIDESCREENDELTA
   I_GetScreenDimensions();
   st_widescreendelta := ST_WIDESCREENDELTA_;
 
+  // If you regulary finish a
+  before := plyr^.readyweapon;
+  If (plyr^.readyweapon = wp_fist) Or (plyr^.readyweapon = wp_chainsaw) Then plyr^.readyweapon := wp_pistol; // Corpsman, FIX Crash when player has fist or chainsaw during init..
   // ready weapon ammo
   STlib_initNum(w_ready,
     ST_AMMOX,
@@ -384,6 +399,7 @@ Begin
     @plyr^.ammo[integer(weaponinfo[integer(plyr^.readyweapon)].ammo)],
     @st_statusbaron,
     ST_AMMOWIDTH);
+  plyr^.readyweapon := before;
 
   // the last weapon type
   w_ready.data := int(plyr^.readyweapon);
@@ -417,14 +433,14 @@ Begin
   // [crispy] show SSG availability in the Shotgun slot of the arms widget
   w_arms[1].inum := @st_shotguns;
 
-  //    // frags sum
-  //    STlib_initNum(&w_frags,
-  //		  ST_FRAGSX,
-  //		  ST_FRAGSY,
-  //		  tallnum,
-  //		  &st_fragscount,
-  //		  &st_fragson,
-  //		  ST_FRAGSWIDTH);
+  // frags sum
+  STlib_initNum(w_frags,
+    ST_FRAGSX,
+    ST_FRAGSY,
+    tallnum,
+    @st_fragscount,
+    @st_fragson,
+    ST_FRAGSWIDTH);
 
   // faces
   STlib_initMultIcon(w_faces,
@@ -747,8 +763,8 @@ Var
 Begin
 
   // must redirect the pointer if the ready weapon has changed.
-  //  if (w_ready.data != plyr->readyweapon)
-  //  {
+  //  if (w_ready.data <> plyr^.readyweapon) then begin
+  //
   If (weaponinfo[int(plyr^.readyweapon)].ammo = am_noammo) Then
     w_ready.num := @largeammo
   Else
@@ -1226,8 +1242,8 @@ Begin
   For i := 0 To 2 Do
     STlib_updateMultIcon(@w_keyboxes[i], refresh);
 
-  //    dp_translation = ST_WidgetColor(hudcolor_frags);
-  //    STlib_updateNum(&w_frags, refresh);
+  dp_translation := ST_WidgetColor(int(hudcolor_frags));
+  STlib_updateNum(@w_frags, refresh);
 
   dp_translation := Nil;
 End;
@@ -1350,6 +1366,8 @@ Var
   an: angle_t;
   buf: String;
   w: int;
+  epsd: int;
+  map: int;
 Begin
   result := false;
   // Filter automap on/off.
@@ -1827,154 +1845,131 @@ Begin
         //    }
     End;
 
-    //
-    //    // 'clev' change-level cheat
-    //    if (!netgame && cht_CheckCheat(&cheat_clev, ev->data2) && !menuactive) // [crispy] prevent only half the screen being updated
-    //    {
-    //      char		buf[3];
-    //      int		epsd;
-    //      int		map;
-    //
-    //      cht_GetParam(&cheat_clev, buf);
-    //
-    //      if (gamemode == commercial)
-    //      {
-    //	if (gamemission == pack_master)
-    //	    epsd = 3;
-    //	else
-    //	if (gamemission == pack_nerve)
-    //	    epsd = 2;
-    //	else
-    //	epsd = 0;
-    //	map = (buf[0] - '0')*10 + buf[1] - '0';
-    //      }
-    //      else
-    //      {
-    //	epsd = buf[0] - '0';
-    //	map = buf[1] - '0';
-    //
-    //        // Chex.exe always warps to episode 1.
-    //
-    //        if (gameversion == exe_chex)
-    //        {
-    //            if (epsd > 1)
-    //            {
-    //                epsd = 1;
-    //            }
-    //            if (map > 5)
-    //            {
-    //                map = 5;
-    //            }
-    //        }
-    //      }
-    //
-    //  // [crispy] only fix episode/map if it doesn't exist
-    //  if (P_GetNumForMap(epsd, map, false) < 0)
-    //  {
-    //      // Catch invalid maps.
-    //      if (gamemode != commercial)
-    //      {
-    //          // [crispy] allow IDCLEV0x to work in Doom 1
-    //          if (epsd == 0)
-    //          {
-    //              epsd = gameepisode;
-    //          }
-    //          if (epsd < 1)
-    //          {
-    //              return false;
-    //          }
-    //          if (epsd > 4)
-    //          {
-    //              // [crispy] Sigil
-    //              if (!(crispy->haved1e5 && epsd == 5) &&
-    //                  !(crispy->haved1e6 && epsd == 6))
-    //              return false;
-    //          }
-    //          if (epsd == 4 && gameversion < exe_ultimate)
-    //          {
-    //              return false;
-    //          }
-    //          // [crispy] IDCLEV00 restarts current map
-    //          if ((map == 0) && (buf[0] - '0' == 0))
-    //          {
-    //              map = gamemap;
-    //          }
-    //          // [crispy] support E1M10 "Sewers"
-    //          if ((map == 0 || map > 9) && crispy->havee1m10 && epsd == 1)
-    //          {
-    //              map = 10;
-    //          }
-    //          if (map < 1)
-    //          {
-    //              return false;
-    //          }
-    //          if (map > 9)
-    //          {
-    //              // [crispy] support E1M10 "Sewers"
-    //              if (!(crispy->havee1m10 && epsd == 1 && map == 10))
-    //              return false;
-    //          }
-    //      }
-    //      else
-    //      {
-    //          // [crispy] IDCLEV00 restarts current map
-    //          if ((map == 0) && (buf[0] - '0' == 0))
-    //          {
-    //              map = gamemap;
-    //          }
-    //          if (map < 1)
-    //          {
-    //              return false;
-    //          }
-    //          if (map > 40)
-    //          {
-    //              return false;
-    //          }
-    //          if (map > 9 && gamemission == pack_nerve)
-    //          {
-    //              return false;
-    //          }
-    //          if (map > 21 && gamemission == pack_master)
-    //          {
-    //              return false;
-    //          }
-    //      }
-    //  }
-    //
-    //      // [crispy] prevent idclev to nonexistent levels exiting the game
-    //      if (P_GetNumForMap(epsd, map, false) >= 0)
-    //      {
-    //      // So be it.
-    //      plyr->message = DEH_String(STSTR_CLEV);
-    //      // [crisp] allow IDCLEV during demo playback and warp to the requested map
-    //      if (demoplayback)
-    //      {
-    //          crispy->demowarp = map;
-    //          nodrawers = true;
-    //          singletics = true;
-    //
-    //          if (map <= gamemap)
-    //          {
-    //              G_DoPlayDemo();
-    //          }
-    //
-    //           return true;
-    //      }
-    //      else
-    //      G_DeferedInitNew(gameskill, epsd, map);
-    //      // [crispy] eat key press, i.e. don't change weapon upon level change
-    //      return true;
-    //      }
-    //    }
-    //    // [crispy] eat up the first digit typed after a cheat expecting two parameters
-    //    else if (!netgame && cht_CheckCheat(&cheat_clev1, ev->data2) && !menuactive)
-    //    {
-    //	char buf[2];
-    //
-    //	cht_GetParam(&cheat_clev1, buf);
-    //
-    //	return isdigit(buf[0]);
-    //    }
+
+    // 'clev' change-level cheat
+    If (Not netgame) And (cht_CheckCheat(cheat_clev, chr(ev^.data2)) <> 0) And (Not menuactive) Then Begin // [crispy] prevent only half the screen being updated
+      cht_GetParam(cheat_clev, buf);
+
+      If (gamemode = commercial) Then Begin
+
+        If (gamemission = pack_master) Then
+          epsd := 3
+        Else If (gamemission = pack_nerve) Then
+          epsd := 2
+        Else
+          epsd := 0;
+        map := strtointdef(buf, -1);
+      End
+      Else Begin
+        epsd := StrToIntDef(buf[1], -1);
+        map := StrToIntDef(buf[2], -1);
+
+        // Chex.exe always warps to episode 1.
+        If (gameversion = exe_chex) Then Begin
+          If (epsd > 1) Then epsd := 1;
+          If (map > 5) Then map := 5;
+        End;
+      End;
+
+      // [crispy] only fix episode/map if it doesn't exist
+      If (P_GetNumForMap(epsd, map, false) < 0) Then Begin
+        // Catch invalid maps.
+        If (gamemode <> commercial) Then Begin
+          // [crispy] allow IDCLEV0x to work in Doom 1
+          If (epsd = 0) Then Begin
+            epsd := gameepisode;
+          End;
+          If (epsd < 1) Then Begin
+            result := false;
+            exit;
+          End;
+          If (epsd > 4) Then Begin
+            // [crispy] Sigil
+            If Not (crispy.haved1e5 And (epsd = 5)) And
+              Not (crispy.haved1e6 And (epsd = 6)) Then Begin
+              result := false;
+              exit;
+            End;
+          End;
+          If (epsd = 4) And (gameversion < exe_ultimate) Then Begin
+            result := false;
+            exit;
+          End;
+          // [crispy] IDCLEV00 restarts current map
+          If ((map = 0) And (buf[1] = '0')) Then Begin
+            map := gamemap;
+          End;
+          // [crispy] support E1M10 "Sewers"
+          If ((map = 0) Or (map > 9)) And crispy.havee1m10 And (epsd = 1) Then Begin
+            map := 10;
+          End;
+          If (map < 1) Then Begin
+            result := false;
+            exit;
+          End;
+          If (map > 9) Then Begin
+            // [crispy] support E1M10 "Sewers"
+            If (Not (crispy.havee1m10 And (epsd = 1) And (map = 10))) Then Begin
+              result := false;
+              exit;
+            End;
+          End;
+        End
+        Else Begin
+          // [crispy] IDCLEV00 restarts current map
+          If ((map = 0) And (buf[1] = '0')) Then Begin
+            map := gamemap;
+          End;
+          If (map < 1) Then Begin
+            result := false;
+            exit;
+          End;
+          If (map > 40) Then Begin
+            result := false;
+            exit;
+          End;
+          If (map > 9) And (gamemission = pack_nerve) Then Begin
+            result := false;
+            exit;
+          End;
+          If (map > 21) And (gamemission = pack_master) Then Begin
+            result := false;
+            exit;
+          End;
+        End;
+      End;
+
+      // [crispy] prevent idclev to nonexistent levels exiting the game
+      If (P_GetNumForMap(epsd, map, false) >= 0) Then Begin
+
+        // So be it.
+        plyr^.message := STSTR_CLEV;
+        // [crisp] allow IDCLEV during demo playback and warp to the requested map
+        If (demoplayback) Then Begin
+
+          crispy.demowarp := map;
+          nodrawers := true;
+          singletics := true;
+
+          If (map <= gamemap) Then Begin
+            G_DoPlayDemo();
+          End;
+
+          result := true;
+          exit;
+        End
+        Else
+          G_DeferedInitNew(gameskill, epsd, map);
+        // [crispy] eat key press, i.e. don't change weapon upon level change
+        result := true;
+        exit;
+      End;
+    End
+      // [crispy] eat up the first digit typed after a cheat expecting two parameters
+    Else If (Not netgame) And (cht_CheckCheat(cheat_clev1, chr(ev^.data2)) <> 0) And (Not menuactive) Then Begin
+      cht_GetParam(cheat_clev1, buf);
+      result := isdigit(buf[1]);
+    End;
   End;
 End;
 

@@ -30,6 +30,7 @@ Var
   AllocatedFlashs: Array Of Plightflash_t = Nil;
   Allocatedglows: Array Of Pglow_t = Nil;
   Allocatedstrobes: Array Of Pstrobe_t = Nil;
+  AllocatedFlicks: Array Of Pfireflicker_t = Nil;
 
   //
   // T_LightFlash
@@ -205,28 +206,60 @@ Begin
   sector^.special := 0;
 End;
 
+
+//
+// T_FireFlicker
+//
+
+Procedure T_FireFlicker(mo: Pmobj_t);
+Var
+  flick: Pfireflicker_t;
+  amount: int;
+Begin
+  flick := Pfireflicker_t(mo);
+
+  flick^.count := flick^.count - 1;
+  If (flick^.count <> 0) Then exit;
+
+  amount := (P_Random() And 3) * 16;
+
+  If (flick^.sector^.lightlevel - amount < flick^.minlight) Then
+    flick^.sector^.lightlevel := flick^.minlight
+  Else
+    flick^.sector^.lightlevel := flick^.maxlight - amount;
+
+  flick^.count := 4;
+
+  // [crispy] A11Y
+  If (a11y_sector_lighting <> 0) Then
+    flick^.sector^.rlightlevel := flick^.sector^.lightlevel
+  Else
+    flick^.sector^.rlightlevel := flick^.maxlight;
+End;
+
 //
 // P_SpawnFireFlicker
 //
 
 Procedure P_SpawnFireFlicker(sector: Psector_t);
+Var
+  flick: Pfireflicker_t;
 Begin
-  Raise exception.create('Port me.');
-  //      fireflicker_t*	flick;
-  //
-  //    // Note that we are resetting sector attributes.
-  //    // Nothing special about it during gameplay.
-  //    sector->special = 0;
-  //
-  //    flick = Z_Malloc ( sizeof(*flick), PU_LEVSPEC, 0);
-  //
-  //    P_AddThinker (&flick->thinker);
-  //
-  //    flick->thinker.function.acp1 = (actionf_p1) T_FireFlicker;
-  //    flick->sector = sector;
-  //    flick->maxlight = sector->lightlevel;
-  //    flick->minlight = P_FindMinSurroundingLight(sector,sector->lightlevel)+16;
-  //    flick->count = 4;
+
+  // Note that we are resetting sector attributes.
+  // Nothing special about it during gameplay.
+  sector^.special := 0;
+  new(flick);
+  setlength(AllocatedFlicks, high(AllocatedFlicks) + 2);
+  AllocatedFlicks[high(AllocatedFlicks)] := flick;
+
+  P_AddThinker(@flick^.thinker);
+
+  flick^.thinker._function.acp1 := @T_FireFlicker;
+  flick^.sector := sector;
+  flick^.maxlight := sector^.lightlevel;
+  flick^.minlight := P_FindMinSurroundingLight(sector, sector^.lightlevel) + 16;
+  flick^.count := 4;
 End;
 
 Procedure EV_LightTurnOn(line: Pline_t; bright: int);
@@ -348,6 +381,12 @@ Finalization
     Dispose(Allocatedstrobes[i]);
   End;
   setlength(Allocatedstrobes, 0);
+
+  For i := 0 To high(AllocatedFlicks) Do Begin
+    Dispose(AllocatedFlicks[i]);
+  End;
+  setlength(AllocatedFlicks, 0);
+
 
 End.
 

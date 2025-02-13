@@ -16,6 +16,7 @@ Function D_DoomLoop(): Boolean; // Main Loop -> Rendert die Frames
 Procedure D_ProcessEvents();
 
 Procedure D_DoAdvanceDemo();
+Procedure D_PageTicker();
 
 Var
   wipegamestate: gamestate_t = GS_DEMOSCREEN;
@@ -30,6 +31,7 @@ Var
   fastparm: boolean; // checkparm of -fast
   respawnparm: boolean; // checkparm of -respawn
   coop_spawns: boolean = false; // [crispy] checkparm of -coop_spawns
+  savegamedir: String; // endet auf pathdelim und zeigt auf ein beschreibbares Verzeichnis
 
 Implementation
 
@@ -37,7 +39,7 @@ Uses
   config, sounds
   , doom_icon, doomstat
   , am_map
-  , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad
+  , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad, d_player
   , f_wipe
   , g_game
   , hu_stuff
@@ -96,6 +98,28 @@ Var
 
   // If true, the main game loop has started.
   main_loop_started: boolean = false;
+
+  //
+  // D_AdvanceDemo
+  // Called after each demo or intro demosequence finishes
+  //
+
+Procedure D_AdvanceDemo();
+Begin
+  advancedemo := true;
+End;
+
+//
+// D_PageTicker
+// Handles timing for warped projection
+//
+
+Procedure D_PageTicker();
+Begin
+  pagetic := pagetic - 1;
+  If (pagetic < 0) Then
+    D_AdvanceDemo();
+End;
 
 Function D_AddFile(filename: String): boolean;
 Begin
@@ -309,11 +333,6 @@ Begin
   //            }
   //        }
   //    }
-End;
-
-Procedure D_AdvanceDemo();
-Begin
-  advancedemo := true;
 End;
 
 Procedure D_StartTitle();
@@ -969,9 +988,9 @@ End;
 
 Procedure D_DoAdvanceDemo();
 Begin
-  //     players[consoleplayer].playerstate = PST_LIVE;  // not reborn
+  players[consoleplayer].playerstate := PST_LIVE; // not reborn
   advancedemo := false;
-  //    usergame = false;               // no save / end game here
+  usergame := false; // no save / end game here
   paused := 0;
   gameaction := ga_nothing;
   // [crispy] update the "singleplayer" variable
@@ -1015,41 +1034,38 @@ Begin
         End;
       End;
     1: Begin
-        //	G_DeferedPlayDemo(DEH_String("demo1"));
+        G_DeferedPlayDemo('demo1');
       End;
-    //      case 2:
-    //	pagetic = 200;
-    //	gamestate = GS_DEMOSCREEN;
-    //	pagename = DEH_String("CREDIT");
-    //	break;
-    //      case 3:
-    //	G_DeferedPlayDemo(DEH_String("demo2"));
-    //	break;
-    //      case 4:
-    //	gamestate = GS_DEMOSCREEN;
-    //	if ( gamemode == commercial)
-    //	{
-    //	    pagetic = TICRATE * 11;
-    //	    pagename = DEH_String("TITLEPIC");
-    //	    S_StartMusic(mus_dm2ttl);
-    //	}
-    //	else
-    //	{
-    //	    pagetic = 200;
-    //
-    //	    if (gameversion >= exe_ultimate)
-    //	      pagename = DEH_String("CREDIT");
-    //	    else
-    //	      pagename = DEH_String("HELP2");
-    //	}
-    //	break;
-    //      case 5:
-    //	G_DeferedPlayDemo(DEH_String("demo3"));
-    //	break;
-    //        // THE DEFINITIVE DOOM Special Edition demo
-    //      case 6:
-    //	G_DeferedPlayDemo(DEH_String("demo4"));
-    //	break;
+    2: Begin
+        pagetic := 200;
+        gamestate := GS_DEMOSCREEN;
+        pagename := 'CREDIT';
+      End;
+    3: Begin
+        G_DeferedPlayDemo('demo2');
+      End;
+    4: Begin
+        gamestate := GS_DEMOSCREEN;
+        If (gamemode = commercial) Then Begin
+          pagetic := TICRATE * 11;
+          pagename := 'TITLEPIC';
+          S_StartMusic(mus_dm2ttl);
+        End
+        Else Begin
+          pagetic := 200;
+          If (gameversion >= exe_ultimate) Then
+            pagename := 'CREDIT'
+          Else
+            pagename := 'HELP2';
+        End;
+      End;
+    5: Begin
+        G_DeferedPlayDemo('demo3');
+      End;
+    // THE DEFINITIVE DOOM Special Edition demo
+    6: Begin
+        G_DeferedPlayDemo('demo4');
+      End;
   End;
 
   // The Doom 3: BFG Edition version of doom2.wad does not have a
@@ -1676,7 +1692,7 @@ Begin
   // we've finished loading Dehacked patches.
   D_SetGameDescription();
 
-  //    savegamedir = M_GetSaveGameDir(D_SaveGameIWADName(gamemission, gamevariant));
+  savegamedir := M_GetSaveGameDir(D_SaveGameIWADName(gamemission, gamevariant));
 
   // Check for -file in shareware
   If (modifiedgame And (gamevariant <> freedoom)) Then Begin

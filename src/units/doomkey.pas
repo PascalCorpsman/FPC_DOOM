@@ -34,7 +34,7 @@ Const
   //  #define KEY_F11		(0x80+0x57)
   //  #define KEY_F12		(0x80+0x58)
   //
-  KEY_BACKSPACE = VK_ESCAPE;
+  KEY_BACKSPACE = VK_BACK;
   KEY_PAUSE = VK_PAUSE;
   //
   //  #define KEY_EQUALS	0x3d

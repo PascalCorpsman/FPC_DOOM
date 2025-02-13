@@ -9,14 +9,17 @@ Uses
   , d_event
   ;
 
-//
-// MENUS
-//
-// Called by main loop,
-// saves config file and calls I_Quit when user exits.
-// Even when the menu is not displayed,
-// this can resize the view and change game parameters.
-// Does all the real work of the menu interaction.
+Const
+  savepage_max = 7;
+
+  //
+  // MENUS
+  //
+  // Called by main loop,
+  // saves config file and calls I_Quit when user exits.
+  // Even when the menu is not displayed,
+  // this can resize the view and change game parameters.
+  // Does all the real work of the menu interaction.
 Function M_Responder(Const ev: Pevent_t): Boolean;
 
 // Called by main loop,
@@ -55,18 +58,23 @@ Var
   // Blocky mode, has default, 0 = high, 1 = normal
   detailLevel: int = 0;
   screenblocks: int = 10; // [crispy] increased CORPSMAN Default = 10, aber so lange das HUD noch nicht läuft sieht das sonst doof aus ..
+  // -1 = no quicksave slot picked!
+  quickSaveSlot: int;
+  // [FG] support up to 8 pages of savegames
+  savepage: int = 0;
 
 Implementation
 
 Uses
-  math
+  math, doomdef
   , doomkey, dstrings, doomstat, sounds
-  , d_mode, d_loop, d_englsh
+  , d_mode, d_loop, d_englsh, d_main
   , i_video
   , g_game
   , hu_stuff
   , i_timer, i_system
   , m_controls
+  , p_setup, p_saveg
   , s_sound
   , v_trans, v_video
   , w_wad
@@ -83,6 +91,8 @@ Const
   e_hurtme = 2;
   e_violence = 3;
   e_nightmare = 4;
+  load_end = 8;
+  SAVESTRINGSIZE = 24;
 
 Type
 
@@ -148,10 +158,24 @@ Var
   MainDef: menu_t; // Wird im Initialiserungsteil definiert
   NewDef: menu_t; // Wird im Initialiserungsteil definiert
   EpiDef: menu_t; // Wird im Initialiserungsteil definiert
+  SaveDef: menu_t; // Wird im Initialiserungsteil definiert
+  LoadDef: menu_t; // Wird im Initialiserungsteil definiert
 
   epi: int = 0;
   //  CrispnessMenus: Array Of menu_t; // Wird im Initialiserungsteil definiert
   //  crispness_cur: int = 0;
+
+  // we are going to be entering a savegame string
+  saveStringEnter: int;
+  saveSlot: int; // which slot to save in
+  saveCharIndex: int; // which char we're editing
+  //static boolean          joypadSave = false; // was the save action initiated by joypad?
+  // old save description before edit
+  saveOldString: String;
+  savegamestrings: Array[0..9] Of String;
+
+
+
 
 Procedure M_SetupNextMenu(menudef: Pmenu_t);
 Begin
@@ -315,6 +339,115 @@ Begin
   V_DrawPatchDirect(94, 2, W_CacheLumpName('M_DOOM', PU_CACHE));
 End;
 
+// [FG] support up to 8 pages of savegames
+
+Procedure M_DrawSaveLoadBottomLine();
+Begin
+
+  //  char pagestr[16];
+  //  const int y = 152;
+  //
+  //  dp_translation = cr[CR_GOLD];
+  //
+  //  if (savepage > 0)
+  //    M_WriteText(LoadDef.x, y, "< PGUP");
+  //  if (savepage < savepage_max)
+  //    M_WriteText(LoadDef.x+(SAVESTRINGSIZE-6)*8, y, "PGDN >");
+  //
+  //  M_snprintf(pagestr, sizeof(pagestr), "page %d/%d", savepage + 1, savepage_max + 1);
+  //  M_WriteText(ORIGWIDTH/2-M_StringWidth(pagestr)/2, y, pagestr);
+  //
+  //  // [crispy] print "modified" (or created initially) time of savegame file
+  //  if (LoadMenu[itemOn].status)
+  //  {
+  //    struct stat st;
+  //    char filedate[32];
+  //
+  //    if (M_stat(P_SaveGameFile(itemOn), &st) == 0)
+  //    {
+  //// [FG] suppress the most useless compiler warning ever
+  //#if defined(__GNUC__)
+  //#pragma GCC diagnostic push
+  //#pragma GCC diagnostic ignored "-Wformat-y2k"
+  //#endif
+  //    strftime(filedate, sizeof(filedate), "%x %X", localtime(&st.st_mtime));
+  //#if defined(__GNUC__)
+  //#pragma GCC diagnostic pop
+  //#endif
+  //    M_WriteText(ORIGWIDTH/2-M_StringWidth(filedate)/2, y + 8, filedate);
+  //    }
+  //  }
+
+  dp_translation := Nil;
+End;
+
+//
+// Draw border for the savegame description
+//
+
+Procedure M_DrawSaveLoadBorder(x, y: int);
+Var
+  i: int;
+Begin
+  V_DrawPatchDirect(x - 8, y + 7,
+    W_CacheLumpName('M_LSLEFT', PU_CACHE));
+
+  For i := 0 To 23 Do Begin
+    V_DrawPatchDirect(x, y + 7,
+      W_CacheLumpName('M_LSCNTR', PU_CACHE));
+    x := x + 8;
+  End;
+
+  V_DrawPatchDirect(x, y + 7,
+    W_CacheLumpName('M_LSRGHT', PU_CACHE));
+End;
+
+//
+// M_LoadGame & Cie.
+//
+Const
+  LoadDef_x = 72;
+  LoadDef_y = 28;
+
+Procedure M_DrawLoad();
+Var
+  i: int;
+Begin
+  V_DrawPatchDirect(LoadDef_x, LoadDef_y,
+    W_CacheLumpName('M_LOADG', PU_CACHE));
+
+  For i := 0 To load_end - 1 Do Begin
+    M_DrawSaveLoadBorder(LoadDef.x, LoadDef.y + LINEHEIGHT * i);
+    M_WriteText(LoadDef.x, LoadDef.y + LINEHEIGHT * i, savegamestrings[i]);
+  End;
+
+  M_DrawSaveLoadBottomLine();
+End;
+
+//
+//  M_SaveGame & Cie.
+//
+Const
+  SaveDef_x = 72;
+  SaveDef_y = 28;
+
+Procedure M_DrawSave();
+Var
+  i: int;
+Begin
+  V_DrawPatchDirect(SaveDef_x, SaveDef_y, W_CacheLumpName('M_SAVEG', PU_CACHE));
+  For i := 0 To load_end - 1 Do Begin
+    M_DrawSaveLoadBorder(LoadDef.x, LoadDef.y + LINEHEIGHT * i);
+    M_WriteText(LoadDef.x, LoadDef.y + LINEHEIGHT * i, savegamestrings[i]);
+  End;
+
+  If (saveStringEnter <> 0) Then Begin
+    i := M_StringWidth(savegamestrings[saveSlot]);
+    M_WriteText(LoadDef.x + i, LoadDef.y + LINEHEIGHT * saveSlot, '_');
+  End;
+  M_DrawSaveLoadBottomLine();
+End;
+
 Procedure M_NewGame(choice: int);
 Begin
   // [crispy] forbid New Game while recording a demo
@@ -356,7 +489,82 @@ End;
 
 Procedure M_Options(choice: int);
 Begin
+  Raise exception.create('Port me.');
   //  M_SetupNextMenu(&OptionsDef);
+End;
+
+
+//
+// M_ClearMenus
+//
+
+Procedure M_ClearMenus();
+Begin
+  menuactive := false;
+
+  // [crispy] entering menus while recording demos pauses the game
+  If (demorecording) And (paused <> 0) Then sendpause := true;
+
+  // If (Not netgame) And (usergame) And (paused) Then sendpause := true;
+End;
+
+//
+// User wants to load this game
+//
+
+Procedure M_LoadSelect(choice: int);
+Var
+  name: String;
+Begin
+  name := P_SaveGameFile(choice);
+
+  // [crispy] save the last game you loaded
+  SaveDef.lastOn := choice;
+  G_LoadGame(name);
+  M_ClearMenus();
+
+  // [crispy] allow quickload before quicksave
+  If (quickSaveSlot = -2) Then
+    quickSaveSlot := choice;
+End;
+
+Const
+  LoadMenu: Array Of menuitem_t =
+  (
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '1'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '2'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '3'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '4'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '5'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '6'),
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '7'), // [crispy] up to 8 savegames
+    (status: 1; Name: ''; routine: @M_LoadSelect; alphaKey: '8') // [crispy] up to 8 savegames
+    );
+
+  //
+  // M_ReadSaveStrings
+  //  read the strings from the savegame files
+  //
+
+Procedure M_ReadSaveStrings();
+Var
+  f: TMemoryStream;
+  name: String;
+  i: Integer;
+Begin
+  For i := 0 To load_end - 1 Do Begin
+    name := P_SaveGameFile(i);
+    If Not FileExists(name) Then Begin
+      savegamestrings[i] := '';
+      LoadMenu[i].status := 0;
+      continue;
+    End;
+    f := TMemoryStream.Create;
+    f.LoadFromFile(name);
+    savegamestrings[i] := f.ReadAnsiString;
+    f.free;
+    LoadMenu[i].status := 1;
+  End;
 End;
 
 //
@@ -366,14 +574,14 @@ End;
 Procedure M_LoadGame(choice: int);
 Begin
   // [crispy] allow loading game while multiplayer demo playback
-//    if (netgame && !demoplayback)
-//    {
-//	M_StartMessage(DEH_String(LOADNET),NULL,false);
-//	return;
-//    }
-//
-//    M_SetupNextMenu(&LoadDef);
-//    M_ReadSaveStrings();
+  If (netgame) And (Not demoplayback) Then Begin
+    Raise exception.create('Port me.');
+    //	M_StartMessage(DEH_String(LOADNET),NULL,false);
+    exit;
+  End;
+
+  M_SetupNextMenu(@LoadDef);
+  M_ReadSaveStrings();
 End;
 
 //
@@ -382,17 +590,15 @@ End;
 
 Procedure M_SaveGame(choice: int);
 Begin
-  //    if (!usergame)
-  //    {
-  //	M_StartMessage(DEH_String(SAVEDEAD),NULL,false);
-  //	return;
-  //    }
-  //
-  //    if (gamestate != GS_LEVEL)
-  //	return;
-  //
-  //    M_SetupNextMenu(&SaveDef);
-  //    M_ReadSaveStrings();
+  If (Not usergame) Then Begin
+    M_StartMessage(SAVEDEAD, Nil, false);
+    exit;
+  End;
+
+  If (gamestate <> GS_LEVEL) Then exit;
+
+  M_SetupNextMenu(@SaveDef);
+  M_ReadSaveStrings();
 End;
 
 //
@@ -426,19 +632,6 @@ Begin
   End;
 End;
 
-//
-// M_ClearMenus
-//
-
-Procedure M_ClearMenus();
-Begin
-  menuactive := false;
-
-  // [crispy] entering menus while recording demos pauses the game
-  If (demorecording) And (paused <> 0) Then sendpause := true;
-
-  // If (Not netgame) And (usergame) And (paused) Then sendpause := true;
-End;
 
 Procedure M_VerifyNightmare(key: int);
 Begin
@@ -466,12 +659,13 @@ Procedure M_Episode(choice: int);
 Begin
   If (gamemode = shareware) And (choice <> 0) Then Begin
     M_StartMessage(SWSTRING, Nil, false);
+    Raise Exception.Create('Port me.');
     //	M_SetupNextMenu(&ReadDef1);
     exit;
   End;
   epi := choice;
   // [crispy] have Sigil II loaded but not Sigil
-  If (epi = 4) And (false { crispy-> haved1e6 && !crispy-> haved1e5}) Then
+  If (epi = 4) And (crispy.haved1e6 And Not crispy.haved1e5) Then
     epi := 5;
   M_SetupNextMenu(@NewDef);
 End;
@@ -483,6 +677,20 @@ Function IsNullKey(key: int): Boolean;
 Begin
   result := (key = KEY_PAUSE) Or (key = KEY_CAPSLOCK)
     Or (key = KEY_SCRLCK) Or (key = KEY_NUMLOCK);
+End;
+
+//
+// M_Responder calls this when user is finished
+//
+
+Procedure M_DoSave(slot: int);
+Begin
+  G_SaveGame(slot, savegamestrings[slot]);
+  M_ClearMenus();
+
+  // PICK QUICKSAVE SLOT YET?
+  If (quickSaveSlot = -2) Then
+    quickSaveSlot := slot;
 End;
 
 //
@@ -707,133 +915,111 @@ Begin
     exit;
   End;
   // Save Game string input
-//    if (saveStringEnter)
-//    {
-//	switch(key)
-//	{
-//	  case KEY_BACKSPACE:
-//	    if (saveCharIndex > 0)
-//	    {
-//		saveCharIndex--;
-//		savegamestrings[saveSlot][saveCharIndex] = 0;
-//	    }
-//	    break;
-//
-//          case KEY_ESCAPE:
-//            saveStringEnter = 0;
-//            I_StopTextInput();
-//            M_StringCopy(savegamestrings[saveSlot], saveOldString,
-//                         SAVESTRINGSIZE);
-//            break;
-//
-//	  case KEY_ENTER:
-//	    saveStringEnter = 0;
-//            I_StopTextInput();
-//	    if (savegamestrings[saveSlot][0])
-//		M_DoSave(saveSlot);
-//	    break;
-//
-//	  default:
-//            // Savegame name entry. This is complicated.
-//            // Vanilla has a bug where the shift key is ignored when entering
-//            // a savegame name. If vanilla_keyboard_mapping is on, we want
-//            // to emulate this bug by using ev->data1. But if it's turned off,
-//            // it implies the user doesn't care about Vanilla emulation:
-//            // instead, use ev->data3 which gives the fully-translated and
-//            // modified key input.
-//
-//            if (ev->type != ev_keydown)
-//            {
-//                break;
-//            }
-//            if (vanilla_keyboard_mapping)
-//            {
-//                ch = ev->data1;
-//            }
-//            else
-//            {
-//                ch = ev->data3;
-//            }
-//
-//            ch = toupper(ch);
-//
-//            if (ch != ' '
-//             && (ch - HU_FONTSTART < 0 || ch - HU_FONTSTART >= HU_FONTSIZE))
-//            {
-//                break;
-//            }
-//
-//	    if (ch >= 32 && ch <= 127 &&
-//		saveCharIndex < SAVESTRINGSIZE-1 &&
-//		M_StringWidth(savegamestrings[saveSlot]) <
-//		(SAVESTRINGSIZE-2)*8)
-//	    {
-//		savegamestrings[saveSlot][saveCharIndex++] = ch;
-//		savegamestrings[saveSlot][saveCharIndex] = 0;
-//	    }
-//	    break;
-//	}
-//	return true;
-//    }
+  If (saveStringEnter <> 0) Then Begin
+    Case (key) Of
+      KEY_BACKSPACE: Begin
+          If (saveCharIndex > 0) Then Begin
+            delete(savegamestrings[saveSlot], length(savegamestrings[saveSlot]), 1);
+            saveCharIndex := length(savegamestrings[saveSlot]);
+          End;
+        End;
 
-//    // [crispy] Enter numeric value
-//    if (numeric_enter)
-//    {
-//        switch(key)
-//        {
-//            case KEY_BACKSPACE:
-//                if (numeric_entry_index > 0)
-//                {
-//                    numeric_entry_index--;
-//                    numeric_entry_str[numeric_entry_index] = '\0';
-//                }
-//                break;
-//            case KEY_ESCAPE:
-//                numeric_enter = false;
-//                I_StopTextInput();
-//                break;
-//            case KEY_ENTER:
-//                if (numeric_entry_str[0] != '\0')
-//                {
-//                    numeric_entry = atoi(numeric_entry_str);
-//                    currentMenu->menuitems[itemOn].routine(2);
-//                }
-//                else
-//                {
-//                    numeric_enter = false;
-//                    I_StopTextInput();
-//                }
-//                break;
-//            default:
-//                if (ev->type != ev_keydown)
-//                {
-//                    break;
-//                }
-//
-//                if (vanilla_keyboard_mapping)
-//                {
-//                    ch = ev->data1;
-//                }
-//                else
-//                {
-//                    ch = ev->data3;
-//                }
-//
-//                if (ch >= '0' && ch <= '9' &&
-//                        numeric_entry_index < NUMERIC_ENTRY_NUMDIGITS)
-//                {
-//                    numeric_entry_str[numeric_entry_index++] = ch;
-//                    numeric_entry_str[numeric_entry_index] = '\0';
-//                }
-//                else
-//                {
-//                    break;
-//                }
-//        }
-//        return true;
-//    }
+      KEY_ESCAPE: Begin
+          saveStringEnter := 0;
+          savegamestrings[saveSlot] := saveOldString;
+        End;
 
-  // Take care of any messages that need input
+      KEY_ENTER: Begin
+          saveStringEnter := 0;
+          //            I_StopTextInput();
+          If (savegamestrings[saveSlot] <> '') Then
+            M_DoSave(saveSlot);
+        End;
+    Else Begin
+        // Savegame name entry. This is complicated.
+        // Vanilla has a bug where the shift key is ignored when entering
+        // a savegame name. If vanilla_keyboard_mapping is on, we want
+        // to emulate this bug by using ev->data1. But if it's turned off,
+        // it implies the user doesn't care about Vanilla emulation:
+        // instead, use ev->data3 which gives the fully-translated and
+        // modified key input.
+        If (ev^._type = ev_keydown) Then Begin
+          ch := uppercase(ch)[1];
+          If (ch = ' ') Or
+            ((HU_FONTSTART <= ch) And (ord(ch) - ord(HU_FONTSTART) < HU_FONTSIZE)) Then Begin
+
+            If (ord(ch) >= 32) And (ord(ch) <= 127) And
+              (saveCharIndex < SAVESTRINGSIZE - 1) And
+              (length(savegamestrings[saveSlot]) < (SAVESTRINGSIZE - 2) * 8) Then Begin
+              savegamestrings[saveSlot] := savegamestrings[saveSlot] + ch;
+              saveCharIndex := length(savegamestrings[saveSlot]);
+            End;
+          End;
+        End;
+      End;
+    End;
+    result := true;
+    exit;
+  End;
+
+  //    // [crispy] Enter numeric value
+  //    if (numeric_enter)
+  //    {
+  //        switch(key)
+  //        {
+  //            case KEY_BACKSPACE:
+  //                if (numeric_entry_index > 0)
+  //                {
+  //                    numeric_entry_index--;
+  //                    numeric_entry_str[numeric_entry_index] = '\0';
+  //                }
+  //                break;
+  //            case KEY_ESCAPE:
+  //                numeric_enter = false;
+  //                I_StopTextInput();
+  //                break;
+  //            case KEY_ENTER:
+  //                if (numeric_entry_str[0] != '\0')
+  //                {
+  //                    numeric_entry = atoi(numeric_entry_str);
+  //                    currentMenu->menuitems[itemOn].routine(2);
+  //                }
+  //                else
+  //                {
+  //                    numeric_enter = false;
+  //                    I_StopTextInput();
+  //                }
+  //                break;
+  //            default:
+  //                if (ev->type != ev_keydown)
+  //                {
+  //                    break;
+  //                }
+  //
+  //                if (vanilla_keyboard_mapping)
+  //                {
+  //                    ch = ev->data1;
+  //                }
+  //                else
+  //                {
+  //                    ch = ev->data3;
+  //                }
+  //
+  //                if (ch >= '0' && ch <= '9' &&
+  //                        numeric_entry_index < NUMERIC_ENTRY_NUMDIGITS)
+  //                {
+  //                    numeric_entry_str[numeric_entry_index++] = ch;
+  //                    numeric_entry_str[numeric_entry_index] = '\0';
+  //                }
+  //                else
+  //                {
+  //                    break;
+  //                }
+  //        }
+  //        return true;
+  //    }
+
+    // Take care of any messages that need input
   If (messageToPrint <> 0) Then Begin
     If (messageNeedsInput) Then Begin
       If (key <> ord(' ')) And (key <> KEY_ESCAPE)
@@ -1059,54 +1245,54 @@ Begin
   Else If (key = key_menu_left) Then Begin
     // Slide slider left
 
-//	if (currentMenu->menuitems[itemOn].routine &&
-//	    currentMenu->menuitems[itemOn].status)
-//	{
-//            if (currentMenu->menuitems[itemOn].status == 2)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(0);
-//            }
-//            // [crispy] LR non-slider
-//            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(0);
-//            }
-//            // [crispy] Numeric entry
-//            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(0);
-//            }
-//        }
-//	return true;
+  //	if (currentMenu->menuitems[itemOn].routine &&
+  //	    currentMenu->menuitems[itemOn].status)
+  //	{
+  //            if (currentMenu->menuitems[itemOn].status == 2)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(0);
+  //            }
+  //            // [crispy] LR non-slider
+  //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(0);
+  //            }
+  //            // [crispy] Numeric entry
+  //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(0);
+  //            }
+  //        }
+  //	return true;
   End
   Else If (key = key_menu_right) Then Begin
     // Slide slider right
 
-//	if (currentMenu->menuitems[itemOn].routine &&
-//	    currentMenu->menuitems[itemOn].status)
-//	{
-//            if (currentMenu->menuitems[itemOn].status == 2)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(1);
-//            }
-//            // [crispy] LR non-slider
-//            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(1);
-//            }
-//            // [crispy] Numeric entry
-//            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
-//            {
-//                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-//                currentMenu->menuitems[itemOn].routine(1);
-//            }
-//        }
-//	return true;
+  //	if (currentMenu->menuitems[itemOn].routine &&
+  //	    currentMenu->menuitems[itemOn].status)
+  //	{
+  //            if (currentMenu->menuitems[itemOn].status == 2)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(1);
+  //            }
+  //            // [crispy] LR non-slider
+  //            else if (currentMenu->menuitems[itemOn].status == 3 && !mousextobutton)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(1);
+  //            }
+  //            // [crispy] Numeric entry
+  //            else if (currentMenu->menuitems[itemOn].status == 4 && !mousextobutton)
+  //            {
+  //                S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+  //                currentMenu->menuitems[itemOn].routine(1);
+  //            }
+  //        }
+  //	return true;
 
   End
   Else If (key = key_menu_forward) Then Begin
@@ -1353,43 +1539,37 @@ End;
 Procedure M_Init;
 Begin
   currentMenu := @MainDef;
-
-  // TODO: FIX: Default ist hier eigentlich False, aber wenn das Spiel startet ist
-  //       es im Main Menu und zeigt dieses auch an -> bliebe das false würde die
-  //       Tastatur direkt am Start nicht funktionieren.
-  //       Eigentlich sollte da irgendwo ein "M_StartControlPanel" kommen, aber noch konnte
-  //       der Entsprechende Aufruf nicht gefunden werden.
   menuactive := false;
   itemOn := currentMenu^.lastOn;
   whichSkull := 0;
-  //    skullAnimCounter = 10;
+  skullAnimCounter := 10;
   //    screenSize = screenblocks - 3;
   messageToPrint := 0;
   messageString := '';
   messageLastMenuActive := menuactive;
   messageRoutine := Nil; // Besser ist das!
-  //    quickSaveSlot = -1;
-  //
+  quickSaveSlot := -1;
+
   //    M_SetDefaultDifficulty(); // [crispy] pre-select default difficulty
-  //
-  //    // Here we could catch other version dependencies,
-  //    //  like HELP1/2, and four episodes.
-  //
-  //    // The same hacks were used in the original Doom EXEs.
-  //
+
+      // Here we could catch other version dependencies,
+      //  like HELP1/2, and four episodes.
+
+      // The same hacks were used in the original Doom EXEs.
+
   //    if (gameversion >= exe_ultimate)
   //    {
   //        MainMenu[readthis].routine = M_ReadThis2;
   //        ReadDef2.prevMenu = NULL;
   //    }
-  //
+
   //    if (gameversion >= exe_final && gameversion <= exe_final2)
   //    {
   //        ReadDef2.routine = M_DrawReadThisCommercial;
   //        // [crispy] rearrange Skull in Final Doom HELP screen
   //        ReadDef2.y -= 10;
   //    }
-  //
+
   //    if (gamemode == commercial)
   //    {
   //        MainMenu[readthis] = MainMenu[quitdoom];
@@ -1401,170 +1581,167 @@ Begin
   //        ReadDef1.y = 165;
   //        ReadMenu1[rdthsempty1].routine = M_FinishReadThis;
   //    }
-  //
-  //    // [crispy] Sigil
-  //    if (!crispy->haved1e5 && !crispy->haved1e6)
-  //    {
-  //        EpiDef.numitems = 4;
-  //    }
-  //    else if (crispy->haved1e5 != crispy->haved1e6)
-  //    {
-  //        EpiDef.numitems = 5;
-  //        if (crispy->haved1e6)
-  //        {
-  //            EpiDef.menuitems = EpisodeMenuSII;
-  //        }
-  //    }
-  //
-  //    // Versions of doom.exe before the Ultimate Doom release only had
-  //    // three episodes; if we're emulating one of those then don't try
-  //    // to show episode four. If we are, then do show episode four
-  //    // (should crash if missing).
-  //    if (gameversion < exe_ultimate)
-  //    {
-  //        EpiDef.numitems--;
-  //    }
-  //    // chex.exe shows only one episode.
-  //    else if (gameversion == exe_chex)
-  //    {
-  //        EpiDef.numitems = 1;
-  //        // [crispy] never show the Episode menu
-  //        NewDef.prevMenu = &MainDef;
-  //    }
-  //
-  //    // [crispy] NRFTL / The Master Levels
-  //    if (crispy->havenerve || crispy->havemaster)
-  //    {
-  //        int i, j;
-  //
-  //        NewDef.prevMenu = &EpiDef;
-  //        EpisodeMenu[0].alphaKey = gamevariant == freedm ||
-  //                                  gamevariant == freedoom ?
-  //                                 'f' :
-  //                                 'h';
-  //        EpisodeMenu[0].alttext = gamevariant == freedm ?
-  //                                 "FreeDM" :
-  //                                 gamevariant == freedoom ?
-  //                                 "Freedoom: Phase 2" :
-  //                                 "Hell on Earth";
-  //        EpiDef.numitems = 1;
-  //
-  //        if (crispy->havenerve)
-  //        {
-  //            EpisodeMenu[EpiDef.numitems].alphaKey = 'n';
-  //            EpisodeMenu[EpiDef.numitems].alttext = "No Rest for the Living";
-  //            EpiDef.numitems++;
-  //
-  //            i = W_CheckNumForName("M_EPI1");
-  //            j = W_CheckNumForName("M_EPI2");
-  //
-  //            // [crispy] render the episode menu with the HUD font ...
-  //            // ... if the graphics are not available
-  //            if (i != -1 && j != -1)
-  //            {
-  //                // ... or if the graphics are both from an IWAD
-  //                if (W_IsIWADLump(lumpinfo[i]) && W_IsIWADLump(lumpinfo[j]))
-  //                {
-  //                    const patch_t *pi, *pj;
-  //
-  //                    pi = W_CacheLumpNum(i, PU_CACHE);
-  //                    pj = W_CacheLumpNum(j, PU_CACHE);
-  //
-  //                    // ... and if the patch width for "Hell on Earth"
-  //                    //     is longer than "No Rest for the Living"
-  //                    if (SHORT(pi->width) > SHORT(pj->width))
-  //                    {
-  //                        EpiDef.lumps_missing = 1;
-  //                    }
-  //                }
-  //            }
-  //            else
-  //            {
-  //                EpiDef.lumps_missing = 1;
-  //            }
-  //        }
-  //
-  //        if (crispy->havemaster)
-  //        {
-  //            EpisodeMenu[EpiDef.numitems].alphaKey = 't';
-  //            EpisodeMenu[EpiDef.numitems].alttext = "The Master Levels";
-  //            EpiDef.numitems++;
-  //
-  //            i = W_CheckNumForName(EpiDef.numitems == 3 ? "M_EPI3" : "M_EPI2");
-  //
-  //            // [crispy] render the episode menu with the HUD font
-  //            // if the graphics are not available or not from a PWAD
-  //            if (i == -1 || W_IsIWADLump(lumpinfo[i]))
-  //            {
-  //                EpiDef.lumps_missing = 1;
-  //            }
-  //        }
-  //    }
-  //
-  //    // [crispy] rearrange Load Game and Save Game menus
-  //    {
-  //	const patch_t *patchl, *patchs, *patchm;
-  //	short captionheight, vstep;
-  //
-  //	patchl = W_CacheLumpName(DEH_String("M_LOADG"), PU_CACHE);
-  //	patchs = W_CacheLumpName(DEH_String("M_SAVEG"), PU_CACHE);
-  //	patchm = W_CacheLumpName(DEH_String("M_LSLEFT"), PU_CACHE);
-  //
-  //	LoadDef_x = (ORIGWIDTH - SHORT(patchl->width)) / 2 + SHORT(patchl->leftoffset);
-  //	SaveDef_x = (ORIGWIDTH - SHORT(patchs->width)) / 2 + SHORT(patchs->leftoffset);
-  //	LoadDef.x = SaveDef.x = (ORIGWIDTH - 24 * 8) / 2 + SHORT(patchm->leftoffset); // [crispy] see M_DrawSaveLoadBorder()
-  //
-  //	captionheight = MAX(SHORT(patchl->height), SHORT(patchs->height));
-  //
-  //	vstep = ORIGHEIGHT - 32; // [crispy] ST_HEIGHT
-  //	vstep -= captionheight;
-  //	vstep -= (load_end - 1) * LINEHEIGHT + SHORT(patchm->height);
-  //	vstep /= 3;
-  //
-  //	if (vstep > 0)
-  //	{
-  //		LoadDef_y = vstep + captionheight - SHORT(patchl->height) + SHORT(patchl->topoffset);
-  //		SaveDef_y = vstep + captionheight - SHORT(patchs->height) + SHORT(patchs->topoffset);
-  //		LoadDef.y = SaveDef.y = vstep + captionheight + vstep + SHORT(patchm->topoffset) - 15; // [crispy] moved up, so savegame date/time may appear above status bar
-  //		MouseDef.y = LoadDef.y;
-  //	}
-  //    }
-  //
-  //    // [crispy] remove DOS reference from the game quit confirmation dialogs
-  //    if (!M_ParmExists("-nodeh"))
-  //    {
-  //	const char *string;
-  //	char *replace;
-  //
-  //	// [crispy] "i wouldn't leave if i were you.\ndos is much worse."
-  //	string = doom1_endmsg[3];
-  //	if (!DEH_HasStringReplacement(string))
-  //	{
-  //		replace = M_StringReplace(string, "dos", crispy->platform);
-  //		DEH_AddStringReplacement(string, replace);
-  //		free(replace);
-  //	}
-  //
-  //	// [crispy] "you're trying to say you like dos\nbetter than me, right?"
-  //	string = doom1_endmsg[4];
-  //	if (!DEH_HasStringReplacement(string))
-  //	{
-  //		replace = M_StringReplace(string, "dos", crispy->platform);
-  //		DEH_AddStringReplacement(string, replace);
-  //		free(replace);
-  //	}
-  //
-  //	// [crispy] "don't go now, there's a \ndimensional shambler waiting\nat the dos prompt!"
-  //	string = doom2_endmsg[2];
-  //	if (!DEH_HasStringReplacement(string))
-  //	{
-  //		replace = M_StringReplace(string, "dos", "command");
-  //		DEH_AddStringReplacement(string, replace);
-  //		free(replace);
-  //	}
-  //    }
-  //
-  //    opldev = M_CheckParm("-opldev") > 0;
+
+  // [crispy] Sigil
+  If (Not crispy.haved1e5) And (Not crispy.haved1e6) Then Begin
+
+    EpiDef.numitems := 4;
+  End
+  Else If (crispy.haved1e5 <> crispy.haved1e6) Then Begin
+    EpiDef.numitems := 5;
+    If (crispy.haved1e6) Then Begin
+      // EpiDef.menuitems = EpisodeMenuSII;
+    End;
+  End;
+
+  // Versions of doom.exe before the Ultimate Doom release only had
+  // three episodes; if we're emulating one of those then don't try
+  // to show episode four. If we are, then do show episode four
+  // (should crash if missing).
+  If (gameversion < exe_ultimate) Then Begin
+    EpiDef.numitems := EpiDef.numitems - 1;
+  End
+    // chex.exe shows only one episode.
+  Else If (gameversion = exe_chex) Then Begin
+
+    EpiDef.numitems := 1;
+    // [crispy] never show the Episode menu
+    NewDef.prevMenu := @MainDef;
+  End;
+
+  // [crispy] NRFTL / The Master Levels
+  If (crispy.havenerve <> '') Or (crispy.havemaster <> '') Then Begin
+    Raise Exception.Create('Port me.');
+    //        int i, j;
+    //
+    //        NewDef.prevMenu = &EpiDef;
+    //        EpisodeMenu[0].alphaKey = gamevariant == freedm ||
+    //                                  gamevariant == freedoom ?
+    //                                 'f' :
+    //                                 'h';
+    //        EpisodeMenu[0].alttext = gamevariant == freedm ?
+    //                                 "FreeDM" :
+    //                                 gamevariant == freedoom ?
+    //                                 "Freedoom: Phase 2" :
+    //                                 "Hell on Earth";
+    //        EpiDef.numitems = 1;
+    //
+    //        if (crispy->havenerve)
+    //        {
+    //            EpisodeMenu[EpiDef.numitems].alphaKey = 'n';
+    //            EpisodeMenu[EpiDef.numitems].alttext = "No Rest for the Living";
+    //            EpiDef.numitems++;
+    //
+    //            i = W_CheckNumForName("M_EPI1");
+    //            j = W_CheckNumForName("M_EPI2");
+    //
+    //            // [crispy] render the episode menu with the HUD font ...
+    //            // ... if the graphics are not available
+    //            if (i != -1 && j != -1)
+    //            {
+    //                // ... or if the graphics are both from an IWAD
+    //                if (W_IsIWADLump(lumpinfo[i]) && W_IsIWADLump(lumpinfo[j]))
+    //                {
+    //                    const patch_t *pi, *pj;
+    //
+    //                    pi = W_CacheLumpNum(i, PU_CACHE);
+    //                    pj = W_CacheLumpNum(j, PU_CACHE);
+    //
+    //                    // ... and if the patch width for "Hell on Earth"
+    //                    //     is longer than "No Rest for the Living"
+    //                    if (SHORT(pi->width) > SHORT(pj->width))
+    //                    {
+    //                        EpiDef.lumps_missing = 1;
+    //                    }
+    //                }
+    //            }
+    //            else
+    //            {
+    //                EpiDef.lumps_missing = 1;
+    //            }
+    //        }
+    //
+    //        if (crispy->havemaster)
+    //        {
+    //            EpisodeMenu[EpiDef.numitems].alphaKey = 't';
+    //            EpisodeMenu[EpiDef.numitems].alttext = "The Master Levels";
+    //            EpiDef.numitems++;
+    //
+    //            i = W_CheckNumForName(EpiDef.numitems == 3 ? "M_EPI3" : "M_EPI2");
+    //
+    //            // [crispy] render the episode menu with the HUD font
+    //            // if the graphics are not available or not from a PWAD
+    //            if (i == -1 || W_IsIWADLump(lumpinfo[i]))
+    //            {
+    //                EpiDef.lumps_missing = 1;
+    //            }
+    //        }
+  End;
+
+  // [crispy] rearrange Load Game and Save Game menus
+//    {
+//	const patch_t *patchl, *patchs, *patchm;
+//	short captionheight, vstep;
+//
+//	patchl = W_CacheLumpName(DEH_String("M_LOADG"), PU_CACHE);
+//	patchs = W_CacheLumpName(DEH_String("M_SAVEG"), PU_CACHE);
+//	patchm = W_CacheLumpName(DEH_String("M_LSLEFT"), PU_CACHE);
+//
+//	LoadDef_x = (ORIGWIDTH - SHORT(patchl->width)) / 2 + SHORT(patchl->leftoffset);
+//	SaveDef_x = (ORIGWIDTH - SHORT(patchs->width)) / 2 + SHORT(patchs->leftoffset);
+//	LoadDef.x = SaveDef.x = (ORIGWIDTH - 24 * 8) / 2 + SHORT(patchm->leftoffset); // [crispy] see M_DrawSaveLoadBorder()
+//
+//	captionheight = MAX(SHORT(patchl->height), SHORT(patchs->height));
+//
+//	vstep = ORIGHEIGHT - 32; // [crispy] ST_HEIGHT
+//	vstep -= captionheight;
+//	vstep -= (load_end - 1) * LINEHEIGHT + SHORT(patchm->height);
+//	vstep /= 3;
+//
+//	if (vstep > 0)
+//	{
+//		LoadDef_y = vstep + captionheight - SHORT(patchl->height) + SHORT(patchl->topoffset);
+//		SaveDef_y = vstep + captionheight - SHORT(patchs->height) + SHORT(patchs->topoffset);
+//		LoadDef.y = SaveDef.y = vstep + captionheight + vstep + SHORT(patchm->topoffset) - 15; // [crispy] moved up, so savegame date/time may appear above status bar
+//		MouseDef.y = LoadDef.y;
+//	}
+//    }
+//
+//    // [crispy] remove DOS reference from the game quit confirmation dialogs
+//    if (!M_ParmExists("-nodeh"))
+//    {
+//	const char *string;
+//	char *replace;
+//
+//	// [crispy] "i wouldn't leave if i were you.\ndos is much worse."
+//	string = doom1_endmsg[3];
+//	if (!DEH_HasStringReplacement(string))
+//	{
+//		replace = M_StringReplace(string, "dos", crispy->platform);
+//		DEH_AddStringReplacement(string, replace);
+//		free(replace);
+//	}
+//
+//	// [crispy] "you're trying to say you like dos\nbetter than me, right?"
+//	string = doom1_endmsg[4];
+//	if (!DEH_HasStringReplacement(string))
+//	{
+//		replace = M_StringReplace(string, "dos", crispy->platform);
+//		DEH_AddStringReplacement(string, replace);
+//		free(replace);
+//	}
+//
+//	// [crispy] "don't go now, there's a \ndimensional shambler waiting\nat the dos prompt!"
+//	string = doom2_endmsg[2];
+//	if (!DEH_HasStringReplacement(string))
+//	{
+//		replace = M_StringReplace(string, "dos", "command");
+//		DEH_AddStringReplacement(string, replace);
+//		free(replace);
+//	}
+//    }
+//
+//    opldev = M_CheckParm("-opldev") > 0;
 End;
 
 //
@@ -1584,6 +1761,85 @@ Begin
   menuactive := true;
   currentMenu := @MainDef; // JDC
   itemOn := currentMenu^.lastOn; // JDC
+End;
+
+
+// [crispy] override savegame name if it already starts with a map identifier
+
+Function StartsWithMapIdentifier(str: String): Boolean;
+Begin
+  result := false;
+  str := UpperCase(str);
+
+  If (length(str) >= 4) And
+    (str[1] = 'E') And (isdigit(str[2])) And
+    (str[3] = 'M') And (isdigit(str[4])) Then Begin
+    result := true;
+  End;
+
+  If (length(str) >= 5) And
+    (str[1] = 'M') And (str[2] = 'A') And (str[3] = 'P') And
+    isdigit(str[4]) And isdigit(str[5]) Then Begin
+    result := true;
+  End;
+End;
+
+//
+// Generate a default save slot name when the user saves to
+// an empty slot via the joypad.
+//
+
+Procedure SetDefaultSaveName(slot: int);
+Var
+  wadname: String;
+Begin
+  // map from IWAD or PWAD?
+  If assigned(maplumpinfo) And (W_IsIWADLump(maplumpinfo^) And (savegamedir = '')) Then Begin
+    savegamestrings[itemOn] := maplumpinfo^.name;
+  End
+  Else Begin
+    wadname := W_WadNameForLump(maplumpinfo^);
+    If pos('.', wadname) <> 0 Then Begin
+      wadname := copy(wadname, 1, pos('.', wadname) - 1);
+    End;
+    savegamestrings[itemOn] := format('%s (%s)', [maplumpinfo^.name, wadname]);
+  End;
+  savegamestrings[itemOn] := UpperCase(savegamestrings[itemOn]);
+  //joypadSave = false;
+End;
+
+//
+// User wants to save. Start string input for M_Responder
+//
+
+Procedure M_SaveSelect(choice: int);
+//Var
+  //x, y: int;
+Begin
+  // we are going to be intercepting all chars
+  saveStringEnter := 1;
+
+  // [crispy] load the last game you saved
+  LoadDef.lastOn := choice;
+
+  // We need to turn on text input:
+  //x := LoadDef.x - 11;
+  //y := LoadDef.y + choice * LINEHEIGHT - 4;
+  //I_StartTextInput(x, y, x + 8 + 24 * 8 + 8, y + LINEHEIGHT - 2); --> Brauchen wir nicht, wir nutzen ja die LCL
+
+  saveSlot := choice;
+  //M_StringCopy(saveOldString, savegamestrings[choice], SAVESTRINGSIZE);
+  saveOldString := savegamestrings[choice];
+  //if (!strcmp(savegamestrings[choice], EMPTYSTRING) ||
+  If (savegamestrings[choice] = '') Or
+    // [crispy] override savegame name if it already starts with a map identifier
+  StartsWithMapIdentifier(savegamestrings[choice]) Then Begin
+    savegamestrings[choice] := '';
+    If ({joypadSave || } true) Then Begin // [crispy] always prefill empty savegame slot names
+      SetDefaultSaveName(choice);
+    End;
+  End;
+  saveCharIndex := length(savegamestrings[choice]);
 End;
 
 Const
@@ -1617,33 +1873,19 @@ Const
     (status: 1; Name: 'M_EPI6'; routine: @M_Episode; alphaKey: 's') // [crispy] Sigil II
     );
 
-  //  Crispness1Menu: Array Of menuitem_t =
-  //  (
-  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleHires; alphaKey: 'h'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleWidescreen; alphaKey: 'w'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleUncapped; alphaKey: 'u'),
-  //    (status: 4; Name: ''; Routine: @M_CrispyToggleFpsLimit; alphaKey: 'f'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleVsync; alphaKey: 'v'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleSmoothScaling; alphaKey: 's'),
-  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
-  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleColoredhud; alphaKey: 'c'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleTranslucency; alphaKey: 'e'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleSmoothLighting; alphaKey: 's'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleBrightmaps; alphaKey: 'b'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleColoredblood; alphaKey: 'c'),
-  //    (status: 3; Name: ''; Routine: @M_CrispyToggleFlipcorpses; alphaKey: 'r'),
-  //    (status: - 1; Name: ''; Routine: Nil; alphaKey: #0),
-  //    (status: 1; Name: ''; Routine: @M_CrispnessNext; alphaKey: 'n'),
-  //    (status: 1; Name: ''; Routine: @M_CrispnessPrev; alphaKey: 'p'),
-  //    );
 
-//Var
-//  Crispness1Def: menu_t;
-//  Crispness2Def: menu_t;
-//  Crispness3Def: menu_t;
-//  Crispness4Def: menu_t;
+
+  SaveMenu: Array Of menuitem_t =
+  (
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '1'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '2'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '3'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '4'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '5'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '6'),
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '7'), // [crispy] up to 8 savegames
+    (status: 1; Name: ''; routine: @M_SaveSelect; alphaKey: '8') // [crispy] up to 8 savegames
+    );
 
 Initialization
 
@@ -1673,6 +1915,24 @@ Initialization
     x := 48;
     y := 63; // x,y
     lastOn := 0; // ep1 // lastOn
+  End;
+  With SaveDef Do Begin
+    numitems := length(SaveMenu);
+    prevMenu := @MainDef;
+    menuitems := SaveMenu;
+    routine := @M_DrawSave;
+    x := 80;
+    y := 54;
+    lastOn := 0;
+  End;
+  With LoadDef Do Begin
+    numitems := length(LoadMenu);
+    prevMenu := @MainDef;
+    menuitems := LoadMenu;
+    routine := @M_DrawLoad;
+    x := 80;
+    y := 54;
+    lastOn := 0;
   End;
 
   //  CrispnessMenus := Nil;

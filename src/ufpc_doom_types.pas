@@ -153,7 +153,7 @@ Type
     screenshotmsg: int;
     snowflakes: int;
     cleanscreenshot: int;
-    //    	int demowarp;
+    demowarp: int;
     //    	int fps;
 
     fistisquit: Boolean; // By Corpsman, if true, the fist can be fired without making noises (= waking up other enemies) ;)
@@ -197,6 +197,8 @@ Procedure CheckCrispySingleplayer(singleplayer: Boolean);
 
 Function Clamp(Value, Lower, Upper: fixed_t): fixed_t; // overload;
 
+Function isdigit(value: Char): Boolean;
+
 Implementation
 
 Var
@@ -215,6 +217,11 @@ Begin
       result := value;
     End;
   End;
+End;
+
+Function isdigit(value: Char): Boolean;
+Begin
+  result := (value >= '0') And (value <= '9');
 End;
 
 Procedure Nop();
@@ -287,6 +294,7 @@ Initialization
   //  Crispy.vsync := 1;
   //  Crispy.widescreen := 1; // match screen by default
   Crispy.cleanscreenshot := 0;
+  Crispy.demowarp := 0;
   Crispy.screenshotmsg := 0;
   Crispy.snowflakes := 0;
   Crispy.fistisquit := false; // by Corpsman

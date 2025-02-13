@@ -319,7 +319,7 @@ End;
 Procedure P_LoadSideDefs(lump: int);
 Var
   i: int;
-  msd: Array Of mapsidedef_t;
+  msd: ^mapsidedef_t;
 Begin
   numsides := W_LumpLength(lump) Div sizeof(mapsidedef_t);
   setlength(sides, numsides);

@@ -54,6 +54,7 @@ Const
     );
 
 Function D_FindIWAD(mask: int; Var mission: GameMission_t): String;
+Function D_SaveGameIWADName(gamemission: GameMission_t; gamevariant: GameVariant_t): String;
 
 Implementation
 
@@ -235,6 +236,44 @@ Begin
     For i := 0 To num_iwad_dirs - 1 Do Begin
       result := SearchDirectoryForIWAD(iwad_dirs[i], mask, mission);
       If result <> '' Then break;
+    End;
+  End;
+End;
+
+//
+// Get the IWAD name used for savegames.
+//
+
+Function D_SaveGameIWADName(gamemission: GameMission_t;
+  gamevariant: GameVariant_t): String;
+Var
+  i: int;
+Begin
+  // Default fallback:
+  result := 'unknown.wad';
+  // Determine the IWAD name to use for savegames.
+  // This determines the directory the savegame files get put into.
+  //
+  // Note that we match on gamemission rather than on IWAD name.
+  // This ensures that doom1.wad and doom.wad saves are stored
+  // in the same place.
+
+  If (gamevariant = freedoom) Then Begin
+    If (gamemission = doom) Then Begin
+      result := 'freedoom1.wad';
+    End
+    Else If (gamemission = doom2) Then Begin
+      result := 'freedoom2.wad';
+    End
+  End
+  Else If (gamevariant = freedm) And (gamemission = doom2) Then Begin
+    result := 'freedm.wad';
+  End;
+
+  For i := 0 To high(iwads) Do Begin
+    If (gamemission = iwads[i].mission) Then Begin
+      result := iwads[i].name;
+      break;
     End;
   End;
 End;

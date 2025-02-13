@@ -9,6 +9,9 @@ Uses
 
 Const
   NUM_QUITMESSAGES = 8;
+
+  SAVEGAMENAME = 'doomsav';
+
   doom1_endmsg: Array Of String =
   (
     'are you sure you want to\nquit this great game?',

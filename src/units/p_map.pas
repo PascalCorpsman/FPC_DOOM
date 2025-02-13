@@ -583,12 +583,15 @@ Begin
   Else
     P_SpawnBlood(x, y, z, la_damage, th); // [crispy] pass thing type
 
-  If Crispy.fistisquit Then Begin // When fist is quit we need to wake up all the others when a unit on the map is shooting
-    P_NoiseAlert(shootthing, shootthing);
-  End;
-
-  If (la_damage <> 0) Then
+  If (la_damage <> 0) Then Begin
     P_DamageMobj(th, shootthing, shootthing, la_damage);
+
+    // When fist is quit we need to wake up all the others when a unit on the map is hit
+    // But only Alert if thing is still alive
+    If Crispy.fistisquit And (th^.health > 0) Then Begin
+      P_NoiseAlert(shootthing, shootthing);
+    End;
+  End;
 
   // don't go any farther
   result := false;

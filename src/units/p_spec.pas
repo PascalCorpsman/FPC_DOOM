@@ -250,6 +250,18 @@ Type
     turbo16 // quickly build by 16
     );
 
+  //
+  // P_LIGHTS
+  //
+  fireflicker_t = Record
+    thinker: thinker_t;
+    sector: Psector_t;
+    count: int;
+    maxlight: int;
+    minlight: int;
+  End;
+  Pfireflicker_t = ^fireflicker_t;
+
 Procedure P_InitPicAnims();
 Procedure P_SpawnSpecials();
 Procedure R_InterpolateTextureOffsets();

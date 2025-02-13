@@ -74,7 +74,7 @@ Uses
   , g_game
   , i_system
   , m_fixed, m_random
-  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local, p_switch, p_inter
+  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local, p_switch, p_inter, p_tick, p_doors, p_spec
   , r_main
   , s_sound
   ;
@@ -1356,11 +1356,11 @@ Begin
   S_StartSound(actor, sfx_shotgn);
   A_FaceTarget(actor);
   bangle := int(actor^.angle);
-  slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
+  slope := P_AimLineAttack(actor, angle_t(bangle), MISSILERANGE);
 
-  angle := angle_t(bangle + (P_SubRandom() Shl 20));
+  angle := int(bangle + (P_SubRandom() Shl 20));
   damage := ((P_Random() Mod 5) + 1) * 3;
-  P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+  P_LineAttack(actor, angle_t(angle), MISSILERANGE, slope, damage);
 End;
 
 Procedure A_CPosRefire(actor: Pmobj_t);
@@ -1646,34 +1646,33 @@ End;
 //
 
 Procedure A_KeenDie(mo: Pmobj_t);
+Var
+  th: Pthinker_t;
+  mo2: Pmobj_t;
+  junk: line_t;
 Begin
-  Raise exception.create('Port me.');
+  A_Fall(mo);
+  // scan the remaining thinkers
+  // to see if all Keens are dead
+  th := thinkercap.next;
+  While th <> @thinkercap Do Begin
 
-  //   thinker_t*	th;
-  //    mobj_t*	mo2;
-  //    line_t	junk;
-  //
-  //    A_Fall (mo);
-  //
-  //    // scan the remaining thinkers
-  //    // to see if all Keens are dead
-  //    for (th = thinkercap.next ; th != &thinkercap ; th=th->next)
-  //    {
-  //	if (th->function.acp1 != (actionf_p1)P_MobjThinker)
-  //	    continue;
-  //
-  //	mo2 = (mobj_t *)th;
-  //	if (mo2 != mo
-  //	    && mo2->type == mo->type
-  //	    && mo2->health > 0)
-  //	{
-  //	    // other Keen not dead
-  //	    return;
-  //	}
-  //    }
-  //
-  //    junk.tag = 666;
-  //    EV_DoDoor(&junk, vld_open);
+    If (th^._function.acp1 <> @P_MobjThinker) Then Begin
+      th := th^.next;
+      continue;
+    End;
+    mo2 := pmobj_t(th);
+    If (mo2 <> mo)
+      And (mo2^._type = mo^._type)
+      And (mo2^.health > 0) Then Begin
+      // other Keen not dead
+      exit;
+    End;
+    th := th^.next;
+  End;
+
+  junk.tag := 666;
+  EV_DoDoor(@junk, vld_open);
 End;
 
 Procedure A_BrainPain(mo: Pmobj_t);
