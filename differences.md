@@ -1,15 +1,63 @@
-# Differences to known DOOM versions
+# Differences to known DOOM versions (Vanilla / Chocolate / Crispy)
 
-- Feature silent fist
-- Viewport zooming
+### Viewport zooming
+In Vanilla Doom it is possible to "zoom" the viewport to be very small and instead render a background pattern. This feature made sense in the old day's, but today not. Via "+" and "-" the player can deside between 3 viewport sizes:
 
-# Key settings
+- Fullscreen, no HUD
+- Normal HUD
+- Reduced HUD
 
-# Cheats
+### Silent fist option
+In DOOM every weapon makes noises and therefore wakes up all the enemies. In FPC_DOOM you could set the "fistisquit" flag. If set, "shooting" by punching with the fist does not make any noise. But if you do not kill a opponent in one shot, this opponent will scream and that will be heared. This feature makes most sense when playing in bersek mode.
 
-Not all but a lot of cheats are available:
+## Key settings
+
+The following keys are used (given on a german keyboard layout):
+
+Automap:
+| Key | description |
+| --- | --- |
+| +/- | Zoom in / out map
+| o | Toggle map overlay
+| r | Togle map rotate
+| CURSOR's | move map 
+| TAB | close Automap
+| m | place mark on map
+| c | clear all marks
+| PAUSE | toggle Pause the game
+
+Playing:
+| Key | description |
+| --- | --- |
+| +/- | Zoom in / out viewport 
+| ESC | Open main menu
+| CURSOR's | move player 
+| a/d | Strafe left, right
+| CTRL | Trigger weapon
+| 1 .. 6 | Select weapon if available (1,2 switch between fist/saw, shotgun/ double shotgun)
+| TAB | open Automap
+| SHIFT | when pressed activate "run" mode
+| PAUSE | toggle Pause the game
+| w | when activated by settings, jump
+| SPACE | use "thing" if directly in front of player
+
+Menu:
+| Key | description |
+| --- | --- |
+| RETURN | confirm
+| BACK | go to previos menu
+| Y | confirm
+| N | abort
+
+## Cheats
+
+Not all but a lot of cheats are available, here is the list:
+
 - iddt
-- idclip
-- tntweap*
 - iddqd
+- idkfa
+- idfa
+- idclip / idspispopd
+- tntweap*
+
 

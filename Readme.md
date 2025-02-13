@@ -45,7 +45,7 @@ Furthermore there are some special points when porting a "old" DOS application t
 
 ## Difference to other source ports and key mappings
 
-As i am not doing a 100% source port but more a port for me and my education (or personal needs), FPC DOOM will not be like Vanilla DOOM and even not like Crispy DOOM. To See the differences look [here](differences.md)
+As i am not doing a 100% source port but more a port for me and my education (or personal needs), FPC DOOM will not be like Vanilla DOOM and even not like Crispy DOOM. To See the differences look [here](differences.md).
 
 ## progress:
 <!-- 
