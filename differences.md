@@ -62,5 +62,6 @@ Not all but a lot of cheats are available, here is the list:
 - idfa
 - idclip / idspispopd
 - tntweap*
+- idclev**
 
 
