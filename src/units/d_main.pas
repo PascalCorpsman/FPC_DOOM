@@ -39,7 +39,7 @@ Uses
   config, sounds
   , doom_icon, doomstat
   , am_map
-  , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad, d_player
+  , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad, d_player, deh_main
   , f_wipe
   , g_game
   , hu_stuff
@@ -1085,8 +1085,8 @@ Begin
   demolumpname := '';
   //    char file[256];
 
-  //    // [crispy] unconditionally initialize DEH tables
-  //    DEH_Init();
+  // [crispy] unconditionally initialize DEH tables
+  DEH_Init();
 
   //    I_AtExit(D_Endoom, false);
 

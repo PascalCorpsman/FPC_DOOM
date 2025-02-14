@@ -57,6 +57,8 @@ Procedure P_SlideMove(mo: Pmobj_t);
 
 Function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 Function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t): fixed_t;
+Function P_SubstNullMobj(mobj: Pmobj_t): Pmobj_t;
+Function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
 
 Implementation
 

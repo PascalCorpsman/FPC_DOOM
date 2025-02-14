@@ -6,7 +6,7 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  ,i_timer
+  , i_timer
   ;
 
 Const
@@ -35,6 +35,9 @@ Const
   INVISTICS = (60 * TICRATE);
   INFRATICS = (120 * TICRATE);
   IRONTICS = (60 * TICRATE);
+
+  // Version code for cph's longtics hack ("v1.91")
+  DOOM_191_VERSION = 111;
 
   // The current state of the game: whether we are
   // playing, gazing at the intermission screen,

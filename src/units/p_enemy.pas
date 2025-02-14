@@ -69,12 +69,12 @@ Procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 Implementation
 
 Uses
-  doomdata, sounds, tables, doomstat
-  , d_player, d_mode, d_main
+  doomdata, sounds, tables, doomstat, doomdef, info
+  , d_player, d_mode, d_main, d_loop
   , g_game
-  , i_system
+  , i_system, i_sound
   , m_fixed, m_random
-  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local, p_switch, p_inter, p_tick, p_doors, p_spec
+  , p_pspr, p_map, p_maputl, p_setup, p_mobj, p_sight, p_local, p_switch, p_inter, p_tick, p_doors, p_spec, p_floor
   , r_main
   , s_sound
   ;
@@ -119,6 +119,10 @@ Var
   //int		braintargeton = 0;
   //static int	maxbraintargets; // [crispy] remove braintargets limit
 
+  corpsehit: pmobj_t;
+  vileobj: pmobj_t;
+  viletryx: fixed_t;
+  viletryy: fixed_t;
 
 Procedure A_OpenShotgun2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
@@ -784,12 +788,12 @@ Begin
   S_StartSound(actor, sfx_shotgn);
   A_FaceTarget(actor);
   bangle := int(actor^.angle);
-  slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
+  slope := P_AimLineAttack(actor, angle_t(bangle), MISSILERANGE);
 
   For i := 0 To 2 Do Begin
-    angle := angle_t(bangle + (P_SubRandom() Shl 20));
+    angle := int(bangle + (P_SubRandom() Shl 20));
     damage := ((P_Random() Mod 5) + 1) * 3;
-    P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+    P_LineAttack(actor, angle_t(angle), MISSILERANGE, slope, damage);
   End;
 End;
 
@@ -830,84 +834,120 @@ Begin
     S_StartSound(actor, sfxenum_t(sound));
 End;
 
+Function PIT_VileCheck(thing: Pmobj_t): boolean;
+Var
+  maxdist: int;
+  check: boolean;
+Begin
+
+  If ((thing^.flags And MF_CORPSE) = 0) Then Begin
+    result := true; // not a monster
+    exit;
+  End;
+
+  If (thing^.tics <> -1) Then Begin
+    result := true; // not lying still yet
+    exit;
+  End;
+
+  If (thing^.info^.raisestate = S_NULL) Then Begin
+    result := true; // monster doesn't have a raise state
+    exit;
+  End;
+
+  maxdist := thing^.info^.radius + mobjinfo[int(MT_VILE)].radius;
+
+  If (abs(thing^.x - viletryx) > maxdist)
+    Or (abs(thing^.y - viletryy) > maxdist) Then Begin
+    result := true; // not actually touching
+    exit;
+  End;
+
+  corpsehit := thing;
+  corpsehit^.momx := 0;
+  corpsehit^.momy := 0;
+  corpsehit^.height := corpsehit^.height Shl 2;
+  check := P_CheckPosition(corpsehit, corpsehit^.x, corpsehit^.y);
+  corpsehit^.height := corpsehit^.height Shr 2;
+
+  If (Not check) Then Begin
+    result := true; // doesn't fit here
+    exit;
+  End;
+  result := false; // got one, so stop checking
+End;
+
 //
 // A_VileChase
 // Check for ressurecting a body
 //
 
 Procedure A_VileChase(actor: Pmobj_t);
-Begin
-  Raise exception.create('Port me.');
+Var
+  xl: int;
+  xh: int;
+  yl: int;
+  yh: int;
 
-  //   int			xl;
-  //    int			xh;
-  //    int			yl;
-  //    int			yh;
-  //
-  //    int			bx;
-  //    int			by;
-  //
-  //    mobjinfo_t*		info;
-  //    mobj_t*		temp;
-  //
-  //    if (actor->movedir != DI_NODIR)
-  //    {
-  //	// check for corpses to raise
-  //	viletryx =
-  //	    actor->x + actor->info->speed*xspeed[actor->movedir];
-  //	viletryy =
-  //	    actor->y + actor->info->speed*yspeed[actor->movedir];
-  //
-  //	xl = (viletryx - bmaporgx - MAXRADIUS*2)>>MAPBLOCKSHIFT;
-  //	xh = (viletryx - bmaporgx + MAXRADIUS*2)>>MAPBLOCKSHIFT;
-  //	yl = (viletryy - bmaporgy - MAXRADIUS*2)>>MAPBLOCKSHIFT;
-  //	yh = (viletryy - bmaporgy + MAXRADIUS*2)>>MAPBLOCKSHIFT;
-  //
-  //	vileobj = actor;
-  //	for (bx=xl ; bx<=xh ; bx++)
-  //	{
-  //	    for (by=yl ; by<=yh ; by++)
-  //	    {
-  //		// Call PIT_VileCheck to check
-  //		// whether object is a corpse
-  //		// that canbe raised.
-  //		if (!P_BlockThingsIterator(bx,by,PIT_VileCheck))
-  //		{
-  //		    // got one!
-  //		    temp = actor->target;
-  //		    actor->target = corpsehit;
-  //		    A_FaceTarget (actor);
-  //		    actor->target = temp;
-  //
-  //		    P_SetMobjState (actor, S_VILE_HEAL1);
-  //		    S_StartSound (corpsehit, sfx_slop);
-  //		    info = corpsehit->info;
-  //
-  //		    P_SetMobjState (corpsehit,info->raisestate);
-  //		    corpsehit->height <<= 2;
-  //		    corpsehit->flags = info->flags;
-  //		    corpsehit->health = info->spawnhealth;
-  //		    corpsehit->target = NULL;
-  //
-  //		    // [crispy] count resurrected monsters
-  //		    extrakills++;
-  //
-  //		    // [crispy] resurrected pools of gore ("ghost monsters") are translucent
-  //		    if (corpsehit->height == 0 && corpsehit->radius == 0)
-  //		    {
-  //		        corpsehit->flags |= MF_TRANSLUCENT;
-  //		        fprintf(stderr, "A_VileChase: Resurrected ghost monster (%d) at (%d/%d)!\n",
-  //		                corpsehit->type, corpsehit->x>>FRACBITS, corpsehit->y>>FRACBITS);
-  //		    }
-  //
-  //		    return;
-  //		}
-  //	    }
-  //	}
-  //    }
-  //
-  //    // Return to normal attack.
-  //    A_Chase (actor);
+  bx: int;
+  by: int;
+
+  info: Pmobjinfo_t;
+  temp: Pmobj_t;
+Begin
+
+  If (actor^.movedir <> int(DI_NODIR)) Then Begin
+
+    // check for corpses to raise
+    viletryx := actor^.x + actor^.info^.speed * xspeed[actor^.movedir];
+    viletryy := actor^.y + actor^.info^.speed * yspeed[actor^.movedir];
+
+    xl := SarLongint(viletryx - bmaporgx - MAXRADIUS * 2, MAPBLOCKSHIFT);
+    xh := SarLongint(viletryx - bmaporgx + MAXRADIUS * 2, MAPBLOCKSHIFT);
+    yl := SarLongint(viletryy - bmaporgy - MAXRADIUS * 2, MAPBLOCKSHIFT);
+    yh := SarLongint(viletryy - bmaporgy + MAXRADIUS * 2, MAPBLOCKSHIFT);
+
+    vileobj := actor;
+    For bx := xl To xh Do Begin
+      For by := yl To yh Do Begin
+        // Call PIT_VileCheck to check
+        // whether object is a corpse
+        // that canbe raised.
+        If (Not P_BlockThingsIterator(bx, by, @PIT_VileCheck)) Then Begin
+
+          // got one!
+          temp := actor^.target;
+          actor^.target := corpsehit;
+          A_FaceTarget(actor);
+          actor^.target := temp;
+
+          P_SetMobjState(actor, S_VILE_HEAL1);
+          S_StartSound(corpsehit, sfx_slop);
+          info := corpsehit^.info;
+
+          P_SetMobjState(corpsehit, info^.raisestate);
+          corpsehit^.height := corpsehit^.height Shl 2;
+          corpsehit^.flags := info^.flags;
+          corpsehit^.health := info^.spawnhealth;
+          corpsehit^.target := Nil;
+
+          // [crispy] count resurrected monsters
+          extrakills := extrakills + 1;
+
+          // [crispy] resurrected pools of gore ("ghost monsters") are translucent
+          If (corpsehit^.height = 0) And (corpsehit^.radius = 0) Then Begin
+            corpsehit^.flags := corpsehit^.flags Or MF_TRANSLUCENT;
+            writeln(stderr, format('A_VileChase: Resurrected ghost monster (%d) at (%d/%d)!',
+              [corpsehit^._type, SarLongint(corpsehit^.x, FRACBITS), SarLongint(corpsehit^.y, FRACBITS)]));
+          End;
+          exit;
+        End;
+      End;
+    End;
+  End;
+
+  // Return to normal attack.
+  A_Chase(actor);
 End;
 
 Procedure A_VileStart(actor: Pmobj_t);
@@ -921,67 +961,57 @@ End;
 //
 
 Procedure A_VileTarget(actor: Pmobj_t);
+Var
+  fog: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
+  A_FaceTarget(actor);
 
-  //   mobj_t*	fog;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    fog = P_SpawnMobj (actor->target->x,
-  //		       actor->target->x,
-  //		       actor->target->z, MT_FIRE);
-  //
-  //    actor->tracer = fog;
-  //    fog->target = actor;
-  //    fog->tracer = actor->target;
-  //    // [crispy] play DSFLAMST sound when Arch-Vile spawns fire attack
-  //    if (crispy->soundfix && I_GetSfxLumpNum(&S_sfx[sfx_flamst]) != -1)
-  //    {
-  //	S_StartSound(fog, sfx_flamst);
-  //	// [crispy] make DSFLAMST sound uninterruptible
-  //	if (crispy->soundfull)
-  //	{
-  //		S_UnlinkSound(fog);
-  //	}
-  //    }
-  //
-  //    A_Fire (fog);
+  fog := P_SpawnMobj(actor^.target^.x,
+    actor^.target^.x,
+    actor^.target^.z, MT_FIRE);
+
+  actor^.tracer := fog;
+  fog^.target := actor;
+  fog^.tracer := actor^.target;
+  // [crispy] play DSFLAMST sound when Arch-Vile spawns fire attack
+  If (crispy.soundfix <> 0) And (I_GetSfxLumpNum(@S_sfx[int(sfx_flamst)]) <> -1) Then Begin
+
+    S_StartSound(fog, sfx_flamst);
+    // [crispy] make DSFLAMST sound uninterruptible
+    If (crispy.soundfull <> 0) Then Begin
+      S_UnlinkSound(fog);
+    End;
+  End;
+
+  A_Fire(fog);
 End;
 
 Procedure A_VileAttack(actor: Pmobj_t);
+Var
+  fire: Pmobj_t;
+  an: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //   mobj_t*	fire;
-  //    int		an;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    if (!P_CheckSight (actor, actor->target) )
-  //	return;
-  //
-  //    S_StartSound (actor, sfx_barexp);
-  //    P_DamageMobj (actor->target, actor, actor, 20);
-  //    actor->target->momz = 1000*FRACUNIT/actor->target->info->mass;
-  //
-  //    an = actor->angle >> ANGLETOFINESHIFT;
-  //
-  //    fire = actor->tracer;
-  //
-  //    if (!fire)
-  //	return;
-  //
-  //    // move the fire between the vile and the player
-  //    fire->x = actor->target->x - FixedMul (24*FRACUNIT, finecosine[an]);
-  //    fire->y = actor->target->y - FixedMul (24*FRACUNIT, finesine[an]);
-  //P_RadiusAttack(fire, actor, 70);
+  A_FaceTarget(actor);
+
+  If (Not P_CheckSight(actor, actor^.target)) Then exit;
+
+  S_StartSound(actor, sfx_barexp);
+  P_DamageMobj(actor^.target, actor, actor, 20);
+  actor^.target^.momz := 1000 * FRACUNIT Div actor^.target^.info^.mass;
+
+  an := actor^.angle Shr ANGLETOFINESHIFT;
+
+  fire := actor^.tracer;
+
+  If (fire = Nil) Then exit;
+
+  // move the fire between the vile and the player
+  fire^.x := actor^.target^.x - FixedMul(24 * FRACUNIT, finecosine[an]);
+  fire^.y := actor^.target^.y - FixedMul(24 * FRACUNIT, finesine[an]);
+  P_RadiusAttack(fire, actor, 70);
 End;
 
 Procedure A_StartFire(actor: Pmobj_t);
@@ -991,34 +1021,31 @@ Begin
 End;
 
 Procedure A_Fire(actor: Pmobj_t);
+Var
+  dest: Pmobj_t;
+  target: pmobj_t;
+  an: unsigned;
 Begin
-  Raise exception.create('Port me.');
+  dest := actor^.tracer;
+  If (dest = Nil) Then exit;
 
-  //   mobj_t*	dest;
-  //    mobj_t*     target;
-  //    unsigned	an;
-  //
-  //    dest = actor->tracer;
-  //    if (!dest)
-  //	return;
-  //
-  //    target = P_SubstNullMobj(actor->target);
-  //
-  //    // don't move it if the vile lost sight
-  //    if (!P_CheckSight (target, dest) )
-  //	return;
-  //
-  //    an = dest->angle >> ANGLETOFINESHIFT;
-  //
-  //    P_UnsetThingPosition (actor);
-  //    actor->x = dest->x + FixedMul (24*FRACUNIT, finecosine[an]);
-  //    actor->y = dest->y + FixedMul (24*FRACUNIT, finesine[an]);
-  //    actor->z = dest->z;
-  //    P_SetThingPosition (actor);
-  //
-  //    // [crispy] suppress interpolation of Archvile fire
-  //    // to mitigate it being spawned at the wrong location
-  //    actor->interp = -actor->tics;
+  target := P_SubstNullMobj(actor^.target);
+
+  // don't move it if the vile lost sight
+  If (Not P_CheckSight(target, dest)) Then exit;
+
+
+  an := dest^.angle Shr ANGLETOFINESHIFT;
+
+  P_UnsetThingPosition(actor);
+  actor^.x := dest^.x + FixedMul(24 * FRACUNIT, finecosine[an]);
+  actor^.y := dest^.y + FixedMul(24 * FRACUNIT, finesine[an]);
+  actor^.z := dest^.z;
+  P_SetThingPosition(actor);
+
+  // [crispy] suppress interpolation of Archvile fire
+  // to mitigate it being spawned at the wrong location
+  actor^.interp := -actor^.tics;
 End;
 
 Procedure A_FireCrackle(actor: Pmobj_t);
@@ -1031,77 +1058,73 @@ Const
   TRACEANGLE: int = $C000000;
 
 Procedure A_Tracer(actor: Pmobj_t);
-Begin
-  Raise exception.create('Port me.');
-
-  //   angle_t	exact;
-  //    fixed_t	dist;
-  //    fixed_t	slope;
-  //    mobj_t*	dest;
-  //    mobj_t*	th;
+Var
+  exact: angle_t;
+  dist: fixed_t;
+  slope: fixed_t;
+  dest: Pmobj_t;
+  th: Pmobj_t;
   //    extern int demostarttic;
-  //
-  //    if ((gametic  - demostarttic) & 3) // [crispy] fix revenant internal demo bug
-  //	return;
-  //
-  //    // spawn a puff of smoke behind the rocket
-  //    P_SpawnPuff (actor->x, actor->y, actor->z);
-  //
-  //    th = P_SpawnMobj (actor->x-actor->momx,
-  //		      actor->y-actor->momy,
-  //		      actor->z, MT_SMOKE);
-  //
-  //    th->momz = FRACUNIT;
-  //    th->tics -= P_Random()&3;
-  //    if (th->tics < 1)
-  //	th->tics = 1;
-  //
-  //    // adjust direction
-  //    dest = actor->tracer;
-  //
-  //    if (!dest || dest->health <= 0)
-  //	return;
-  //
-  //    // change angle
-  //    exact = R_PointToAngle2 (actor->x,
-  //			     actor->y,
-  //			     dest->x,
-  //			     dest->y);
-  //
-  //    if (exact != actor->angle)
-  //    {
-  //	if (exact - actor->angle > 0x80000000)
-  //	{
-  //	    actor->angle -= TRACEANGLE;
-  //	    if (exact - actor->angle < 0x80000000)
-  //		actor->angle = exact;
-  //	}
-  //	else
-  //	{
-  //	    actor->angle += TRACEANGLE;
-  //	    if (exact - actor->angle > 0x80000000)
-  //		actor->angle = exact;
-  //	}
-  //    }
-  //
-  //    exact = actor->angle>>ANGLETOFINESHIFT;
-  //    actor->momx = FixedMul (actor->info->speed, finecosine[exact]);
-  //    actor->momy = FixedMul (actor->info->speed, finesine[exact]);
-  //
-  //    // change slope
-  //    dist = P_AproxDistance (dest->x - actor->x,
-  //			    dest->y - actor->y);
-  //
-  //    dist = dist / actor->info->speed;
-  //
-  //    if (dist < 1)
-  //	dist = 1;
-  //    slope = (dest->z+40*FRACUNIT - actor->z) / dist;
-  //
-  //    if (slope < actor->momz)
-  //	actor->momz -= FRACUNIT/8;
-  //    else
-  //	actor->momz += FRACUNIT/8;
+Begin
+  If ((gametic - demostarttic) And 3) <> 0 Then exit; // [crispy] fix revenant internal demo bug
+
+
+  // spawn a puff of smoke behind the rocket
+  P_SpawnPuff(actor^.x, actor^.y, actor^.z);
+
+  th := P_SpawnMobj(actor^.x - actor^.momx,
+    actor^.y - actor^.momy,
+    actor^.z, MT_SMOKE);
+
+  th^.momz := FRACUNIT;
+  th^.tics := th^.tics - P_Random() And 3;
+  If (th^.tics < 1) Then
+    th^.tics := 1;
+
+  // adjust direction
+  dest := actor^.tracer;
+
+  If (dest = Nil) Or (dest^.health <= 0) Then exit;
+
+
+  // change angle
+  exact := R_PointToAngle2(actor^.x,
+    actor^.y,
+    dest^.x,
+    dest^.y);
+
+  If (exact <> actor^.angle) Then Begin
+    If (exact - actor^.angle > $80000000) Then Begin
+
+      actor^.angle := actor^.angle - TRACEANGLE;
+      If (exact - actor^.angle < $80000000) Then
+        actor^.angle := exact;
+    End
+    Else Begin
+      actor^.angle := actor^.angle + TRACEANGLE;
+      If (exact - actor^.angle > $80000000) Then
+        actor^.angle := exact;
+    End;
+  End;
+
+  exact := actor^.angle Shr ANGLETOFINESHIFT;
+  actor^.momx := FixedMul(actor^.info^.speed, finecosine[exact]);
+  actor^.momy := FixedMul(actor^.info^.speed, finesine[exact]);
+
+  // change slope
+  dist := P_AproxDistance(dest^.x - actor^.x,
+    dest^.y - actor^.y);
+
+  dist := dist Div actor^.info^.speed;
+
+  If (dist < 1) Then
+    dist := 1;
+  slope := (dest^.z + 40 * FRACUNIT - actor^.z) Div dist;
+
+  If (slope < actor^.momz) Then
+    actor^.momz := actor^.momz - FRACUNIT Div 8
+  Else
+    actor^.momz := actor^.momz + FRACUNIT Div 8;
 End;
 
 Procedure A_SkelWhoosh(actor: Pmobj_t);
@@ -1112,41 +1135,34 @@ Begin
 End;
 
 Procedure A_SkelFist(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    int		damage;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    if (P_CheckMeleeRange (actor))
-  //    {
-  //	damage = ((P_Random()%10)+1)*6;
-  //	S_StartSound (actor, sfx_skepch);
-  //	P_DamageMobj (actor->target, actor, actor, damage);
-  //    }
+  A_FaceTarget(actor);
+
+  If (P_CheckMeleeRange(actor)) Then Begin
+    damage := ((P_Random() Mod 10) + 1) * 6;
+    S_StartSound(actor, sfx_skepch);
+    P_DamageMobj(actor^.target, actor, actor, damage);
+  End;
 End;
 
 Procedure A_SkelMissile(actor: Pmobj_t);
+Var
+  mo: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    mobj_t*	mo;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    actor->z += 16*FRACUNIT;	// so missile spawns higher
-  //    mo = P_SpawnMissile (actor, actor->target, MT_TRACER);
-  //    actor->z -= 16*FRACUNIT;	// back to normal
-  //
-  //    mo->x += mo->momx;
-  //    mo->y += mo->momy;
-  //    mo->tracer = actor->target;
+  A_FaceTarget(actor);
+  actor^.z := actor^.z + 16 * FRACUNIT; // so missile spawns higher
+  mo := P_SpawnMissile(actor, actor^.target, MT_TRACER);
+  actor^.z := actor^.z - 16 * FRACUNIT; // back to normal
+
+  mo^.x := mo^.x + mo^.momx;
+  mo^.y := mo^.y + mo^.momy;
+  mo^.tracer := actor^.target;
 End;
 
 //
@@ -1165,71 +1181,112 @@ Begin
 End;
 
 Procedure A_FatAttack1(actor: Pmobj_t);
+Var
+  mo: Pmobj_t;
+  target: Pmobj_t;
+  an: int;
 Begin
-  Raise exception.create('Port me.');
+  A_FaceTarget(actor);
 
-  //   mobj_t*	mo;
-  //    mobj_t*     target;
-  //    int		an;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    // Change direction  to ...
-  //    actor->angle += FATSPREAD;
-  //    target = P_SubstNullMobj(actor->target);
-  //    P_SpawnMissile (actor, target, MT_FATSHOT);
-  //
-  //    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
-  //    mo->angle += FATSPREAD;
-  //    an = mo->angle >> ANGLETOFINESHIFT;
-  //    mo->momx = FixedMul (mo->info->speed, finecosine[an]);
-  //    mo->momy = FixedMul (mo->info->speed, finesine[an]);
+  // Change direction  to ...
+  actor^.angle := angle_t(actor^.angle + FATSPREAD);
+  target := P_SubstNullMobj(actor^.target);
+  P_SpawnMissile(actor, target, MT_FATSHOT);
+
+  mo := P_SpawnMissile(actor, target, MT_FATSHOT);
+  mo^.angle := angle_t(mo^.angle + FATSPREAD);
+  an := mo^.angle Shr ANGLETOFINESHIFT;
+  mo^.momx := FixedMul(mo^.info^.speed, finecosine[an]);
+  mo^.momy := FixedMul(mo^.info^.speed, finesine[an]);
 End;
 
 Procedure A_FatAttack2(actor: Pmobj_t);
+Var
+  mo: Pmobj_t;
+  target: Pmobj_t;
+  an: int;
 Begin
-  Raise exception.create('Port me.');
+  A_FaceTarget(actor);
+  // Now here choose opposite deviation.
+  actor^.angle := angle_t(actor^.angle - FATSPREAD);
+  target := P_SubstNullMobj(actor^.target);
+  P_SpawnMissile(actor, target, MT_FATSHOT);
 
-  //    mobj_t*	mo;
-  //    mobj_t*     target;
-  //    int		an;
-  //
-  //    A_FaceTarget (actor);
-  //    // Now here choose opposite deviation.
-  //    actor->angle -= FATSPREAD;
-  //    target = P_SubstNullMobj(actor->target);
-  //    P_SpawnMissile (actor, target, MT_FATSHOT);
-  //
-  //    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
-  //    mo->angle -= FATSPREAD*2;
-  //    an = mo->angle >> ANGLETOFINESHIFT;
-  //    mo->momx = FixedMul (mo->info->speed, finecosine[an]);
-  //    mo->momy = FixedMul (mo->info->speed, finesine[an]);
+  mo := P_SpawnMissile(actor, target, MT_FATSHOT);
+  mo^.angle := angle_t(mo^.angle - FATSPREAD * 2);
+  an := mo^.angle Shr ANGLETOFINESHIFT;
+  mo^.momx := FixedMul(mo^.info^.speed, finecosine[an]);
+  mo^.momy := FixedMul(mo^.info^.speed, finesine[an]);
 End;
 
 Procedure A_FatAttack3(actor: Pmobj_t);
+Var
+  mo: Pmobj_t;
+  target: Pmobj_t;
+  an: int;
 Begin
-  Raise exception.create('Port me.');
+  A_FaceTarget(actor);
 
-  //    mobj_t*	mo;
-  //    mobj_t*     target;
-  //    int		an;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    target = P_SubstNullMobj(actor->target);
-  //
-  //    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
-  //    mo->angle -= FATSPREAD/2;
-  //    an = mo->angle >> ANGLETOFINESHIFT;
-  //    mo->momx = FixedMul (mo->info->speed, finecosine[an]);
-  //    mo->momy = FixedMul (mo->info->speed, finesine[an]);
-  //
-  //    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
-  //    mo->angle += FATSPREAD/2;
-  //    an = mo->angle >> ANGLETOFINESHIFT;
-  //    mo->momx = FixedMul (mo->info->speed, finecosine[an]);
-  //    mo->momy = FixedMul (mo->info->speed, finesine[an]);
+  target := P_SubstNullMobj(actor^.target);
+
+  mo := P_SpawnMissile(actor, target, MT_FATSHOT);
+  mo^.angle := angle_t(mo^.angle - FATSPREAD Div 2);
+  an := mo^.angle Shr ANGLETOFINESHIFT;
+  mo^.momx := FixedMul(mo^.info^.speed, finecosine[an]);
+  mo^.momy := FixedMul(mo^.info^.speed, finesine[an]);
+
+  mo := P_SpawnMissile(actor, target, MT_FATSHOT);
+  mo^.angle := angle_t(mo^.angle + FATSPREAD Div 2);
+  an := mo^.angle Shr ANGLETOFINESHIFT;
+  mo^.momx := FixedMul(mo^.info^.speed, finecosine[an]);
+  mo^.momy := FixedMul(mo^.info^.speed, finesine[an]);
+End;
+
+
+// Check whether the death of the specified monster type is allowed
+// to trigger the end of episode special action.
+//
+// This behavior changed in v1.9, the most notable effect of which
+// was to break uac_dead.wad
+
+Function CheckBossEnd(motype: mobjtype_t): Boolean;
+Begin
+  result := false;
+  If (gameversion < exe_ultimate) Then Begin
+
+    If (gamemap <> 8) Then Begin
+
+      exit;
+    End;
+
+    // Baron death on later episodes is nothing special.
+
+    If (motype = MT_BRUISER) And (gameepisode <> 1) Then Begin
+      exit;
+    End;
+    result := true;
+    exit;
+  End
+  Else Begin
+    // New logic that appeared in Ultimate Doom.
+    // Looks like the logic was overhauled while adding in the
+    // episode 4 support.  Now bosses only trigger on their
+    // specific episode.
+
+    Case (gameepisode) Of
+      1: result := (gamemap = 8) And (motype = MT_BRUISER);
+      2: result := (gamemap = 8) And (motype = MT_CYBORG);
+      3: result := (gamemap = 8) And (motype = MT_SPIDER);
+      4: result := ((gamemap = 6) And (motype = MT_CYBORG))
+        Or ((gamemap = 8) And (motype = MT_SPIDER));
+      // [crispy] no trigger for auto-loaded Sigil E5
+      5: result := (gamemap = 8) And (critical^.havesigil <> '');
+      // [crispy] no trigger for auto-loaded Sigil II E6
+      6: result := (gamemap = 8) And (critical^.havesigil2 <> '');
+    Else
+      result := gamemap = 8;
+    End;
+  End;
 End;
 
 //
@@ -1239,108 +1296,95 @@ End;
 //
 
 Procedure A_BossDeath(mo: Pmobj_t);
+Var
+  th: Pthinker_t;
+  mo2: Pmobj_t;
+  junk: line_t;
+  i, j: int;
 Begin
-  Raise exception.create('Port me.');
 
-  //   thinker_t*	th;
-  //    mobj_t*	mo2;
-  //    line_t	junk;
-  //    int		i;
-  //
-  //    if ( gamemode == commercial)
-  //    {
-  //	if (gamemap != 7 &&
-  //	// [crispy] Master Levels in PC slot 7
-  //	!(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
-  //	    return;
-  //
-  //	if ((mo->type != MT_FATSO)
-  //	    && (mo->type != MT_BABY))
-  //	    return;
-  //    }
-  //    else
-  //    {
-  //        if (!CheckBossEnd(mo->type))
-  //        {
-  //            return;
-  //        }
-  //    }
-  //
-  //    // make sure there is a player alive for victory
-  //    for (i=0 ; i<MAXPLAYERS ; i++)
-  //	if (playeringame[i] && players[i].health > 0)
-  //	    break;
-  //
-  //    if (i==MAXPLAYERS)
-  //	return;	// no one left alive, so do not end game
-  //
-  //    // scan the remaining thinkers to see
-  //    // if all bosses are dead
-  //    for (th = thinkercap.next ; th != &thinkercap ; th=th->next)
-  //    {
-  //	if (th->function.acp1 != (actionf_p1)P_MobjThinker)
-  //	    continue;
-  //
-  //	mo2 = (mobj_t *)th;
-  //	if (mo2 != mo
-  //	    && mo2->type == mo->type
-  //	    && mo2->health > 0)
-  //	{
-  //	    // other boss not dead
-  //	    return;
-  //	}
-  //    }
-  //
-  //    // victory!
-  //    if ( gamemode == commercial)
-  //    {
-  //	if (gamemap == 7 ||
-  //	// [crispy] Master Levels in PC slot 7
-  //	(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
-  //	{
-  //	    if (mo->type == MT_FATSO)
-  //	    {
-  //		junk.tag = 666;
-  //		EV_DoFloor(&junk,lowerFloorToLowest);
-  //		return;
-  //	    }
-  //
-  //	    if (mo->type == MT_BABY)
-  //	    {
-  //		junk.tag = 667;
-  //		EV_DoFloor(&junk,raiseToTexture);
-  //		return;
-  //	    }
-  //	}
-  //    }
-  //    else
-  //    {
-  //	switch(gameepisode)
-  //	{
-  //	  case 1:
-  //	    junk.tag = 666;
-  //	    EV_DoFloor (&junk, lowerFloorToLowest);
-  //	    return;
-  //	    break;
-  //
-  //	  case 4:
-  //	    switch(gamemap)
-  //	    {
-  //	      case 6:
-  //		junk.tag = 666;
-  //		EV_DoDoor (&junk, vld_blazeOpen);
-  //		return;
-  //		break;
-  //
-  //	      case 8:
-  //		junk.tag = 666;
-  //		EV_DoFloor (&junk, lowerFloorToLowest);
-  //		return;
-  //		break;
-  //	    }
-  //	}
-  //    }
+  If (gamemode = commercial) Then Begin
+    If (gamemap <> 7) And
+      // [crispy] Master Levels in PC slot 7
+    (Not ((gamemission = pack_master) And ((gamemap = 14) Or (gamemap = 15) Or (gamemap = 16)))) Then
+      exit;
+    If ((mo^._type <> MT_FATSO)) And
+      ((mo^._type <> MT_BABY)) Then exit;
+  End
+  Else Begin
+    If (Not CheckBossEnd(mo^._type)) Then exit;
+  End;
 
+  // make sure there is a player alive for victory
+  j := -1;
+  For i := 0 To MAXPLAYERS - 1 Do Begin
+    If (playeringame[i]) And (players[i].health > 0) Then Begin
+      j := i;
+      break;
+    End;
+  End;
+  If (j = -1) Then exit; // no one left alive, so do not end game
+
+  // scan the remaining thinkers to see
+  // if all bosses are dead
+  th := thinkercap.next;
+  While (th <> @thinkercap) Do Begin
+    If (th^._function.acp1 <> @P_MobjThinker) Then Begin
+      th := th^.next;
+      continue;
+    End;
+    mo2 := pmobj_t(th);
+    If (mo2 <> mo)
+      And (mo2^._type = mo^._type)
+      And (mo2^.health > 0) Then Begin
+      // other boss not dead
+      exit;
+    End;
+    th := th^.next;
+  End;
+
+  // victory!
+  If (gamemode = commercial) Then Begin
+    If (gamemap = 7) Or
+      // [crispy] Master Levels in PC slot 7
+    ((gamemission = pack_master) And ((gamemap = 14) Or (gamemap = 15) Or (gamemap = 16))) Then Begin
+
+      If (mo^._type = MT_FATSO) Then Begin
+        junk.tag := 666;
+        EV_DoFloor(@junk, lowerFloorToLowest);
+        exit;
+      End;
+
+      If (mo^._type = MT_BABY) Then Begin
+        junk.tag := 667;
+        EV_DoFloor(@junk, raiseToTexture);
+        exit;
+      End;
+    End;
+  End
+  Else Begin
+    Case (gameepisode) Of
+      1: Begin
+          junk.tag := 666;
+          EV_DoFloor(@junk, lowerFloorToLowest);
+          exit;
+        End;
+      4: Begin
+          Case (gamemap) Of
+            6: Begin
+                junk.tag := 666;
+                EV_DoDoor(@junk, vld_blazeOpen);
+                exit;
+              End;
+            8: Begin
+                junk.tag := 666;
+                EV_DoFloor(@junk, lowerFloorToLowest);
+                exit;
+              End;
+          End;
+        End;
+    End;
+  End;
   G_ExitLevel();
 End;
 
@@ -1396,28 +1440,23 @@ Begin
 End;
 
 Procedure A_SargAttack(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    int		damage;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //
-  //    if (gameversion >= exe_doom_1_5)
-  //    {
-  //        if (!P_CheckMeleeRange (actor))
-  //            return;
-  //    }
-  //
-  //    damage = ((P_Random()%10)+1)*4;
-  //
-  //    if (gameversion <= exe_doom_1_2)
-  //        P_LineAttack(actor, actor->angle, MELEERANGE, 0, damage);
-  //    else
-  //        P_DamageMobj (actor->target, actor, actor, damage);
+  A_FaceTarget(actor);
+
+  If (gameversion >= exe_doom_1_5) Then Begin
+    If (Not P_CheckMeleeRange(actor)) Then exit;
+  End;
+
+  damage := ((P_Random() Mod 10) + 1) * 4;
+
+  If (gameversion <= exe_doom_1_2) Then
+    P_LineAttack(actor, actor^.angle, MELEERANGE, 0, damage)
+  Else
+    P_DamageMobj(actor^.target, actor, actor, damage);
 End;
 
 Procedure A_HeadAttack(actor: Pmobj_t);

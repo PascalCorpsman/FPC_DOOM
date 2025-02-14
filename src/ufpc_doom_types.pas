@@ -77,6 +77,7 @@ Type
   TProcedure = Procedure();
 
   signed_char = Int8;
+  unsigned_char = UInt8;
 
   uint8_t = UInt8;
   uint16_t = UInt16;
@@ -177,8 +178,8 @@ Type
 
     havenerve: String;
     havemaster: String;
-    //    	char *havesigil;
-    //    	char *havesigil2;
+    havesigil: String;
+    havesigil2: String;
 
     //    	const char *sdlversion;
     //    	const char *platform;
@@ -311,6 +312,9 @@ Initialization
   Crispy.moreammo := false;
   Crispy.havenerve := ''; // Wird in CheckLoadNerve initialisiert
   Crispy.havemaster := ''; // Wird in LoadMasterlevelsWads initialisiert
+  Crispy.havesigil := ''; // Wird in LoadSigilWad initialisiert
+  Crispy.havesigil2 := ''; // Wird in LoadSigil2Wad initialisiert
+
   FillChar(critical_s, sizeof(critical_s), 0);
 
 End.

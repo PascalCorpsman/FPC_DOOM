@@ -35,7 +35,7 @@ Var
   nodes: Array Of node_t;
 
   numsectors: int;
-  sectors: Array Of sector_t;
+  sectors: Array Of sector_t = Nil;
 
   numsegs: int;
   segs: Array Of seg_t;
@@ -278,6 +278,11 @@ Begin
   End;
 
   numsectors := W_LumpLength(lump) Div sizeof(mapsector_t);
+  // ggf alte Sectoren löschen, sonst gits memleaks aufgrund des Fillchars unten
+  For i := 0 To high(sectors) Do Begin
+    setlength(sectors[i].lines, 0);
+  End;
+
   setlength(sectors, numsectors);
   FillChar(sectors[0], numsectors * sizeof(sector_t), 0);
 
@@ -680,9 +685,6 @@ Begin
   End;
 
   // build line tables for each sector
-  For i := 0 To high(sectors) Do Begin
-    setlength(sectors[i].lines, 0);
-  End;
   For i := 0 To numsectors - 1 Do Begin
     // Assign the line buffer for this sector
     setlength(sectors[i].lines, sectors[i].linecount);

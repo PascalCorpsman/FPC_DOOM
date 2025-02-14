@@ -90,7 +90,7 @@ Var
   //extern int key_arti_egg;
   //extern int key_arti_invulnerability;
   //
-  //extern int key_demo_quit;
+  key_demo_quit: int;
   key_spy: int;
   //extern int key_prevweapon;
   //extern int key_nextweapon;
@@ -308,7 +308,7 @@ Begin
   //    M_BindIntVariable("key_menu_screenshot",&key_menu_screenshot);
   //    M_BindIntVariable("key_menu_cleanscreenshot",&key_menu_cleanscreenshot); // [crispy]
   //    M_BindIntVariable("key_menu_del",       &key_menu_del); // [crispy]
-  //    M_BindIntVariable("key_demo_quit",      &key_demo_quit);
+  key_demo_quit := VK_Q;
   //    M_BindIntVariable("key_spy",            &key_spy);
   //    M_BindIntVariable("key_menu_nextlevel", &key_menu_nextlevel); // [crispy]
   //    M_BindIntVariable("key_menu_reloadlevel", &key_menu_reloadlevel); // [crispy]

@@ -69,6 +69,7 @@ Procedure D_RegisterLoopCallbacks(i: Ploop_interface_t);
 Procedure D_StartGameLoop();
 Procedure D_StartNetGame(Var settings: net_gamesettings_t; callback: netgame_startup_callback_t);
 Procedure NetUpdate();
+Function D_NonVanillaPlayback(conditional: boolean; lumpnum: int; feature: String): boolean;
 
 Implementation
 
@@ -77,6 +78,7 @@ Uses
   , d_event
   , i_timer, i_system, i_video
   , m_argv
+  , w_wad
   ;
 
 Var
@@ -377,6 +379,58 @@ Begin
       break;
     End;
   End;
+End;
+
+Function StrictDemos(): Boolean;
+Begin
+  //!
+  // @category demo
+  //
+  // When recording or playing back demos, disable any extensions
+  // of the vanilla demo format - record demos as vanilla would do,
+  // and play back demos as vanilla would do.
+  //
+  result := M_ParmExists('-strictdemos');
+End;
+
+// Returns true if the given lump number corresponds to data from a .lmp
+// file, as opposed to a WAD.
+
+Function IsDemoFile(lumpnum: int): Boolean;
+Var
+  lower: String;
+Begin
+  lower := lumpinfo[lumpnum].wad_file;
+  lower := lowercase(lower);
+  result := ExtractFileExt(lower) = '.lmp';
+End;
+
+// If the provided conditional value is true, we're trying to play back
+// a demo that includes a non-vanilla extension. We return true if the
+// conditional is true and it's allowed to use this extension, checking
+// that:
+//  - The -strictdemos command line argument is not provided.
+//  - The given lumpnum identifying the demo to play back identifies a
+//    demo that comes from a .lmp file, not a .wad file.
+//  - Before proceeding, a warning is shown to the user on the console.
+
+Function D_NonVanillaPlayback(conditional: boolean; lumpnum: int;
+  feature: String): boolean;
+Begin
+  If (Not conditional) Or (StrictDemos()) Then Begin
+    result := false;
+    exit;
+  End;
+
+  If (Not IsDemoFile(lumpnum)) Then Begin
+    writeln(format('Warning: WAD contains demo with a non-vanilla extension (%s)', [feature]));
+    result := false;
+    exit;
+  End;
+
+  writeln(format('Warning: Playing back a demo File With a non - vanilla extension (%s).Use - strictdemos To disable this extension.', [feature]));
+
+  result := true;
 End;
 
 // Returns true if there are players in the game:

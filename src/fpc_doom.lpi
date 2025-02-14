@@ -42,7 +42,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="103">
+    <Units Count="107">
       <Unit0>
         <Filename Value="fpc_doom.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -459,6 +459,22 @@
         <Filename Value="units/p_saveg.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit102>
+      <Unit103>
+        <Filename Value="units/deh_thing.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit103>
+      <Unit104>
+        <Filename Value="units/deh_main.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit104>
+      <Unit105>
+        <Filename Value="units/deh_doom.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit105>
+      <Unit106>
+        <Filename Value="units/deh_ptr.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit106>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
