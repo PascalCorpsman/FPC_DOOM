@@ -1,6 +1,7 @@
 # Differences to known DOOM versions (Vanilla / Chocolate / Crispy)
 
 ### Viewport zooming
+
 In Vanilla Doom it is possible to "zoom" the viewport to be very small and instead render a background pattern. This feature made sense in the old day's, but today not. Via "+" and "-" the player can deside between 3 viewport sizes:
 
 - Fullscreen, no HUD
@@ -8,10 +9,12 @@ In Vanilla Doom it is possible to "zoom" the viewport to be very small and inste
 - Reduced HUD
 
 ### Silent fist option
+
 In DOOM every weapon makes noises and therefore wakes up all the enemies. In FPC_DOOM you could set the "fistisquit" flag. If set, "shooting" by punching with the fist does not make any noise. But if you do not kill a opponent in one shot, this opponent will scream and that will be heared. This feature makes most sense when playing in bersek mode.
 
 ### Savegames
-Savegames are not compatible to any other DOOM version!
+
+ATM there are no savegames available, but even if the will be not compatible to any other DOOM version! This is due to the fact that it seems that DOOM tries to store pointers in the savegames, and as FPC DOOM is running on 64-Bit it will never be compatible to 32-Bit pointer storages.
 
 ## Key settings
 
