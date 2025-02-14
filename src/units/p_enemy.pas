@@ -1460,24 +1460,20 @@ Begin
 End;
 
 Procedure A_HeadAttack(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //   int		damage;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    A_FaceTarget (actor);
-  //    if (P_CheckMeleeRange (actor))
-  //    {
-  //	damage = (P_Random()%6+1)*10;
-  //	P_DamageMobj (actor->target, actor, actor, damage);
-  //	return;
-  //    }
-  //
-  //    // launch a missile
-  //    P_SpawnMissile (actor, actor->target, MT_HEADSHOT);
+  A_FaceTarget(actor);
+  If (P_CheckMeleeRange(actor)) Then Begin
+    damage := (P_Random() Mod 6 + 1) * 10;
+    P_DamageMobj(actor^.target, actor, actor, damage);
+    exit;
+  End;
+
+  // launch a missile
+  P_SpawnMissile(actor, actor^.target, MT_HEADSHOT);
 End;
 
 Procedure A_BruisAttack(actor: Pmobj_t);
