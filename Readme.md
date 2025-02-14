@@ -4,10 +4,12 @@ In this repository i try to port DOOM to Free-Pascal using OpenGL and therefore 
 
 > !! Attention !!
 > 
-> This is a work in Progress, don't expect anything to work (yet)..
+> This is a work in progress, the game is already playable, but not everything is ported.
+> Its highly recommended to play with debugger and Lazarus-IDE. 
+> If you get a "Port me." exception, you reached the end of the actual porting progress.
 
 The original code was released by [id-Software](https://github.com/id-Software/DOOM) unfortunatunelly 
-i was not able to get the code running so i decided to use the 
+i was not able to get the code compiled, so i decided to use the 
 [crispy-doom](https://github.com/fabiangreffrath/crispy-doom) version as base (as this one directly compiled 
 and was able to start and play the .wad files i have had laying around).
 
@@ -21,6 +23,7 @@ There is already a [FPC Doom](https://github.com/jval1972/FPCDoom) on the [List]
 ports, but that version only supports DirectX and therefore only supports Windows platform.
 
 ## What needs to be done to compile the code
+
 - install [Lazarus-IDE](https://www.lazarus-ide.org/)
 - install package LazOpenGLContext (is shipped with lazarus)
 - download [dglOpenGL.pas](https://github.com/saschawillems/dglopengl) and store it in the units folder
@@ -34,12 +37,14 @@ ports, but that version only supports DirectX and therefore only supports Window
     - chmod o+r it 
   
 ## What needs to be done to play the game
+
 - get a valid .wad file and copy it where the binary is beeing created (or use this [shareware](https://www.doomworld.com/3ddownloads/ports/shareware_doom_iwad.zip) version)
-- wait until this repository has have enough progress to be a playable game (see section [progress](#progress))
-- Download and install bass (see above)
-- start the application
+- read carefull the above hint and see section [progress](#progress)
+- Download and install bass (see [What needs to be done to compile the code](#what-needs-to-be-done-to-compile-the-code))
+- start the application (at best using the Lazarus IDE)
 
 ## Lessons learned ?
+
 As this section is not interesting for everyone i extracted this into a separate section [lessons learned](lessons_learned.md).
 Furthermore there are some special points when porting a "old" DOS application to a modern "Linux/Windows" application, which i handle in the section [DOOM vs. LCL](doom_vs_lcl.md).
 
@@ -47,7 +52,7 @@ Furthermore there are some special points when porting a "old" DOS application t
 
 As i am not doing a 100% source port but more a port for me and my education (or personal needs), FPC DOOM will not be like Vanilla DOOM and even not like Crispy DOOM. To See the differences look [here](differences.md).
 
-## progress:
+## Progress:
 <!-- 
 Homepage used to create .gif images: https://ezgif.com/maker
 -->
@@ -75,5 +80,5 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.02.06) enable SFX engine [Video](documentation/DOOM_Sound.mp4)
 - (2025.02.08) reached finish screen of level 1 ![](documentation/Hanger_Finished.gif)
 - (2025.02.09) reached level 2 ![](documentation/e1m2.png) <br> still no HUD and not all secrets in level 1 possible
-- (2025.02.11) finally ported everything to play e1m1 100% all without using cheats ![](documentation/e1m1_100.png)
+- (2025.02.11) finally ported everything to play e1m1 with 100% (kills, items, secret) without using cheat codes ![](documentation/e1m1_100.png)
 - (2025.02.12) enable HUD ![](documentation/HUD.png) <br> mapsize not yet scaleable
