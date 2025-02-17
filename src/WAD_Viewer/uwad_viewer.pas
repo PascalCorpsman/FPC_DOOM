@@ -50,6 +50,7 @@ Const
     Or ord('U') Shl 8
     Or ord('S') Shl 16
     Or $1A Shl 24;
+
 Var
   patch: ^patch_t;
   pui16: ^UInt16;

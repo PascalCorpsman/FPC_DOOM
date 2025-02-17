@@ -1,7 +1,7 @@
 (******************************************************************************)
 (* WAD_Viewer                                                      04.02.2025 *)
 (*                                                                            *)
-(* Version     : 0.03                                                         *)
+(* Version     : 0.04                                                         *)
 (*                                                                            *)
 (* Author      : Uwe Schächterle (Corpsman)                                   *)
 (*                                                                            *)
@@ -27,6 +27,7 @@
 (*               0.02 - Export Lump as RAW                                    *)
 (*               0.03 - Preview sfx lumps                                     *)
 (*                      Preview map                                           *)
+(*               0.04 - Lumpsize filter                                       *)
 (*                                                                            *)
 (******************************************************************************)
 Unit Unit1;
@@ -49,6 +50,7 @@ Type
     Button4: TButton;
     Edit1: TEdit;
     Edit2: TEdit;
+    Edit3: TEdit;
     Label1: TLabel;
     Label2: TLabel;
     OpenDialog1: TOpenDialog;
@@ -59,12 +61,15 @@ Type
     Procedure Button4Click(Sender: TObject);
     Procedure Edit1Change(Sender: TObject);
     Procedure Edit2Change(Sender: TObject);
+    Procedure Edit3Change(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
     Procedure StringGrid1ButtonClick(Sender: TObject; aCol, aRow: Integer);
     Procedure StringGrid1DblClick(Sender: TObject);
   private
     Procedure InitColorPallete;
+    Procedure ArrangeColumnEdit(Const Edit: Tedit; ColIndex: integer);
+    Procedure ClearOtherFilter(Const SkipFilter: TEdit);
   public
     Procedure LoadWadFile(Const Filename: String);
   End;
@@ -129,7 +134,7 @@ Var
   s: String;
 Begin
   StringGrid1.BeginUpdate;
-  edit2.text := '';
+  ClearOtherFilter(edit1);
   If Edit1.text = '' Then Begin
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
       StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
@@ -159,7 +164,7 @@ Var
   s: String;
 Begin
   StringGrid1.BeginUpdate;
-  edit1.text := '';
+  ClearOtherFilter(edit2);
   If Edit2.text = '' Then Begin
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
       StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
@@ -183,12 +188,42 @@ Begin
   label2.caption := format('%d of %d lumps', [c, StringGrid1.RowCount - 1]);
 End;
 
+Procedure TForm1.Edit3Change(Sender: TObject);
+Var
+  s, c, i: Integer;
+Begin
+  StringGrid1.BeginUpdate;
+  ClearOtherFilter(edit3);
+  If Edit3.text = '' Then Begin
+    For i := 1 To StringGrid1.RowCount - 1 Do Begin
+      StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
+      c := StringGrid1.RowCount - 1;
+    End;
+  End
+  Else Begin
+    s := StrToIntDef(Edit3.Text, 0);
+    c := 0;
+    For i := 1 To StringGrid1.RowCount - 1 Do Begin
+      If s > StrToIntDef(StringGrid1.Cells[IndexLumpSize, i], 0) Then Begin
+        StringGrid1.RowHeights[i] := 0;
+      End
+      Else Begin
+        StringGrid1.RowHeights[i] := StringGrid1.RowHeights[0];
+        c := c + 1;
+      End;
+    End;
+  End;
+  StringGrid1.EndUpdate();
+  label2.caption := format('%d of %d lumps', [c, StringGrid1.RowCount - 1]);
+End;
+
 Procedure TForm1.FormCreate(Sender: TObject);
 Begin
   edit1.text := '';
   edit2.text := '';
+  edit3.text := '';
   label2.caption := '';
-  caption := 'Wad viewer, ver. 0.03';
+  caption := 'Wad viewer, ver. 0.04';
   If (BASS_GetVersion() Shr 16) <> Bassversion Then Begin
     showmessage('Unable to init the Bass Library ver. :' + BASSVERSIONTEXT);
     halt;
@@ -240,9 +275,38 @@ Begin
   End;
 End;
 
+Procedure TForm1.ArrangeColumnEdit(Const Edit: Tedit; ColIndex: integer);
+Var
+  s, i: integer;
+Begin
+  s := StringGrid1.Left;
+  For i := 0 To ColIndex - 1 Do Begin
+    s := s + StringGrid1.ColWidths[i]
+  End;
+  edit.Left := s;
+  edit.Width := StringGrid1.ColWidths[ColIndex];
+End;
+
+Procedure TForm1.ClearOtherFilter(Const SkipFilter: TEdit);
+Var
+  i: Integer;
+  oc: TNotifyEvent;
+Begin
+  For i := 0 To ComponentCount - 1 Do Begin
+    If Components[i] Is TEdit Then Begin
+      If Components[i] <> SkipFilter Then Begin
+        oc := TEdit(Components[i]).OnChange;
+        TEdit(Components[i]).OnChange := Nil;
+        TEdit(Components[i]).Text := '';
+        TEdit(Components[i]).OnChange := oc;
+      End;
+    End;
+  End;
+End;
+
 Procedure TForm1.LoadWadFile(Const Filename: String);
 Var
-  s, i: Integer;
+  i: Integer;
 Begin
   W_ResetAndFreeALL;
   If Not W_AddFile(Filename) Then Begin
@@ -252,7 +316,7 @@ Begin
   InitColorPallete;
   StringGrid1.RowCount := length(lumpinfo) + 1;
   For i := 0 To high(lumpinfo) Do Begin
-    If i = 497 - 1 Then Begin
+    If i = 497 - 1 Then Begin // Zum Debuggen einen Haltepunkt ..
       nop();
     End;
     StringGrid1.Cells[IndexIndex, i + 1] := Inttostr(i + 1);
@@ -262,22 +326,19 @@ Begin
   End;
 
   StringGrid1.AutoSizeColumns;
+  ArrangeColumnEdit(edit1, IndexLumpName);
+  ArrangeColumnEdit(edit2, IndexLumpType);
+  ArrangeColumnEdit(edit3, IndexLumpSize);
 
-  s := StringGrid1.Left;
-  For i := 0 To IndexLumpName - 1 Do Begin
-    s := s + StringGrid1.ColWidths[i]
-  End;
-  edit1.Left := s;
-  edit1.Width := StringGrid1.ColWidths[IndexLumpName];
-
-  s := StringGrid1.Left;
-  For i := 0 To IndexLumpType - 1 Do Begin
-    s := s + StringGrid1.ColWidths[i]
-  End;
-  edit2.Left := S;
-  edit2.Width := StringGrid1.ColWidths[IndexLumpType];
+  //  s := StringGrid1.Left;
+  //  For i := 0 To IndexLumpType - 1 Do Begin
+  //    s := s + StringGrid1.ColWidths[i]
+  //  End;
+  //  edit2.Left := S;
+  //  edit2.Width := StringGrid1.ColWidths[IndexLumpType];
   edit1.text := '';
   edit2.text := '';
+  edit3.text := '';
   label2.caption := format('%d lumps', [StringGrid1.RowCount - 1]);
 
 End;

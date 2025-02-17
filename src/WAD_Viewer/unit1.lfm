@@ -112,6 +112,15 @@ object Form1: TForm1
     Anchors = [akLeft, akBottom]
     Caption = 'Label2'
   end
+  object Edit3: TEdit
+    Left = 136
+    Height = 26
+    Top = 38
+    Width = 64
+    TabOrder = 7
+    Text = 'Edit3'
+    OnChange = Edit3Change
+  end
   object OpenDialog1: TOpenDialog
     DefaultExt = '.wad'
     Filter = 'Wad file|*.wad|All files|*.*'
