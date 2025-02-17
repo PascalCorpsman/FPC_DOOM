@@ -33,6 +33,18 @@ Const
   // [crispy] pseudo cheats to eat up the first digit typed after a cheat expecting two parameters
   cheat_clev1: cheatseq_t = (sequence: 'idclev'; parameter_chars: 1);
 
+  cheat_powerup: Array[0..7] Of cheatseq_t =
+  (
+    (sequence: 'idbeholdv'; parameter_chars: 0),
+    (sequence: 'idbeholds'; parameter_chars: 0),
+    (sequence: 'idbeholdi'; parameter_chars: 0),
+    (sequence: 'idbeholdr'; parameter_chars: 0),
+    (sequence: 'idbeholda'; parameter_chars: 0),
+    (sequence: 'idbeholdl'; parameter_chars: 0),
+    (sequence: 'idbehold'; parameter_chars: 0),
+    (sequence: 'idbehold0'; parameter_chars: 0) // [crispy] idbehold0
+    );
+
 Var
   st_keyorskull: Array[card_t] Of int; // Es werden aber nur it_bluecard .. it_redcard genutzt
 
@@ -1361,7 +1373,7 @@ End;
 
 Function ST_Responder(Const ev: Pevent_t): boolean;
 Var
-  i: int;
+  i, j: int;
   mt: mapthing_t;
   an: angle_t;
   buf: String;
@@ -1561,148 +1573,151 @@ Begin
         Else
           plyr^.message := STSTR_NCOFF;
       End;
-      //      // 'behold?' power-up cheats
-    //      for (i=0;i<6;i++)
-    //      {
-    //	if (i < 4 ? cht_CheckCheatSP(&cheat_powerup[i], ev->data2) : cht_CheckCheat(&cheat_powerup[i], ev->data2))
-    //	{
-    //	  if (!plyr->powers[i])
-    //	    P_GivePower( plyr, i);
-    //	  else if (i!=pw_strength && i!=pw_allmap) // [crispy] disable full Automap
-    //	    plyr->powers[i] = 1;
-    //	  else
-    //	    plyr->powers[i] = 0;
-    //
-    //	  plyr->message = DEH_String(STSTR_BEHOLDX);
-    //	}
-    //      }
-    //      // [crispy] idbehold0
-    //      if (cht_CheckCheatSP(&cheat_powerup[7], ev->data2))
-    //      {
-    //	memset(plyr->powers, 0, sizeof(plyr->powers));
-    //	plyr->mo->flags &= ~MF_SHADOW; // [crispy] cancel invisibility
-    //	plyr->message = DEH_String(STSTR_BEHOLDX);
-    //      }
-    //
-    //      // 'behold' power-up menu
-    //      if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
-    //      {
-    //	plyr->message = DEH_String(STSTR_BEHOLD);
-    //      }
-    //      // 'choppers' invulnerability & chainsaw
-    //      else if (cht_CheckCheatSP(&cheat_choppers, ev->data2))
-    //      {
-    //	plyr->weaponowned[wp_chainsaw] = true;
-    //	plyr->powers[pw_invulnerability] = true;
-    //	plyr->message = DEH_String(STSTR_CHOPPERS);
-    //      }
-    //      // 'mypos' for player position
-    //      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
-    //      {
-    ///*
-    //        static char buf[ST_MSGWIDTH];
-    //        M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
-    //                   players[consoleplayer].mo->angle,
-    //                   players[consoleplayer].mo->x,
-    //                   players[consoleplayer].mo->y);
-    //        plyr->message = buf;
-    //*/
-    //        // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
-    //        plyr->powers[pw_mapcoords] = 10*TICRATE;
-    //      }
-    //
-    //// [crispy] now follow "critical" Crispy Doom specific cheats
-    //
-    //      // [crispy] implement Boom's "tntem" cheat
-    //      else if (cht_CheckCheatSP(&cheat_massacre, ev->data2) ||
-    //               cht_CheckCheatSP(&cheat_massacre2, ev->data2) ||
-    //               cht_CheckCheatSP(&cheat_massacre3, ev->data2))
-    //      {
-    //	int killcount = ST_cheat_massacre();
-    //	const char *const monster = (gameversion == exe_chex) ? "Flemoid" : "Monster";
-    //	const char *const killed = (gameversion == exe_chex) ? "returned" : "killed";
-    //
-    //	M_snprintf(msg, sizeof(msg), "%s%d %s%s%s %s",
-    //	           crstr[CR_GOLD],
-    //	           killcount, crstr[CR_NONE], monster, (killcount == 1) ? "" : "s", killed);
-    //	plyr->message = msg;
-    //      }
-    //      // [crispy] implement Crispy Doom's "spechits" cheat
-    //      else if (cht_CheckCheatSP(&cheat_spechits, ev->data2))
-    //      {
-    //	int triggeredlines = ST_cheat_spechits();
-    //
-    //	M_snprintf(msg, sizeof(msg), "%s%d %sSpecial Line%s Triggered",
-    //	           crstr[CR_GOLD],
-    //	           triggeredlines, crstr[CR_NONE], (triggeredlines == 1) ? "" : "s");
-    //	plyr->message = msg;
-    //      }
-    //      // [crispy] implement PrBoom+'s "notarget" cheat
-    //      else if (cht_CheckCheatSP(&cheat_notarget, ev->data2) ||
-    //               cht_CheckCheatSP(&cheat_notarget2, ev->data2))
-    //      {
-    //	plyr->cheats ^= CF_NOTARGET;
-    //
-    //	if (plyr->cheats & CF_NOTARGET)
-    //	{
-    //		int i;
-    //		thinker_t *th;
-    //
-    //		// [crispy] let mobjs forget their target and tracer
-    //		for (th = thinkercap.next; th != &thinkercap; th = th->next)
-    //		{
-    //			if (th->function.acp1 == (actionf_p1)P_MobjThinker)
-    //			{
-    //				mobj_t *const mo = (mobj_t *)th;
-    //
-    //				if (mo->target && mo->target->player)
-    //				{
-    //					mo->target = NULL;
-    //				}
-    //
-    //				if (mo->tracer && mo->tracer->player)
-    //				{
-    //					mo->tracer = NULL;
-    //				}
-    //			}
-    //		}
-    //		// [crispy] let sectors forget their soundtarget
-    //		for (i = 0; i < numsectors; i++)
-    //		{
-    //			sector_t *const sector = &sectors[i];
-    //
-    //			sector->soundtarget = NULL;
-    //		}
-    //	}
-    //
-    //	M_snprintf(msg, sizeof(msg), "Notarget Mode %s%s",
-    //	           crstr[CR_GREEN],
-    //	           (plyr->cheats & CF_NOTARGET) ? "ON" : "OFF");
-    //	plyr->message = msg;
-    //      }
-    //      // [crispy] implement "nomomentum" cheat, ne debug aid -- pretty useless, though
-    //      else if (cht_CheckCheatSP(&cheat_nomomentum, ev->data2))
-    //      {
-    //	plyr->cheats ^= CF_NOMOMENTUM;
-    //
-    //	M_snprintf(msg, sizeof(msg), "Nomomentum Mode %s%s",
-    //	           crstr[CR_GREEN],
-    //	           (plyr->cheats & CF_NOMOMENTUM) ? "ON" : "OFF");
-    //	plyr->message = msg;
-    //      }
-    //      // [crispy] implement Crispy Doom's "goobers" cheat, ne easter egg
-    //      else if (cht_CheckCheatSP(&cheat_goobers, ev->data2))
-    //      {
-    //	extern void EV_DoGoobers (void);
-    //
-    //	EV_DoGoobers();
-    //
-    //	R_SetGoobers(true);
-    //
-    //	M_snprintf(msg, sizeof(msg), "Get Psyched!");
-    //	plyr->message = msg;
-    //End else
-      //      // [crispy] implement Boom's "tntweap?" weapon cheats
+      // 'behold?' power-up cheats
+      For i := 0 To 5 Do Begin
+        If i < 4 Then Begin
+          j := cht_CheckCheatSP(cheat_powerup[i], chr(ev^.data2));
+        End
+        Else Begin
+          j := cht_CheckCheat(cheat_powerup[i], chr(ev^.data2));
+        End;
+        If (j <> 0) Then Begin
+          If (plyr^.powers[i] = 0) Then
+            P_GivePower(plyr, i)
+          Else If (i <> int(pw_strength)) And (i <> int(pw_allmap)) Then // [crispy] disable full Automap
+            plyr^.powers[i] := 1
+          Else
+            plyr^.powers[i] := 0;
+
+          plyr^.message := STSTR_BEHOLDX;
+        End;
+      End;
+      // [crispy] idbehold0
+      If (cht_CheckCheatSP(cheat_powerup[7], chr(ev^.data2)) <> 0) Then Begin
+        FillChar(plyr^.powers[0], sizeof(plyr^.powers), 0);
+        plyr^.mo^.flags := plyr^.mo^.flags And Not MF_SHADOW; // [crispy] cancel invisibility
+        plyr^.message := STSTR_BEHOLDX;
+      End;
+
+      //      // 'behold' power-up menu
+      //      if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
+      //      {
+      //	plyr->message = DEH_String(STSTR_BEHOLD);
+      //      }
+      //      // 'choppers' invulnerability & chainsaw
+      //      else if (cht_CheckCheatSP(&cheat_choppers, ev->data2))
+      //      {
+      //	plyr->weaponowned[wp_chainsaw] = true;
+      //	plyr->powers[pw_invulnerability] = true;
+      //	plyr->message = DEH_String(STSTR_CHOPPERS);
+      //      }
+      //      // 'mypos' for player position
+      //      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
+      //      {
+      ///*
+      //        static char buf[ST_MSGWIDTH];
+      //        M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
+      //                   players[consoleplayer].mo->angle,
+      //                   players[consoleplayer].mo->x,
+      //                   players[consoleplayer].mo->y);
+      //        plyr->message = buf;
+      //*/
+      //        // [crispy] extra high precision IDMYPOS variant, updates for 10 seconds
+      //        plyr->powers[pw_mapcoords] = 10*TICRATE;
+      //      }
+      //
+      //// [crispy] now follow "critical" Crispy Doom specific cheats
+      //
+      //      // [crispy] implement Boom's "tntem" cheat
+      //      else if (cht_CheckCheatSP(&cheat_massacre, ev->data2) ||
+      //               cht_CheckCheatSP(&cheat_massacre2, ev->data2) ||
+      //               cht_CheckCheatSP(&cheat_massacre3, ev->data2))
+      //      {
+      //	int killcount = ST_cheat_massacre();
+      //	const char *const monster = (gameversion == exe_chex) ? "Flemoid" : "Monster";
+      //	const char *const killed = (gameversion == exe_chex) ? "returned" : "killed";
+      //
+      //	M_snprintf(msg, sizeof(msg), "%s%d %s%s%s %s",
+      //	           crstr[CR_GOLD],
+      //	           killcount, crstr[CR_NONE], monster, (killcount == 1) ? "" : "s", killed);
+      //	plyr->message = msg;
+      //      }
+      //      // [crispy] implement Crispy Doom's "spechits" cheat
+      //      else if (cht_CheckCheatSP(&cheat_spechits, ev->data2))
+      //      {
+      //	int triggeredlines = ST_cheat_spechits();
+      //
+      //	M_snprintf(msg, sizeof(msg), "%s%d %sSpecial Line%s Triggered",
+      //	           crstr[CR_GOLD],
+      //	           triggeredlines, crstr[CR_NONE], (triggeredlines == 1) ? "" : "s");
+      //	plyr->message = msg;
+      //      }
+      //      // [crispy] implement PrBoom+'s "notarget" cheat
+      //      else if (cht_CheckCheatSP(&cheat_notarget, ev->data2) ||
+      //               cht_CheckCheatSP(&cheat_notarget2, ev->data2))
+      //      {
+      //	plyr->cheats ^= CF_NOTARGET;
+      //
+      //	if (plyr->cheats & CF_NOTARGET)
+      //	{
+      //		int i;
+      //		thinker_t *th;
+      //
+      //		// [crispy] let mobjs forget their target and tracer
+      //		for (th = thinkercap.next; th != &thinkercap; th = th->next)
+      //		{
+      //			if (th->function.acp1 == (actionf_p1)P_MobjThinker)
+      //			{
+      //				mobj_t *const mo = (mobj_t *)th;
+      //
+      //				if (mo->target && mo->target->player)
+      //				{
+      //					mo->target = NULL;
+      //				}
+      //
+      //				if (mo->tracer && mo->tracer->player)
+      //				{
+      //					mo->tracer = NULL;
+      //				}
+      //			}
+      //		}
+      //		// [crispy] let sectors forget their soundtarget
+      //		for (i = 0; i < numsectors; i++)
+      //		{
+      //			sector_t *const sector = &sectors[i];
+      //
+      //			sector->soundtarget = NULL;
+      //		}
+      //	}
+      //
+      //	M_snprintf(msg, sizeof(msg), "Notarget Mode %s%s",
+      //	           crstr[CR_GREEN],
+      //	           (plyr->cheats & CF_NOTARGET) ? "ON" : "OFF");
+      //	plyr->message = msg;
+      //      }
+      //      // [crispy] implement "nomomentum" cheat, ne debug aid -- pretty useless, though
+      //      else if (cht_CheckCheatSP(&cheat_nomomentum, ev->data2))
+      //      {
+      //	plyr->cheats ^= CF_NOMOMENTUM;
+      //
+      //	M_snprintf(msg, sizeof(msg), "Nomomentum Mode %s%s",
+      //	           crstr[CR_GREEN],
+      //	           (plyr->cheats & CF_NOMOMENTUM) ? "ON" : "OFF");
+      //	plyr->message = msg;
+      //      }
+      //      // [crispy] implement Crispy Doom's "goobers" cheat, ne easter egg
+      //      else if (cht_CheckCheatSP(&cheat_goobers, ev->data2))
+      //      {
+      //	extern void EV_DoGoobers (void);
+      //
+      //	EV_DoGoobers();
+      //
+      //	R_SetGoobers(true);
+      //
+      //	M_snprintf(msg, sizeof(msg), "Get Psyched!");
+      //	plyr->message = msg;
+      //End else
+      // [crispy] implement Boom's "tntweap?" weapon cheats
       If (cht_CheckCheatSP(cheat_weapon, chr(ev^.data2)) <> 0) Then Begin
         cht_GetParam(cheat_weapon, buf);
         w := ord(buf[1]) - ord('1');
@@ -1844,7 +1859,6 @@ Begin
         //      crispy->snowflakes = !crispy->snowflakes;
         //    }
     End;
-
 
     // 'clev' change-level cheat
     If (Not netgame) And (cht_CheckCheat(cheat_clev, chr(ev^.data2)) <> 0) And (Not menuactive) Then Begin // [crispy] prevent only half the screen being updated

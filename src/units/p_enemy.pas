@@ -754,7 +754,7 @@ Begin
     actor^.target^.y);
 
   If (actor^.target^.flags And MF_SHADOW) <> 0 Then
-    actor^.angle := actor^.angle + P_SubRandom() Shl 21;
+    actor^.angle := angle_t(actor^.angle + P_SubRandom() Shl 21);
 End;
 
 Procedure A_PosAttack(actor: Pmobj_t);
@@ -1477,26 +1477,23 @@ Begin
 End;
 
 Procedure A_BruisAttack(actor: Pmobj_t);
+Var
+  damage: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    int		damage;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    // [crispy] face the enemy
-  ////  A_FaceTarget (actor);
-  //    if (P_CheckMeleeRange (actor))
-  //    {
-  //	S_StartSound (actor, sfx_claw);
-  //	damage = (P_Random()%8+1)*10;
-  //	P_DamageMobj (actor->target, actor, actor, damage);
-  //	return;
-  //    }
-  //
-  //    // launch a missile
-  //    P_SpawnMissile (actor, actor->target, MT_BRUISERSHOT);
+  // [crispy] face the enemy
+//  A_FaceTarget (actor);
+  If (P_CheckMeleeRange(actor)) Then Begin
+
+    S_StartSound(actor, sfx_claw);
+    damage := (P_Random() Mod 8 + 1) * 10;
+    P_DamageMobj(actor^.target, actor, actor, damage);
+    exit;
+  End;
+
+  // launch a missile
+  P_SpawnMissile(actor, actor^.target, MT_BRUISERSHOT);
 End;
 
 //
@@ -1507,30 +1504,27 @@ Const
   SKULLSPEED = (20 * FRACUNIT);
 
 Procedure A_SkullAttack(actor: Pmobj_t);
+Var
+  dest: Pmobj_t;
+  an: angle_t;
+  dist: int;
 Begin
-  Raise exception.create('Port me.');
+  If (actor^.target = Nil) Then exit;
 
-  //    mobj_t*		dest;
-  //    angle_t		an;
-  //    int			dist;
-  //
-  //    if (!actor->target)
-  //	return;
-  //
-  //    dest = actor->target;
-  //    actor->flags |= MF_SKULLFLY;
-  //
-  //    S_StartSound (actor, actor->info->attacksound);
-  //    A_FaceTarget (actor);
-  //    an = actor->angle >> ANGLETOFINESHIFT;
-  //    actor->momx = FixedMul (SKULLSPEED, finecosine[an]);
-  //    actor->momy = FixedMul (SKULLSPEED, finesine[an]);
-  //    dist = P_AproxDistance (dest->x - actor->x, dest->y - actor->y);
-  //    dist = dist / SKULLSPEED;
-  //
-  //    if (dist < 1)
-  //	dist = 1;
-  //    actor->momz = (dest->z+(dest->height>>1) - actor->z) / dist;
+  dest := actor^.target;
+  actor^.flags := actor^.flags Or MF_SKULLFLY;
+
+  S_StartSound(actor, actor^.info^.attacksound);
+  A_FaceTarget(actor);
+  an := actor^.angle Shr ANGLETOFINESHIFT;
+  actor^.momx := FixedMul(SKULLSPEED, finecosine[an]);
+  actor^.momy := FixedMul(SKULLSPEED, finesine[an]);
+  dist := P_AproxDistance(dest^.x - actor^.x, dest^.y - actor^.y);
+  dist := dist Div SKULLSPEED;
+
+  If (dist < 1) Then
+    dist := 1;
+  actor^.momz := (dest^.z + (dest^.height Shr 1) - actor^.z) Div dist;
 End;
 
 Procedure A_Metal(mo: Pmobj_t);
@@ -1547,20 +1541,16 @@ End;
 
 Procedure A_SpidRefire(actor: Pmobj_t);
 Begin
-  Raise exception.create('Port me.');
-
   // keep firing unless target got out of sight
-//    A_FaceTarget (actor);
-//
-//    if (P_Random () < 10)
-//	return;
-//
-//    if (!actor->target
-//	|| actor->target->health <= 0
-//	|| !P_CheckSight (actor, actor->target) )
-//    {
-//	P_SetMobjState (actor, actor->info->seestate);
-//    }
+  A_FaceTarget(actor);
+
+  If (P_Random() < 10) Then exit;
+
+  If (actor^.target = Nil)
+    Or (actor^.target^.health <= 0)
+    Or (Not P_CheckSight(actor, actor^.target)) Then Begin
+    P_SetMobjState(actor, actor^.info^.seestate);
+  End;
 End;
 
 Procedure A_BspiAttack(actor: Pmobj_t);

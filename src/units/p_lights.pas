@@ -206,7 +206,6 @@ Begin
   sector^.special := 0;
 End;
 
-
 //
 // T_FireFlicker
 //

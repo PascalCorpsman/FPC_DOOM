@@ -223,6 +223,8 @@ End;
 
 Function G_CheckSpot(playernum: int; Const mthing: mapthing_t): boolean;
 Begin
+  Raise exception.create('Port me.');
+
   //    fixed_t		x;
   //    fixed_t		y;
   //    subsector_t*	ss;
@@ -328,6 +330,7 @@ End;
 
 Procedure G_DeathMatchSpawnPlayer(playernum: int);
 Begin
+  Raise exception.create('Port me.');
   //    int             i,j;
   //    int				selections;
   //

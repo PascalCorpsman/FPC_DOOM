@@ -90,7 +90,7 @@ Implementation
 Uses
   doomtype
   , i_video
-  , r_bmaps, r_main
+  , r_bmaps, r_main, r_data
   , v_video
   ;
 
@@ -285,28 +285,29 @@ End;
 //
 
 Procedure R_DrawFuzzColumn();
+Var
+  count: int;
+  dest: ^pixel_t;
+  cutoff: boolean;
 Begin
-  //   int			count;
-  //    pixel_t*		dest;
-  //    boolean		cutoff = false;
-  //
-  //    // Adjust borders. Low...
-  //    if (!dc_yl)
-  //	dc_yl = 1;
-  //
-  //    // .. and high.
-  //    if (dc_yh == viewheight-1)
-  //    {
-  //	dc_yh = viewheight - 2;
-  //	cutoff = true;
-  //    }
-  //
-  //    count = dc_yh - dc_yl;
-  //
-  //    // Zero length.
-  //    if (count < 0)
-  //	return;
-  //
+  cutoff := false;
+
+  // Adjust borders. Low...
+  If (dc_yl = 0) Then
+    dc_yl := 1;
+
+  // .. and high.
+  If (dc_yh = viewheight - 1) Then Begin
+    dc_yh := viewheight - 2;
+    cutoff := true;
+  End;
+
+  count := dc_yh - dc_yl;
+
+  // Zero length.
+  If (count < 0) Then exit;
+  count := count + 1; // Corpsman Fix off by 1 in While loop
+
   //#ifdef RANGECHECK
   //    if ((unsigned)dc_x >= SCREENWIDTH
   //	|| dc_yl < 0 || dc_yh >= SCREENHEIGHT)
@@ -315,41 +316,41 @@ Begin
   //		 dc_yl, dc_yh, dc_x);
   //    }
   //#endif
-  //
-  //    dest = ylookup[dc_yl] + columnofs[flipviewwidth[dc_x]];
-  //
-  //    // Looks like an attempt at dithering,
-  //    //  using the colormap #6 (of 0-31, a bit
-  //    //  brighter than average).
-  //    do
-  //    {
-  //	// Lookup framebuffer, and retrieve
-  //	//  a pixel that is either one column
-  //	//  left or right of the current one.
-  //	// Add index from colormap to index.
-  //#ifndef CRISPY_TRUECOLOR
-  //	*dest = colormaps[6*256+dest[SCREENWIDTH*fuzzoffset[fuzzpos]]];
-  //#else
-  //	*dest = I_BlendDark(dest[SCREENWIDTH*fuzzoffset[fuzzpos]], 0xD3);
-  //#endif
-  //
-  //	// Clamp table lookup index.
-  //	if (++fuzzpos == FUZZTABLE)
-  //	    fuzzpos = 0;
-  //
-  //	dest += SCREENWIDTH;
-  //    } while (count--);
-  //
-  //    // [crispy] if the line at the bottom had to be cut off,
-  //    // draw one extra line using only pixels of that line and the one above
-  //    if (cutoff)
-  //    {
-  //#ifndef CRISPY_TRUECOLOR
-  //	*dest = colormaps[6*256+dest[SCREENWIDTH*(fuzzoffset[fuzzpos]-FUZZOFF)/2]];
-  //#else
-  //	*dest = I_BlendDark(dest[SCREENWIDTH*(fuzzoffset[fuzzpos]-FUZZOFF)/2], 0xD3);
-  //#endif
-  //    }
+
+  dest := @I_VideoBuffer[dc_yl * SCREENWIDTH + dc_x];
+  // Looks like an attempt at dithering,
+  //  using the colormap #6 (of 0-31, a bit
+  //  brighter than average).
+  Repeat
+
+    // Lookup framebuffer, and retrieve
+    //  a pixel that is either one column
+    //  left or right of the current one.
+    // Add index from colormap to index.
+    //#ifndef CRISPY_TRUECOLOR
+    dest^ := colormaps[6 * 256 + dest[SCREENWIDTH * fuzzoffset[fuzzpos]]];
+    //#else
+    //	*dest = I_BlendDark(dest[SCREENWIDTH*fuzzoffset[fuzzpos]], 0xD3);
+    //#endif
+
+    // Clamp table lookup index.
+    fuzzpos := fuzzpos + 1;
+    If (fuzzpos = FUZZTABLE) Then
+      fuzzpos := 0;
+
+    inc(dest, SCREENWIDTH);
+    count := count - 1;
+  Until count <= 0;
+
+  // [crispy] if the line at the bottom had to be cut off,
+  // draw one extra line using only pixels of that line and the one above
+  If (cutoff) Then Begin
+    //#ifndef CRISPY_TRUECOLOR
+    dest^ := colormaps[6 * 256 + dest[SCREENWIDTH * (fuzzoffset[fuzzpos] - FUZZOFF) Div 2]];
+    //#else
+    //	*dest = I_BlendDark(dest[SCREENWIDTH*(fuzzoffset[fuzzpos]-FUZZOFF)/2], 0xD3);
+    //#endif
+  End;
 End;
 
 Var
@@ -388,6 +389,7 @@ Var
   source: byte;
 Begin
   // TODO: Die konnte bisher noch nicht getestet werden !!
+  Raise exception.create('Ported, but untested ?');
   count := dc_yh - dc_yl;
   If (count < 0) Then exit;
   count := count + 1; // Corpsman Fix off by 1 in While loop
@@ -430,6 +432,7 @@ End;
 
 Procedure R_DrawTLColumn();
 Begin
+  Raise exception.create('Port me.');
   //   int			count;
   //    pixel_t*		dest;
   //    fixed_t		frac;
@@ -473,6 +476,8 @@ End;
 
 Procedure R_DrawSpanSolid();
 Begin
+  Raise exception.create('Port me.');
+
   //   const byte source = *ds_source;
   //    pixel_t *dest;
   //    int count;
@@ -534,10 +539,10 @@ Begin
   ////	dscount++;
   //#endif
 
-      // Pack position and step variables into a single 32-bit integer,
-      // with x in the top 16 bits and y in the bottom 16 bits.  For
-      // each 16-bit part, the top 6 bits are the integer part and the
-      // bottom 10 bits are the fractional part of the pixel position.
+  // Pack position and step variables into a single 32-bit integer,
+  // with x in the top 16 bits and y in the bottom 16 bits.  For
+  // each 16-bit part, the top 6 bits are the integer part and the
+  // bottom 10 bits are the fractional part of the pixel position.
 
   (*
       position = ((ds_xfrac << 10) & 0xffff0000)
