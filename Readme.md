@@ -52,6 +52,10 @@ Furthermore there are some special points when porting a "old" DOS application t
 
 As i am not doing a 100% source port but more a port for me and my education (or personal needs), FPC DOOM will not be like Vanilla DOOM and even not like Crispy DOOM. To See the differences look [here](differences.md).
 
+## Known Bugs
+- Replaying of demo's does not work because the time is "glichting" away during simulation
+- Rendering of walls above elevators is sometimes broken (see e1m2 elevater in front of player start), see pink area ![](documentation/Renderbug_e1m2.png)
+
 ## Progress:
 <!-- 
 Homepage used to create .gif images: https://ezgif.com/maker
@@ -82,3 +86,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.02.09) reached level 2 ![](documentation/e1m2.png) <br> still no HUD and not all secrets in level 1 possible
 - (2025.02.11) finally ported everything to play e1m1 with 100% (kills, items, secret) without using cheat codes ![](documentation/e1m1_100.png)
 - (2025.02.12) enable HUD ![](documentation/HUD.png) <br> mapsize not yet scaleable
+- (2025.02.18) enable "invisible" drawing ![](documentation/invisible.png)
