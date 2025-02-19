@@ -134,13 +134,12 @@ Var
   lowtic: int;
 Begin
   lowtic := maketic;
-  //      if (net_client_connected)
-  //      {
-  //          if (drone || recvtic < lowtic)
-  //          {
-  //              lowtic = recvtic;
-  //          }
-  //      }
+  If (net_client_connected) Then Begin
+    //          if (drone || recvtic < lowtic)
+    //          {
+    //              lowtic = recvtic;
+    //          }
+  End;
   result := lowtic;
 End;
 
@@ -307,7 +306,7 @@ Begin
     // If playing single player, do not allow tics to buffer
     // up very far
 
-//    If (Not net_client_connected) And (maketic - gameticdiv > 2) Then exit;
+    If (Not net_client_connected) And (maketic - gameticdiv > 2) Then exit;
 
     // Never go more than ~200ms ahead
     If (maketic - gameticdiv > 8) Then exit;
@@ -322,10 +321,10 @@ Begin
 
   loop_interface^.BuildTiccmd(cmd, maketic);
 
-  //      if (net_client_connected)
-  //      {
-  //          NET_CL_SendTiccmd(&cmd, maketic);
-  //      }
+  If (net_client_connected) Then Begin
+    Raise exception.create('Port me.');
+    // NET_CL_SendTiccmd(&cmd, maketic);
+  End;
 
   ticdata[maketic Mod BACKUPTICS].cmds[localplayer] := cmd;
   ticdata[maketic Mod BACKUPTICS].ingame[localplayer] := true;
@@ -487,26 +486,25 @@ Begin
 End;
 
 Procedure TryRunTics;
+Const
+  oldentertics: int = 0;
 Var
-  counts, availabletics, lowtic, i: int;
+  realtics, entertic, counts, availabletics, lowtic, i: int;
   _set: ^ticcmd_set_t;
 Begin
-  //    int	entertic;
-  //    static int oldentertics;
-  //    int realtics;
- //
+  //
   //    // [AM] If we've uncapped the framerate and there are no tics
   //    //      to run, return early instead of waiting around.
   //    extern int leveltime;
   //    #define return_early (crispy->uncapped && counts == 0 && leveltime > oldleveltime && screenvisible)
   //
-  //    // get real tics
-  //    entertic = I_GetTime() / ticdup;
-  //    realtics = entertic - oldentertics;
-  //    oldentertics = entertic;
+  // get real tics
+  entertic := I_GetTime() Div ticdup;
+  realtics := entertic - oldentertics;
+  oldentertics := entertic;
 
-      // in singletics mode, run a single tic every time this function
-      // is called.
+  // in singletics mode, run a single tic every time this function
+  // is called.
 
   If (singletics) Then Begin
     BuildNewTic();
@@ -542,6 +540,7 @@ Begin
 //            return;
   End
   Else Begin
+    Raise exception.create('Port me.');
     //        // decide how many tics to run
     //        if (realtics < availabletics-1)
     //            counts = realtics+1;
@@ -605,11 +604,9 @@ Begin
 
     _set := @ticdata[(gametic Div ticdup) Mod BACKUPTICS];
 
-    //        if (not net_client_connected) then
-    Begin
+    If (Not net_client_connected) Then Begin
       SinglePlayerClear(_set);
     End;
-
 
     For i := 0 To ticdup - 1 Do Begin
 

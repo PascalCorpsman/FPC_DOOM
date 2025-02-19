@@ -102,7 +102,7 @@ Procedure G_DoPlayDemo();
 Implementation
 
 Uses
-  doomdata, doomstat, info, sounds, deh_misc, doomkey, statdump
+  doomdata, doomstat, info, sounds, deh_misc, statdump
   , am_map
   , d_main, d_loop, d_net, d_englsh
   , f_finale

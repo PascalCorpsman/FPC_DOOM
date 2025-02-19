@@ -32,7 +32,7 @@ Uses
   doomdata, tables
   , d_loop
   , i_video
-  , m_fixed, m_bbox
+  , m_bbox
   , p_setup
   , r_draw, r_main, r_plane, r_sky, r_things, r_segs
   ;
@@ -59,11 +59,9 @@ Const
   MAXSEGS = (MAXWIDTH Div 2 + 1);
 
 Var
-
   // newend is one past the last valid seg
   newend: ^cliprange_t;
   solidsegs: Array[0..MAXSEGS - 1] Of cliprange_t;
-
 
 Procedure R_ClearDrawSegs();
 Begin
@@ -92,7 +90,6 @@ Begin
     inc(start);
 
   If (first < start^.first) Then Begin
-
     If (last < start^.first - 1) Then Begin
 
       // Post is entirely visible (above start),
@@ -127,7 +124,6 @@ Begin
     inc(next);
 
     If (last <= next^.last) Then Begin
-
       // Bottom is contained in next.
       // Adjust the clip size.
       start^.last := next^.last;
@@ -195,9 +191,7 @@ Begin
   // Bottom contained in start?
   If (last <= start^.last) Then exit;
 
-
   While (last >= (start + 1)^.first - 1) Do Begin
-
     // There is a fragment between two posts.
     R_StoreWallRange(start^.last + 1, (start + 1)^.first - 1);
     inc(start);
@@ -500,8 +494,6 @@ Begin
   sscount := sscount + 1;
   sub := @subsectors[num];
   frontsector := sub^.sector;
-  count := sub^.numlines;
-  line := @segs[sub^.firstline];
 
   // [AM] Interpolate sector movement.  Usually only needed
   //      when you're standing inside the sector.
@@ -540,12 +532,12 @@ Begin
   Else
     ceilingplane := -1;
 
-  R_AddSprites(frontsector);
+  R_AddSprites(frontsector); // Fügt alle Sprites des Sektors die vor uns liegen in die "zu" Rendern Liste ein
 
-  While (count <> 0) Do Begin
+  line := @segs[sub^.firstline];
+  For count := 0 To sub^.numlines - 1 Do Begin
     R_AddLine(line);
-    line := line + 1;
-    dec(count);
+    inc(line);
   End;
 
   // check for solidsegs overflow - extremely unsatisfactory!

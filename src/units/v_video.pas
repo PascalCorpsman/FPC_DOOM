@@ -26,7 +26,7 @@ Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 Procedure V_RestoreBuffer();
 Procedure V_MarkRect(x, y, width, height: int);
 Procedure V_CopyRect(srcx, srcy: int; Const source: pixel_tArray; width, height, destx, desty: int);
-
+Procedure V_DrawHorizLine(x, y, w, c: int);
 Var
   // The screen buffer; this is modified to draw things to the screen
   I_VideoBuffer: pixel_tArray; // Der ist quasi immer ORIGWIDTH * ORIGHEIGHT
@@ -140,6 +140,24 @@ Begin
     inc(dest, SCREENWIDTH);
     height := height - 1;
   End;
+End;
+
+Procedure V_DrawHorizLine(x, y, w, c: int);
+Begin
+  Raise exception.create('Port me.');
+  //   pixel_t *buf;
+  //   int x1;
+  //
+  //   // [crispy] prevent framebuffer overflows
+  //   if (x + w > (unsigned)SCREENWIDTH)
+  //w = SCREENWIDTH - x;
+  //
+  //   buf = I_VideoBuffer + SCREENWIDTH * y + x;
+  //
+  //   for (x1 = 0; x1 < w; ++x1)
+  //   {
+  //       *buf++ = c;
+  //   }
 End;
 
 (*
@@ -345,5 +363,4 @@ Begin
 End;
 
 End.
-
 

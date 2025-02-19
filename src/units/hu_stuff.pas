@@ -42,7 +42,7 @@ Uses
   , g_game
   , i_video
   , m_argv, m_menu
-  , p_setup
+  , p_setup, p_tick
   , r_things
   , st_stuff
   , v_video, v_trans
@@ -950,22 +950,23 @@ Begin
   //    dp_translation = NULL;
   //    dp_translucent = false;
   //
-  //    // [crispy] demo timer widget
-  //    if (demoplayback && (crispy->demotimer & DEMOTIMER_PLAYBACK))
-  //    {
-  //	ST_DrawDemoTimer(crispy->demotimerdir ? (deftotaldemotics - defdemotics) : defdemotics);
-  //    }
-  //    else
-  //    if (demorecording && (crispy->demotimer & DEMOTIMER_RECORD))
-  //    {
-  //	ST_DrawDemoTimer(leveltime);
-  //    }
-  //
-  //    // [crispy] demo progress bar
-  //    if (demoplayback && crispy->demobar)
-  //    {
-  //	HU_DemoProgressBar();
-  //    }
+      // [crispy] demo timer widget
+  If (demoplayback) And ((crispy.demotimer And DEMOTIMER_PLAYBACK) <> 0) Then Begin
+    If crispy.demotimerdir <> 0 Then Begin
+      ST_DrawDemoTimer((deftotaldemotics - defdemotics));
+    End
+    Else Begin
+      ST_DrawDemoTimer(defdemotics);
+    End;
+  End
+  Else If (demorecording) And ((crispy.demotimer And DEMOTIMER_RECORD) <> 0) Then Begin
+    ST_DrawDemoTimer(leveltime);
+  End;
+
+  // [crispy] demo progress bar
+  If (demoplayback) And (crispy.demobar <> 0) Then Begin
+    HU_DemoProgressBar();
+  End;
 End;
 
 Function HU_Responder(Const ev: Pevent_t): boolean;
@@ -1101,9 +1102,29 @@ Begin
   result := eatkey;
 End;
 
+// [crispy] print a bar indicating demo progress at the bottom of the screen
+
 Procedure HU_DemoProgressBar();
+Var
+  i: int;
 Begin
-  Raise Exception.Create('Port me.');
+  i := SCREENWIDTH * defdemotics Div deftotaldemotics;
+
+  //#ifndef CRISPY_TRUECOLOR
+  //  V_DrawHorizLine(0, SCREENHEIGHT - 3, i, 4); // [crispy] white
+  V_DrawHorizLine(0, SCREENHEIGHT - 2, i, 0); // [crispy] black
+  V_DrawHorizLine(0, SCREENHEIGHT - 1, i, 4); // [crispy] white
+
+  //  V_DrawHorizLine(0, SCREENHEIGHT - 2, 1, 4); // [crispy] white start
+  //  V_DrawHorizLine(i - 1, SCREENHEIGHT - 2, 1, 4); // [crispy] white end
+  //#else
+  //  V_DrawHorizLine(0, SCREENHEIGHT - 3, i, pal_color[4]); // [crispy] white
+      //V_DrawHorizLine(0, SCREENHEIGHT - 2, i, pal_color[0]); // [crispy] black
+      //V_DrawHorizLine(0, SCREENHEIGHT - 1, i, pal_color[4]); // [crispy] white
+
+  //  V_DrawHorizLine(0, SCREENHEIGHT - 2, 1, pal_color[4]); // [crispy] white start
+  //  V_DrawHorizLine(i - 1, SCREENHEIGHT - 2, 1, pal_color[4]); // [crispy] white end
+  //#endif
 End;
 
 End.

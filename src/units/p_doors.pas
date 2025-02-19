@@ -26,7 +26,7 @@ Uses
   , d_englsh
   , i_timer
   , m_fixed
-  , p_local, p_setup, p_tick, p_floor
+  , p_local, p_setup, p_tick, p_floor, p_plats
   , s_sound
   ;
 
@@ -251,6 +251,7 @@ Var
   sec: Psector_t;
   door: Pvldoor_t;
   side: int;
+  plat: Pplat_t;
 Begin
   side := 0; // only front sides can be used
 
@@ -352,45 +353,39 @@ Begin
           End
           Else Begin
             If (thing^.player = Nil) Then exit; // JDC: bad guys never close doors
-
             // When is a door not a door?
             // In Vanilla, door^.direction is set, even though
             // "specialdata" might not actually point at a door.
-
-            Raise exception.create('Port me.');
-            //                if (door^.thinker.function.acp1 == (actionf_p1) T_VerticalDoor)
-            //                {
-            //                    door^.direction = -1;	// start going down immediately
-            //                    // [crispy] play sound effect when the door is closed manually
-            //                    if (crispy^.soundfix)
-            //                    S_StartSound(&door^.sector^.soundorg, line^.special == 117 ? sfx_bdcls : sfx_dorcls);
-            //                }
-            //                else if (door^.thinker.function.acp1 == (actionf_p1) T_PlatRaise)
-            //                {
-            //                    // Erm, this is a plat, not a door.
-            //                    // This notably causes a problem in ep1-0500.lmp where
-            //                    // a plat and a door are cross-referenced; the door
-            //                    // doesn't open on 64-bit.
-            //                    // The direction field in vldoor_t corresponds to the wait
-            //                    // field in plat_t.  Let's set that to -1 instead.
-            //
-            //                    plat_t *plat;
-            //
-            //                    plat = (plat_t *) door;
-            //                    plat^.wait = -1;
-            //                }
-            //                else
-            //                {
-            //                    // This isn't a door OR a plat.  Now we're in trouble.
-            //
-            //                    fprintf(stderr, "EV_VerticalDoor: Tried to close "
-            //                                    "something that wasn't a door.\n");
-            //
-            //                    // Try closing it anyway. At least it will work on 32-bit
-            //                    // machines.
-            //
-            //                    door^.direction = -1;
-            //                }
+            If (door^.thinker._function.acp1 = @T_VerticalDoor) Then Begin
+              door^.direction := -1; // start going down immediately
+              // [crispy] play sound effect when the door is closed manually
+              If (crispy.soundfix <> 0) Then Begin
+                If line^.special = 117 Then Begin
+                  S_StartSound(@door^.sector^.soundorg, sfx_bdcls);
+                End
+                Else Begin
+                  S_StartSound(@door^.sector^.soundorg, sfx_dorcls);
+                End;
+              End;
+            End
+            Else If (door^.thinker._function.acp1 = @T_PlatRaise) Then Begin
+              // Erm, this is a plat, not a door.
+              // This notably causes a problem in ep1-0500.lmp where
+              // a plat and a door are cross-referenced; the door
+              // doesn't open on 64-bit.
+              // The direction field in vldoor_t corresponds to the wait
+              // field in plat_t.  Let's set that to -1 instead.
+              plat := Pplat_t(door);
+              plat^.wait := -1;
+            End
+            Else Begin
+              // This isn't a door OR a plat.  Now we're in trouble.
+              writeln(stderr, 'EV_VerticalDoor: Tried to close ' +
+                'something that wasn''t a door.');
+              // Try closing it anyway. At least it will work on 32-bit
+              // machines.
+              door^.direction := -1;
+            End;
           End;
           exit;
         End;

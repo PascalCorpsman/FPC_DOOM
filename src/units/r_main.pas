@@ -882,19 +882,19 @@ Begin
   // [crispy] smooth texture scrolling
   R_InterpolateTextureOffsets();
   // The head node is the last node output.
-  R_RenderBSPNode(numnodes - 1);
+  R_RenderBSPNode(numnodes - 1); // --
 
   // Check for new console commands.
   NetUpdate();
 
-  R_DrawPlanes();
+  R_DrawPlanes(); // -- Rendert alles was "Waagrecht" ist (Decken / Böden)
 
   // Check for new console commands.
   NetUpdate();
 
   // [crispy] draw fuzz effect independent of rendering frame rate
   R_SetFuzzPosDraw();
-  R_DrawMasked();
+  R_DrawMasked(); // Rendert alles vas via "Billboards" = Sprites gerendert werden soll
 
   // Check for new console commands.
   NetUpdate();

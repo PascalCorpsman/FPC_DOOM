@@ -117,7 +117,7 @@ Type
     crosshairtype: int;
     //    	int defaultskill;
     demotimer: int; // DEMOTIMER_OFF, DEMOTIMER_RECORD, DEMOTIMER_PLAYBACK, DEMOTIMER_BOTH
-    //    	int demotimerdir;
+    demotimerdir: int;
     demobar: int;
     extautomap: int; // 0,1
     flipcorpses: int;
@@ -267,6 +267,7 @@ Initialization
   Crispy.crosshairtarget := 0;
   Crispy.crosshairtype := 0;
   Crispy.demotimer := DEMOTIMER_OFF;
+  Crispy.demotimerdir := 0;
   Crispy.demobar := 0;
   Crispy.extautomap := 0; // Wenn <> 0, dann werden Schlüssel Türen auf der Kartenvorschau in ihrer Farbe gezeichnet
   Crispy.flipcorpses := 0;

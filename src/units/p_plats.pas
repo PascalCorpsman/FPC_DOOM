@@ -15,6 +15,7 @@ Var
 
 Function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: int): int;
 Procedure EV_StopPlat(line: Pline_t);
+Procedure T_PlatRaise(mo: Pmobj_t);
 
 Implementation
 

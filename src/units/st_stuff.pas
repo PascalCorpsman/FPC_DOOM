@@ -73,7 +73,7 @@ Uses
   , g_game
   , m_menu, m_fixed, m_random, m_controls
   , p_mobj, p_local, p_inter, p_setup
-  , r_main
+  , r_main, r_draw
   , st_lib, s_sound
   , v_patch, v_video, v_trans
   , w_wad
@@ -1040,8 +1040,37 @@ Begin
 End;
 
 Procedure ST_DrawDemoTimer(time: int);
+Var
+  buffer: String;
+  mins: int;
+  secs: single;
+  w: int;
+  c, n, x: int;
 Begin
-  Raise Exception.Create('Port me.');
+
+  mins := time Div (60 * TICRATE);
+  secs := (time Mod (60 * TICRATE)) / TICRATE;
+  w := shortnum[0]^.width;
+
+  buffer := format('%0.2d %5.2f', [mins, secs]);
+  n := length(buffer);
+  x := (viewwindowx Shr crispy.hires) + (scaledviewwidth Shr crispy.hires) - WIDESCREENDELTA;
+
+  // [crispy] draw the Demo Timer widget with gray numbers
+  dp_translation := cr[CR_GRAY];
+  dp_translucent := (gamestate = GS_LEVEL);
+
+  While (n > 0) Do Begin
+    c := ord(buffer[n]) - ord('0');
+    x := x - w;
+    If (c >= 0) And (c <= 9) Then Begin
+      V_DrawPatch(x, viewwindowy Shr crispy.hires, shortnum[c]);
+    End;
+    n := n - 1;
+  End;
+
+  dp_translation := Nil;
+  dp_translucent := false;
 End;
 
 // [crispy] return ammo/health/armor widget color

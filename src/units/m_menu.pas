@@ -174,9 +174,6 @@ Var
   saveOldString: String;
   savegamestrings: Array[0..9] Of String;
 
-
-
-
 Procedure M_SetupNextMenu(menudef: Pmenu_t);
 Begin
   currentMenu := menudef;

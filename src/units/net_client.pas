@@ -9,7 +9,7 @@ Uses
 
 Var
   // true if the client code is in use
-  net_client_connected: Boolean;
+  net_client_connected: Boolean = false;
 
   // Connected but not participating in the game (observer)
   drone: boolean = false;
