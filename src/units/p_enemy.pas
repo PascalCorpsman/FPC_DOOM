@@ -1064,7 +1064,6 @@ Var
   slope: fixed_t;
   dest: Pmobj_t;
   th: Pmobj_t;
-  //    extern int demostarttic;
 Begin
   If ((gametic - demostarttic) And 3) <> 0 Then exit; // [crispy] fix revenant internal demo bug
 
@@ -1255,7 +1254,6 @@ Begin
   If (gameversion < exe_ultimate) Then Begin
 
     If (gamemap <> 8) Then Begin
-
       exit;
     End;
 

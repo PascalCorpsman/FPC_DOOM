@@ -143,21 +143,19 @@ Begin
 End;
 
 Procedure V_DrawHorizLine(x, y, w, c: int);
+Var
+  buf: ^pixel_t;
+  x1: int;
 Begin
-  Raise exception.create('Port me.');
-  //   pixel_t *buf;
-  //   int x1;
-  //
-  //   // [crispy] prevent framebuffer overflows
-  //   if (x + w > (unsigned)SCREENWIDTH)
-  //w = SCREENWIDTH - x;
-  //
-  //   buf = I_VideoBuffer + SCREENWIDTH * y + x;
-  //
-  //   for (x1 = 0; x1 < w; ++x1)
-  //   {
-  //       *buf++ = c;
-  //   }
+  // [crispy] prevent framebuffer overflows
+  If (x + w > SCREENWIDTH) Then w := SCREENWIDTH - x;
+
+  buf := @I_VideoBuffer[SCREENWIDTH * y + x];
+
+  For x1 := 0 To w - 1 Do Begin
+    buf^ := c;
+    inc(buf);
+  End;
 End;
 
 (*
