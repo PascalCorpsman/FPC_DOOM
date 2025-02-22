@@ -54,7 +54,8 @@ As i am not doing a 100% source port but more a port for me and my education (or
 
 ## Known Bugs
 - Replaying of demo's does not work because the time is "glichting" away during simulation
-- Rendering of walls above elevators is sometimes broken (see e1m2 elevater in front of player start), see pink area ![](documentation/Renderbug_e1m2.png)
+- Rendering of walls above elevators is sometimes broken (see e1m2 elevater in front of player start), pink area ![](documentation/Renderbug_e1m2.png)
+- not really a bug, but savegames are not onderstood, thus atm not available.
 
 ## Progress:
 <!-- 
