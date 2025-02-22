@@ -1687,7 +1687,7 @@ End;
 
 Procedure WI_initDeathmatchStats();
 Begin
-  exception.create('Port me.');
+  Raise exception.create('Port me.');
   //    int		i;
   //    int		j;
   //
@@ -1714,7 +1714,7 @@ End;
 
 Procedure WI_initNetgameStats();
 Begin
-  exception.create('Port me.');
+ Raise exception.create('Port me.');
   //    int i;
   //
   //    state = StatCount;

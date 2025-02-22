@@ -75,7 +75,7 @@ End;
 
 Procedure A_Mushroom(actor: Pmobj_t);
 Begin
-  Exception.Create('Port me.');
+  Raise Exception.Create('Port me.');
 
   //  int i, j, n = actor->info->damage;
   //
@@ -111,7 +111,7 @@ End;
 
 Procedure A_FireOldBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
-  Exception.Create('Port me.');
+  Raise Exception.Create('Port me.');
 
   //  int type = MT_PLASMA1;
   //  extern void P_CheckMissileSpawn (mobj_t* th);

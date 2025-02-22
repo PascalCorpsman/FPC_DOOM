@@ -1588,7 +1588,7 @@ End;
 
 Function EV_DoDonut(line: Pline_t): int;
 Begin
-  exception.create('Port me.');
+  Raise exception.create('Port me.');
   // sector_t*		s1;
   //   sector_t*		s2;
   //   sector_t*		s3;

@@ -18,12 +18,15 @@ Function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t; crush: bo
 Implementation
 
 Uses
-  sounds, doomstat
+  sounds, doomstat, doomdata
   , d_loop, d_mode
   , m_fixed
   , p_map, p_setup, p_tick
   , s_sound
   ;
+
+Const
+  STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE = 10;
 
 Var
   AllocatedFloors: Array Of Pfloormove_t = Nil;
@@ -266,117 +269,121 @@ End;
 //
 
 Function EV_BuildStairs(line: Pline_t; _type: stair_e): int;
+Var
+  secnum, height, i,
+    newsecnum, texture,
+    ok, rtn: int;
+
+  sec: Psector_t;
+  tsec: Psector_t;
+
+  floor: Pfloormove_t;
+
+  stairsize: fixed_t;
+  speed: fixed_t;
 Begin
-  exception.create('Port me.');
-  //   int			secnum;
-  //   int			height;
-  //   int			i;
-  //   int			newsecnum;
-  //   int			texture;
-  //   int			ok;
-  //   int			rtn;
-  //
-  //   sector_t*		sec;
-  //   sector_t*		tsec;
-  //
-  //   floormove_t*	floor;
-  //
-  //   fixed_t		stairsize = 0;
-  //   fixed_t		speed = 0;
-  //
-  //   secnum = -1;
-  //   rtn = 0;
-  //   while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
-  //   {
-  //sec = &sectors[secnum];
-  //
-  //// ALREADY MOVING?  IF SO, KEEP GOING...
-  //if (sec->specialdata)
-  //    continue;
-  //
-  //// new floor thinker
-  //rtn = 1;
-  //floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-  //P_AddThinker (&floor->thinker);
-  //sec->specialdata = floor;
-  //floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
-  //floor->direction = 1;
-  //floor->sector = sec;
-  //switch(type)
-  //{
-  //  case build8:
-  //    speed = FLOORSPEED/4;
-  //    stairsize = 8*FRACUNIT;
-  //    break;
-  //  case turbo16:
-  //    speed = FLOORSPEED*4;
-  //    stairsize = 16*FRACUNIT;
-  //    break;
-  //}
-  //floor->speed = speed;
-  //height = sec->floorheight + stairsize;
-  //floor->floordestheight = height;
-  //// Initialize
-  //floor->type = lowerFloor;
-  //// e6y
-  //// Uninitialized crush field will not be equal to 0 or 1 (true)
-  //// with high probability. So, initialize it with any other value
-  //floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
-  //
-  //texture = sec->floorpic;
-  //
-  //// Find next sector to raise
-  //// 1.	Find 2-sided line with same sector side[0]
-  //// 2.	Other side is the next sector to raise
-  //do
-  //{
-  //    ok = 0;
-  //    for (i = 0;i < sec->linecount;i++)
-  //    {
-  //	if ( !((sec->lines[i])->flags & ML_TWOSIDED) )
-  //	    continue;
-  //
-  //	tsec = (sec->lines[i])->frontsector;
-  //	newsecnum = tsec-sectors;
-  //
-  //	if (secnum != newsecnum)
-  //	    continue;
-  //
-  //	tsec = (sec->lines[i])->backsector;
-  //	newsecnum = tsec - sectors;
-  //
-  //	if (tsec->floorpic != texture)
-  //	    continue;
-  //
-  //	height += stairsize;
-  //
-  //	if (tsec->specialdata)
-  //	    continue;
-  //
-  //	sec = tsec;
-  //	secnum = newsecnum;
-  //	floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-  //
-  //	P_AddThinker (&floor->thinker);
-  //
-  //	sec->specialdata = floor;
-  //	floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
-  //	floor->direction = 1;
-  //	floor->sector = sec;
-  //	floor->speed = speed;
-  //	floor->floordestheight = height;
-  //	// Initialize
-  //	floor->type = lowerFloor;
-  //	// e6y
-  //	// Uninitialized crush field will not be equal to 0 or 1 (true)
-  //	// with high probability. So, initialize it with any other value
-  //	floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
-  //	ok = 1;
-  //	break;
-  //    }
-  //} while(ok);
-  //   }
-  //   return rtn;
+  stairsize := 0;
+  speed := 0;
+  secnum := -1;
+  rtn := 0;
+  secnum := P_FindSectorFromLineTag(line, secnum);
+  While (secnum >= 0) Do Begin
+
+    sec := @sectors[secnum];
+
+    // ALREADY MOVING?  IF SO, KEEP GOING...
+    If assigned(sec^.specialdata) Then Begin
+      secnum := P_FindSectorFromLineTag(line, secnum);
+      continue;
+    End;
+
+    // new floor thinker
+    rtn := 1;
+    new(floor);
+    setlength(AllocatedFloors, high(AllocatedFloors) + 2);
+    AllocatedFloors[high(AllocatedFloors)] := floor;
+    P_AddThinker(@floor^.thinker);
+    sec^.specialdata := floor;
+    floor^.thinker._function.acp1 := @T_MoveFloor;
+    floor^.direction := 1;
+    floor^.sector := sec;
+    Case (_type) Of
+      build8: Begin
+          speed := FLOORSPEED Div 4;
+          stairsize := 8 * FRACUNIT;
+        End;
+      turbo16: Begin
+          speed := FLOORSPEED * 4;
+          stairsize := 16 * FRACUNIT;
+        End;
+    End;
+    floor^.speed := speed;
+    height := sec^.floorheight + stairsize;
+    floor^.floordestheight := height;
+    // Initialize
+    floor^._type := lowerFloor;
+    // e6y
+    // Uninitialized crush field will not be equal to 0 or 1 (true)
+    // with high probability. So, initialize it with any other value
+    floor^.crush := odd(STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE);
+
+    texture := sec^.floorpic;
+
+    // Find next sector to raise
+    // 1.	Find 2-sided line with same sector side[0]
+    // 2.	Other side is the next sector to raise
+    Repeat
+      ok := 0;
+      For i := 0 To sec^.linecount - 1 Do Begin
+
+        If ((sec^.lines[i].flags And ML_TWOSIDED) = 0) Then
+          continue;
+
+        tsec := sec^.lines[i].frontsector;
+        newsecnum := (tsec - @sectors[0]) Div sizeof(sectors[0]);
+
+        If (secnum <> newsecnum) Then
+          continue;
+
+        tsec := sec^.lines[i].backsector;
+        newsecnum := (tsec - @sectors[0]) Div sizeof(sectors[0]);
+
+        If (tsec^.floorpic <> texture) Then
+          continue;
+
+        height := height + stairsize;
+
+        If assigned(tsec^.specialdata) Then
+          continue;
+
+        sec := tsec;
+        secnum := newsecnum;
+        new(floor);
+        setlength(AllocatedFloors, high(AllocatedFloors) + 2);
+        AllocatedFloors[high(AllocatedFloors)] := floor;
+
+        P_AddThinker(@floor^.thinker);
+
+        sec^.specialdata := floor;
+        floor^.thinker._function.acp1 := @T_MoveFloor;
+        floor^.direction := 1;
+        floor^.sector := sec;
+        floor^.speed := speed;
+        floor^.floordestheight := height;
+        // Initialize
+        floor^._type := lowerFloor;
+        // e6y
+        // Uninitialized crush field will not be equal to 0 or 1 (true)
+        // with high probability. So, initialize it with any other value
+        floor^.crush := odd(STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE);
+        ok := 1;
+        break;
+      End;
+
+    Until OK = 0;
+    secnum := P_FindSectorFromLineTag(line, secnum);
+  End;
+  result := rtn;
 End;
 
 //
