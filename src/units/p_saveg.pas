@@ -127,8 +127,8 @@ Begin
   stream.Write(str.pendingweapon, sizeof(str.pendingweapon));
 
   // boolean weaponowned[NUMWEAPONS];
-  For i := 0 t int(NUMWEAPONS) - 1 Do
-    stream.Write(str.weaponowned[i], sizeof(str.weaponowned[i]));
+  For i := 0 To int(NUMWEAPONS) - 1 Do
+    stream.Write(str.weaponowned[weapontype_t(i)], sizeof(str.weaponowned[weapontype_t(i)]));
 
   // int ammo[NUMAMMO];
   For i := 0 To int(NUMAMMO) - 1 Do
@@ -180,7 +180,7 @@ Begin
 
 
   // pspdef_t psprites[NUMPSPRITES];
-  For i := 0 To NUMSPRITES - 1 Do Begin
+  For i := 0 To int(NUMSPRITES) - 1 Do Begin
     // stream.Write(str.psprites[i], sizeof(str.psprites[i])); --> Das geht so nicht..
   End;
 

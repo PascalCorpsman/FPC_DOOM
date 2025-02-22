@@ -282,6 +282,7 @@ Function P_FindSectorFromLineTag(line: Pline_t; start: int): int;
 Function P_FindNextHighestFloor(sec: Psector_t; currentheight: int): fixed_t;
 
 Function EV_DoDonut(line: Pline_t): int;
+Function getNextSector(line: Pline_t; sec: Psector_t): Psector_t;
 
 Implementation
 

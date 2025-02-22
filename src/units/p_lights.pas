@@ -262,42 +262,36 @@ Begin
 End;
 
 Procedure EV_LightTurnOn(line: Pline_t; bright: int);
+Var
+  i, j: int;
+  sector: Psector_t;
+  temp: Psector_t;
+  templine: Pline_t;
 Begin
-  Raise exception.create('Port me.');
-  //   int		i;
-  //   int		j;
-  //   sector_t*	sector;
-  //   sector_t*	temp;
-  //   line_t*	templine;
-  //
-  //   sector = sectors;
-  //
-  //   for (i=0;i<numsectors;i++, sector++)
-  //   {
-  //if (sector->tag == line->tag)
-  //{
-  //    // bright = 0 means to search
-  //    // for highest light level
-  //    // surrounding sector
-  //    if (!bright)
-  //    {
-  //	for (j = 0;j < sector->linecount; j++)
-  //	{
-  //	    templine = sector->lines[j];
-  //	    temp = getNextSector(templine,sector);
-  //
-  //	    if (!temp)
-  //		continue;
-  //
-  //	    if (temp->lightlevel > bright)
-  //		bright = temp->lightlevel;
-  //	}
-  //    }
-  //    sector-> lightlevel = bright;
-  //    // [crispy] A11Y
-  //    sector->rlightlevel = sector->lightlevel;
-  //}
-  //   }
+  For i := 0 To numsectors - 1 Do Begin
+    sector := @sectors[i];
+
+    If (sector^.tag = line^.tag) Then Begin
+
+      // bright = 0 means to search
+      // for highest light level
+      // surrounding sector
+      If (bright = 0) Then Begin
+        For j := 0 To sector^.linecount - 1 Do Begin
+          templine := @sector^.lines[j];
+          temp := getNextSector(templine, sector);
+
+          If (temp = Nil) Then
+            continue;
+          If (temp^.lightlevel > bright) Then
+            bright := temp^.lightlevel;
+        End;
+      End;
+      sector^.lightlevel := bright;
+      // [crispy] A11Y
+      sector^.rlightlevel := sector^.lightlevel;
+    End;
+  End;
 End;
 
 //
