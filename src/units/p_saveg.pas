@@ -120,82 +120,72 @@ Begin
     stream.Write(str.frags[i], sizeof(str.frags[i]));
   End;
 
-  Raise exception.create('Port me.');
+  // weapontype_t readyweapon;
+  stream.Write(str.readyweapon, sizeof(str.readyweapon));
 
-  //// weapontype_t readyweapon;
-  //  saveg_write_enum(str - > readyweapon);
-  //
-  //  // weapontype_t pendingweapon;
-  //  saveg_write_enum(str - > pendingweapon);
-  //
-  //  // boolean weaponowned[NUMWEAPONS];
-  //  For (i = 0; i < NUMWEAPONS; + +i)
-  //    {
-  //  saveg_write32(str->weaponowned[i]);
-  //}
-  //
-  //// int ammo[NUMAMMO];
-  //  For (i = 0; i < NUMAMMO; + +i)
-  //    {
-  //  saveg_write32(str->ammo[i]);
-  //}
-  //
-  //// int maxammo[NUMAMMO];
-  //  For (i = 0; i < NUMAMMO; + +i)
-  //    {
-  //  saveg_write32(str->maxammo[i]);
-  //}
-  //
-  //// int attackdown;
-  //  saveg_write32(str - > attackdown);
-  //
-  //  // int usedown;
-  //  saveg_write32(str - > usedown);
-  //
-  //  // int cheats;
-  //  saveg_write32(str - > cheats);
-  //
-  //  // int refire;
-  //  saveg_write32(str - > refire);
-  //
-  //  // int killcount;
-  //  saveg_write32(str - > killcount);
-  //
-  //  // int itemcount;
-  //  saveg_write32(str - > itemcount);
-  //
-  //  // int secretcount;
-  //  saveg_write32(str - > secretcount);
-  //
-  //  // char* message;
-  //  saveg_writep(str - > message);
-  //
-  //  // int damagecount;
-  //  saveg_write32(str - > damagecount);
-  //
-  //  // int bonuscount;
-  //  saveg_write32(str - > bonuscount);
-  //
-  //  // mobj_t* attacker;
-  //  saveg_writep(str - > attacker);
-  //
-  //  // int extralight;
-  //  saveg_write32(str - > extralight);
-  //
-  //  // int fixedcolormap;
-  //  saveg_write32(str - > fixedcolormap);
-  //
-  //  // int colormap;
-  //  saveg_write32(str - > colormap);
-  //
-  //  // pspdef_t psprites[NUMPSPRITES];
-  //  For (i = 0; i < NUMPSPRITES; + +i)
-  //    {
-  //  saveg_write_pspdef_t(&str->psprites[i]);
-  //}
-  //
-  //// boolean didsecret;
-  //  saveg_write32(str - > didsecret);
+  // weapontype_t pendingweapon;
+  stream.Write(str.pendingweapon, sizeof(str.pendingweapon));
+
+  // boolean weaponowned[NUMWEAPONS];
+  For i := 0 t int(NUMWEAPONS) - 1 Do
+    stream.Write(str.weaponowned[i], sizeof(str.weaponowned[i]));
+
+  // int ammo[NUMAMMO];
+  For i := 0 To int(NUMAMMO) - 1 Do
+    stream.Write(str.ammo[i], sizeof(str.ammo[i]));
+
+  // int maxammo[NUMAMMO];
+  For i := 0 To int(NUMAMMO) - 1 Do
+    stream.Write(str.maxammo[i], sizeof(str.maxammo[i]));
+
+  // int attackdown;
+  stream.Write(str.attackdown, sizeof(str.attackdown));
+  // int usedown;
+  stream.Write(str.usedown, sizeof(str.usedown));
+  // int cheats;
+  stream.Write(str.cheats, sizeof(str.cheats));
+
+  // int refire;
+  stream.Write(str.refire, sizeof(str.refire));
+
+  // int killcount;
+  stream.Write(str.killcount, sizeof(str.killcount));
+
+  // int itemcount;
+  stream.Write(str.itemcount, sizeof(str.itemcount));
+
+  // int secretcount;
+  stream.Write(str.secretcount, sizeof(str.secretcount));
+
+  // char* message;
+  stream.WriteAnsiString(str.message);
+
+  // int damagecount;
+  stream.Write(str.damagecount, sizeof(str.damagecount));
+
+  // int bonuscount;
+  stream.Write(str.bonuscount, sizeof(str.bonuscount));
+
+  // mobj_t* attacker;
+//  stream.Write(str.attacker, sizeof(str.attacker)); --> Das geht so nicht ..
+
+  // int extralight;
+  stream.Write(str.extralight, sizeof(str.extralight));
+
+  // int fixedcolormap;
+  stream.Write(str.fixedcolormap, sizeof(str.fixedcolormap));
+
+  // int colormap;
+  stream.Write(str.colormap, sizeof(str.colormap));
+
+
+  // pspdef_t psprites[NUMPSPRITES];
+  For i := 0 To NUMSPRITES - 1 Do Begin
+    // stream.Write(str.psprites[i], sizeof(str.psprites[i])); --> Das geht so nicht..
+  End;
+
+  // boolean didsecret;
+  stream.Write(str.didsecret, sizeof(str.didsecret));
 End;
 
 Procedure P_ArchivePlayers(Const Stream: TStream);
@@ -210,6 +200,8 @@ Begin
     saveg_write_pad();
 
     saveg_write_player_t(stream, players[i]);
+
+
   End;
 End;
 
