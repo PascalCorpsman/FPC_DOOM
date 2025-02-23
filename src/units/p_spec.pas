@@ -8,6 +8,7 @@ Uses
   ufpc_doom_types, Classes, SysUtils,
   info_types, doomdef
   , m_fixed
+  , r_defs
   ;
 
 Const
@@ -283,6 +284,12 @@ Function P_FindNextHighestFloor(sec: Psector_t; currentheight: int): fixed_t;
 
 Function EV_DoDonut(line: Pline_t): int;
 Function getNextSector(line: Pline_t; sec: Psector_t): Psector_t;
+
+Function twoSided(sector: int; line: int): int;
+
+Function getSide(currentSector: int; line: int; side: int): Pside_t;
+
+Function getSector(currentSector: int; line: int; side: int): Psector_t;
 
 Implementation
 
@@ -1362,6 +1369,41 @@ Begin
   Else Begin
     result := line^.frontsector;
   End;
+End;
+
+//
+// twoSided()
+// Given the sector number and the line number,
+//  it will tell you whether the line is two-sided or not.
+//
+
+Function twoSided(sector: int; line: int): int;
+Begin
+  result := sectors[sector].lines[line].flags And ML_TWOSIDED;
+End;
+
+//
+// getSide()
+// Will return a side_t*
+//  given the number of the current sector,
+//  the line number, and the side (0/1) that you want.
+//
+
+Function getSide(currentSector: int; line: int; side: int): Pside_t;
+Begin
+  result := @sides[sectors[currentSector].lines[line].sidenum[side]];
+End;
+
+//
+// getSector()
+// Will return a sector_t*
+//  given the number of the current sector,
+//  the line number and the side (0/1) that you want.
+//
+
+Function getSector(currentSector: int; line: int; side: int): Psector_t;
+Begin
+  result := @sides[sectors[currentSector].lines[line].sidenum[side]].sector;
 End;
 
 //

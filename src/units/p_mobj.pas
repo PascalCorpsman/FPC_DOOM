@@ -511,7 +511,7 @@ Begin
     mobj^.flags := mobj^.flags Or (mthing._type - 1) Shl MF_TRANSSHIFT;
   End;
 
-  mobj^.angle := ANG45 * (mthing.angle Div 45);
+  mobj^.angle := angle_t(ANG45 * (mthing.angle Div 45));
   mobj^.player := p;
   mobj^.health := p^.health;
 

@@ -71,6 +71,7 @@ Type
     // [crispy] smooth texture scrolling
     basetextureoffset: fixed_t;
   End;
+  Pside_t = ^side_t;
 
   //
   // The LineSeg.

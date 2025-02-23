@@ -22,6 +22,7 @@ Uses
   , d_loop, d_mode
   , m_fixed
   , p_map, p_setup, p_tick
+  , r_defs, r_data
   , s_sound
   ;
 
@@ -80,10 +81,11 @@ End;
 Function EV_DoFloor(line: Pline_t; floortype: floor_e): int;
 Var
   secnum: int;
-  rtn: int;
+  minsize, rtn: int;
   i: int;
   sec: Psector_t;
   floor: Pfloormove_t;
+  side: ^side_t;
 Begin
 
   secnum := -1;
@@ -147,116 +149,89 @@ Begin
             floor^.floordestheight := floor^.floordestheight - (8 * FRACUNIT);
         End;
 
-      //	  case raiseFloorTurbo:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED*4;
-      //	    floor->floordestheight =
-      //		P_FindNextHighestFloor(sec,sec->floorheight);
-      //	    break;
-      //
-      //	  case raiseFloorToNearest:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight =
-      //		P_FindNextHighestFloor(sec,sec->floorheight);
-      //	    break;
-      //
-      //	  case raiseFloor24:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight = floor->sector->floorheight +
-      //		24 * FRACUNIT;
-      //	    break;
-      //	  case raiseFloor512:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight = floor->sector->floorheight +
-      //		512 * FRACUNIT;
-      //	    break;
-      //
-      //	  case raiseFloor24AndChange:
-      //	    floor->direction = 1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight = floor->sector->floorheight +
-      //		24 * FRACUNIT;
-      //	    sec->floorpic = line->frontsector->floorpic;
-      //	    sec->special = line->frontsector->special;
-      //	    break;
-      //
-      //	  case raiseToTexture:
-      //	  {
-      //	      int	minsize = INT_MAX;
-      //	      side_t*	side;
-      //
-      //	      floor->direction = 1;
-      //	      floor->sector = sec;
-      //	      floor->speed = FLOORSPEED;
-      //	      for (i = 0; i < sec->linecount; i++)
-      //	      {
-      //		  if (twoSided (secnum, i) )
-      //		  {
-      //		      side = getSide(secnum,i,0);
-      //		      if (side->bottomtexture >= 0)
-      //			  if (textureheight[side->bottomtexture] <
-      //			      minsize)
-      //			      minsize =
-      //				  textureheight[side->bottomtexture];
-      //		      side = getSide(secnum,i,1);
-      //		      if (side->bottomtexture >= 0)
-      //			  if (textureheight[side->bottomtexture] <
-      //			      minsize)
-      //			      minsize =
-      //				  textureheight[side->bottomtexture];
-      //		  }
-      //	      }
-      //	      floor->floordestheight =
-      //		  floor->sector->floorheight + minsize;
-      //	  }
-      //	  break;
-      //
-      //	  case lowerAndChange:
-      //	    floor->direction = -1;
-      //	    floor->sector = sec;
-      //	    floor->speed = FLOORSPEED;
-      //	    floor->floordestheight =
-      //		P_FindLowestFloorSurrounding(sec);
-      //	    floor->texture = sec->floorpic;
-      //
-      //	    for (i = 0; i < sec->linecount; i++)
-      //	    {
-      //		if ( twoSided(secnum, i) )
-      //		{
-      //		    if (getSide(secnum,i,0)->sector-sectors == secnum)
-      //		    {
-      //			sec = getSector(secnum,i,1);
-      //
-      //			if (sec->floorheight == floor->floordestheight)
-      //			{
-      //			    floor->texture = sec->floorpic;
-      //			    floor->newspecial = sec->special;
-      //			    break;
-      //			}
-      //		    }
-      //		    else
-      //		    {
-      //			sec = getSector(secnum,i,0);
-      //
-      //			if (sec->floorheight == floor->floordestheight)
-      //			{
-      //			    floor->texture = sec->floorpic;
-      //			    floor->newspecial = sec->special;
-      //			    break;
-      //			}
-      //		    }
-      //		}
-      //	    }
+      raiseFloorTurbo: Begin
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED * 4;
+          floor^.floordestheight := P_FindNextHighestFloor(sec, sec^.floorheight);
+        End;
+      raiseFloorToNearest: Begin
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := P_FindNextHighestFloor(sec, sec^.floorheight);
+        End;
+      raiseFloor24: Begin
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := floor^.sector^.floorheight + 24 * FRACUNIT;
+        End;
+      raiseFloor512: Begin
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := floor^.sector^.floorheight + 512 * FRACUNIT;
+        End;
+
+      raiseFloor24AndChange: Begin
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := floor^.sector^.floorheight + 24 * FRACUNIT;
+          sec^.floorpic := line^.frontsector^.floorpic;
+          sec^.special := line^.frontsector^.special;
+        End;
+
+      raiseToTexture: Begin
+          minsize := INT_MAX;
+          floor^.direction := 1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          For i := 0 To sec^.linecount - 1 Do Begin
+            If (twoSided(secnum, i) <> 0) Then Begin
+              side := getSide(secnum, i, 0);
+              If (side^.bottomtexture >= 0) Then
+                If (textureheight[side^.bottomtexture] < minsize) Then
+                  minsize := textureheight[side^.bottomtexture];
+              side := getSide(secnum, i, 1);
+              If (side^.bottomtexture >= 0) Then
+                If (textureheight[side^.bottomtexture] < minsize) Then
+                  minsize := textureheight[side^.bottomtexture];
+            End;
+          End;
+          floor^.floordestheight := floor^.sector^.floorheight + minsize;
+        End;
+
+      lowerAndChange: Begin
+          floor^.direction := -1;
+          floor^.sector := sec;
+          floor^.speed := FLOORSPEED;
+          floor^.floordestheight := P_FindLowestFloorSurrounding(sec);
+          floor^.texture := sec^.floorpic;
+          For i := 0 To sec^.linecount - 1 Do Begin
+            If (twoSided(secnum, i) <> 0) Then Begin
+              If ((getSide(secnum, i, 0)^.sector - @sectors[0]) Div sizeof(sectors[0]) = secnum) Then Begin
+                sec := getSector(secnum, i, 1);
+                If (sec^.floorheight = floor^.floordestheight) Then Begin
+                  floor^.texture := sec^.floorpic;
+                  floor^.newspecial := sec^.special;
+                  break;
+                End;
+              End
+              Else Begin
+                sec := getSector(secnum, i, 0);
+                If (sec^.floorheight = floor^.floordestheight) Then Begin
+                  floor^.texture := sec^.floorpic;
+                  floor^.newspecial := sec^.special;
+                  break;
+                End;
+              End;
+            End;
+          End;
+        End;
     Else Begin
-        Raise exception.create('Missing type.');
+        // -- Nichts
       End;
     End;
     secnum := P_FindSectorFromLineTag(line, secnum);
