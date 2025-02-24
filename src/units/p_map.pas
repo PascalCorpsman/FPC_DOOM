@@ -59,12 +59,14 @@ Function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 Function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t): fixed_t;
 Function P_SubstNullMobj(mobj: Pmobj_t): Pmobj_t;
 Function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
+Function P_TeleportMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 
 Implementation
 
 Uses
   math, doomdata, sounds, doomstat
   , d_mode, deh_misc
+  , g_game
   , i_video, i_system
   , m_random, m_bbox
   , p_sight, p_maputl, p_local, p_mobj, p_spec, p_setup, p_inter, p_switch, p_tick, p_enemy
@@ -1069,6 +1071,105 @@ Begin
       End;
     End;
   End;
+
+  result := true;
+End;
+
+Function PIT_StompThing(thing: Pmobj_t): boolean;
+Var
+  blockdist: fixed_t;
+Begin
+  If ((thing^.flags And MF_SHOOTABLE) = 0) Then Begin
+    result := true;
+    exit;
+  End;
+  blockdist := thing^.radius + tmthing^.radius;
+
+  If (abs(thing^.x - tmx) >= blockdist)
+    Or (abs(thing^.y - tmy) >= blockdist) Then Begin
+    // didn't hit it
+    result := true;
+    exit;
+  End;
+
+  // don't clip against self
+  If (thing = tmthing) Then Begin
+    result := true;
+    exit;
+  End;
+
+  // monsters don't stomp things except on boss level
+  If (tmthing^.player = Nil) And (gamemap <> 30) Then Begin
+    result := false;
+    exit;
+  End;
+
+  P_DamageMobj(thing, tmthing, tmthing, 10000);
+
+  result := true;
+End;
+
+Function P_TeleportMove(thing: Pmobj_t; x, y: fixed_t): boolean;
+Var
+  xl, xh: int;
+  yl, yh: int;
+  bx, by: int;
+  newsubsec: Psubsector_t;
+Begin
+  // kill anything occupying the position
+  tmthing := thing;
+  tmflags := thing^.flags;
+
+  tmx := x;
+  tmy := y;
+
+  tmbbox[BOXTOP] := y + tmthing^.radius;
+  tmbbox[BOXBOTTOM] := y - tmthing^.radius;
+  tmbbox[BOXRIGHT] := x + tmthing^.radius;
+  tmbbox[BOXLEFT] := x - tmthing^.radius;
+
+  newsubsec := R_PointInSubsector(x, y);
+  ceilingline := Nil;
+
+  // The base floor/ceiling is from the subsector
+  // that contains the point.
+  // Any contacted lines the step closer together
+  // will adjust them.
+  tmfloorz := newsubsec^.sector^.floorheight;
+  tmdropoffz := newsubsec^.sector^.floorheight;
+  tmceilingz := newsubsec^.sector^.ceilingheight;
+
+  validcount := validcount + 1;
+  numspechit := 0;
+
+  // stomp on any things contacted
+  xl := SarLongint(tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS, MAPBLOCKSHIFT);
+  xh := SarLongint(tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS, MAPBLOCKSHIFT);
+  yl := SarLongint(tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS, MAPBLOCKSHIFT);
+  yh := SarLongint(tmbbox[BOXTOP] - bmaporgy + MAXRADIUS, MAPBLOCKSHIFT);
+
+  For bx := xl To xh Do Begin
+    For by := yl To yh Do Begin
+      If (Not P_BlockThingsIterator(bx, by, @PIT_StompThing)) Then Begin
+        result := false;
+        exit;
+      End;
+    End;
+  End;
+  // the move is ok,
+  // so link the thing into its new position
+  P_UnsetThingPosition(thing);
+
+  thing^.floorz := tmfloorz;
+  thing^.ceilingz := tmceilingz;
+  thing^.x := x;
+  thing^.y := y;
+
+  // [AM] Don't interpolate mobjs that pass
+  //      through teleporters
+  thing^.interp := 0;
+
+  P_SetThingPosition(thing);
 
   result := true;
 End;

@@ -806,12 +806,12 @@ Begin
     sfx_podth1,
       sfx_podth2,
       sfx_podth3: Begin
-        sound := integer(sfx_podth1) + P_Random() And 3;
+        sound := integer(sfx_podth1) + P_Random() mod 3;
       End;
 
     sfx_bgdth1,
       sfx_bgdth2: Begin
-        sound := integer(sfx_bgdth1) + P_Random() And 2;
+        sound := integer(sfx_bgdth1) + P_Random() mod 2;
       End;
   Else Begin
       sound := integer(actor^.info^.deathsound);
