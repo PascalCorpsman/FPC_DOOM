@@ -294,8 +294,12 @@ Begin
 
   // The seg is in the view range,
   // but not necessarily visible.
-  angle1 := SarLongint(angle_t(angle1 + ANG90), ANGLETOFINESHIFT);
-  angle2 := SarLongint(angle_t(angle2 + ANG90), ANGLETOFINESHIFT);
+
+  //angle1 := SarLongint(angle_t(angle1 + ANG90), ANGLETOFINESHIFT);
+  //angle2 := SarLongint(angle_t(angle2 + ANG90), ANGLETOFINESHIFT);
+  angle1 := angle_t(angle1 + ANG90) Shr ANGLETOFINESHIFT;
+  angle2 := angle_t(angle2 + ANG90) Shr ANGLETOFINESHIFT;
+
   x1 := viewangletox[angle1];
   x2 := viewangletox[angle2];
 

@@ -867,6 +867,7 @@ Begin
 
   // [crispy] flashing HOM indicator
   If (crispy.flashinghom) Then Begin
+    Raise exception.create('Port me.');
     //        V_DrawFilledBox(viewwindowx, viewwindowy,
     //            scaledviewwidth, viewheight,
     //#ifndef CRISPY_TRUECOLOR

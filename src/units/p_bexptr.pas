@@ -17,6 +17,7 @@ Procedure A_Stop(actor: Pmobj_t);
 Procedure A_Mushroom(actor: Pmobj_t);
 
 Procedure A_FireOldBFG(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Procedure A_RandomJump(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 
 Implementation
 
@@ -177,6 +178,11 @@ Begin
   //    }
   //  while ((type != MT_PLASMA2) && (type = MT_PLASMA2)); //killough: obfuscated!
 
+End;
+
+Procedure A_RandomJump(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
+Begin
+  Raise exception.create('Port me.');
 End;
 
 End.

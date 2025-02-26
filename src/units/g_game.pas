@@ -1269,7 +1269,7 @@ Begin
 //	        ltime/3600, (ltime%3600)/60, ltime%60,
 //	        ttime/3600, (ttime%3600)/60, ttime%60);
 //    }
-
+  //hier gehts weiter ??
   P_ArchivePlayers(save_stream);
   //    P_ArchiveWorld ();
   //    P_ArchiveThinkers ();
@@ -1523,8 +1523,7 @@ Begin
       End;
 
     GS_FINALE: Begin
-        Raise exception.create('Port me.');
-        // F_Ticker();
+        F_Ticker();
       End;
 
     GS_DEMOSCREEN: Begin
@@ -1622,8 +1621,10 @@ Begin
   End;
 
   If (gamestate = GS_FINALE) Then Begin
-    //	if (F_Responder (ev))
-    //	    return true;	// finale ate the event
+    If (F_Responder(ev)) Then Begin
+      result := true; // finale ate the event
+      exit;
+    End;
   End;
   //
   //    if (testcontrols && ev->type == ev_mouse)

@@ -17,9 +17,9 @@ Var
   key_down: int;
   //extern int key_alt_down;
   key_strafeleft: int;
-  //extern int key_alt_strafeleft;
+  key_alt_strafeleft: int;
   key_straferight: int;
-  //extern int key_alt_straferight;
+  key_alt_straferight: int;
   key_fire: int;
   key_alt_fire: int;
   key_use: int;
@@ -274,7 +274,9 @@ Begin
   key_fire := VK_RCONTROL;
   key_alt_fire := VK_LCONTROL; // Fun Fact, Crispy doom hat im Code nur R-Control reagiert aber auch auf L-Control..
   key_strafeleft := VK_A;
+  key_alt_strafeleft := 0; // Deakvtiviert
   key_straferight := VK_D;
+  key_alt_straferight := 0; // Deakvtiviert
   key_use := VK_SPACE;
   key_strafe := KEY_RALT; // TODO: Eigentlich sollte man den zum Strafen nehmen nicht A und D ...
 

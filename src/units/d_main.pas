@@ -40,7 +40,7 @@ Uses
   , doom_icon, doomstat
   , am_map
   , d_iwad, d_englsh, d_loop, d_net, d_event, d_pwad, d_player, deh_main
-  , f_wipe
+  , f_wipe, f_finale
   , g_game
   , hu_stuff
   , i_system, i_video, i_timer, i_sound
@@ -779,7 +779,7 @@ Begin
       End;
 
     GS_FINALE: Begin
-        //	F_Drawer ();
+        F_Drawer();
       End;
 
     GS_DEMOSCREEN: Begin
