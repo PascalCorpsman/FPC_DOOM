@@ -27,6 +27,8 @@ Procedure V_RestoreBuffer();
 Procedure V_MarkRect(x, y, width, height: int);
 Procedure V_CopyRect(srcx, srcy: int; Const source: pixel_tArray; width, height, destx, desty: int);
 Procedure V_DrawHorizLine(x, y, w, c: int);
+Procedure V_FillFlat(y_start, y_stop, x_start, x_stop: int; Const src: PByte; Const dest: pixel_tArray);
+
 Var
   // The screen buffer; this is modified to draw things to the screen
   I_VideoBuffer: pixel_tArray; // Der ist quasi immer ORIGWIDTH * ORIGHEIGHT
@@ -155,6 +157,25 @@ Begin
   For x1 := 0 To w - 1 Do Begin
     buf^ := c;
     inc(buf);
+  End;
+End;
+
+Procedure V_FillFlat(y_start, y_stop, x_start, x_stop: int; Const src: PByte;
+  Const dest: pixel_tArray);
+Var
+  x, y: int;
+  d: ^pixel_t;
+Begin
+  d := @dest[0];
+  For y := y_start To y_stop - 1 Do Begin
+    For x := x_start To x_stop - 1 Do Begin
+      //#ifndef CRISPY_TRUECOLOR
+      d^ := src[((y And 63) * 64) + (x And 63)];
+      inc(d);
+      //#else
+        //*dest++ = pal_color[src[((y & 63) * 64) + (x & 63)]];
+      //#endif
+    End;
   End;
 End;
 

@@ -17,13 +17,18 @@ Procedure F_Drawer();
 Implementation
 
 Uses
-  doomstat, doomdef, sounds, info_types, info
+  doomstat, doomdef, sounds, info_types, info, doomtype
   , am_map
-  , d_mode, d_englsh
+  , d_mode, d_englsh, d_main
   , g_game
+  , hu_stuff
+  , i_video
   , m_controls, m_random
   , p_mobj, p_bexptr
   , s_sound
+  , w_wad
+  , v_video
+  , z_zone
   ;
 
 Const
@@ -170,56 +175,220 @@ Begin
   finalecount := 0;
 End;
 
-Procedure F_Ticker();
+Procedure F_StartCast();
 Begin
-  Raise exception.create('Port me.');
-  //   size_t		i;
+  wipegamestate := GS_NEG_1; // force a screen wipe
+  castnum := 0;
+  caststate := @states[int(mobjinfo[int(castorder[castnum]._type)].seestate)];
+  casttics := caststate^.tics;
+  castdeath := false;
+  finalestage := F_STAGE_CAST;
+  castframes := 0;
+  castonmelee := 0;
+  castattacking := false;
+  S_ChangeMusic(mus_evil, true);
+End;
+
+Procedure F_CastTicker();
+Begin
+  Raise Exception.Create('Port me.');
+  //    int		st;
+  //    int		sfx;
   //
-  //   // check for skipping
-  //   if ( (gamemode == commercial)
-  //     && ( finalecount > 50) )
-  //   {
-  //     // go on to the next level
-  //     for (i=0 ; i<MAXPLAYERS ; i++)
-  //if (players[i].cmd.buttons)
-  //  break;
+  //    if (--casttics > 0)
+  //	return;			// not time to change state yet
   //
-  //     if (i < MAXPLAYERS)
-  //     {
-  //if (gamemission == pack_nerve && gamemap == 8)
-  //  F_StartCast ();
-  //else
-  //if (gamemission == pack_master && (gamemap == 20 || gamemap == 21))
-  //  F_StartCast ();
-  //else
-  //if (gamemap == 30)
-  //  F_StartCast ();
-  //else
-  //  gameaction = ga_worlddone;
-  //     }
-  //   }
+  //    if (caststate->tics == -1 || caststate->nextstate == S_NULL || castskip) // [crispy] skippable cast
+  //    {
+  //	if (castskip)
+  //	{
+  //	    castnum += castskip;
+  //	    castskip = 0;
+  //	}
+  //	else
+  //	// switch from deathstate to next monster
+  //	castnum++;
+  //	castdeath = false;
+  //	if (castorder[castnum].name == NULL)
+  //	    castnum = 0;
+  //	if (mobjinfo[castorder[castnum].type].seesound)
+  //	    S_StartSound (NULL, F_RandomizeSound(mobjinfo[castorder[castnum].type].seesound));
+  //	caststate = &states[mobjinfo[castorder[castnum].type].seestate];
+  //	castframes = 0;
+  //	castangle = 0; // [crispy] turnable cast
+  //	castflip = false; // [crispy] flippable death sequence
+  //    }
+  //    else
+  //    {
+  //	// just advance to next state in animation
+  //	// [crispy] fix Doomguy in casting sequence
+  //	/*
+  //	if (!castdeath && caststate == &states[S_PLAY_ATK1])
+  //	    goto stopattack;	// Oh, gross hack!
+  //	*/
+  //	// [crispy] Allow A_RandomJump() in deaths in cast sequence
+  //	if (caststate->action.acp1 == A_RandomJump && Crispy_Random() < caststate->misc2)
+  //	{
+  //	    st = caststate->misc1;
+  //	}
+  //	else
+  //	{
+  //	// [crispy] fix Doomguy in casting sequence
+  //	if (!castdeath && caststate == &states[S_PLAY_ATK1])
+  //	    st = S_PLAY_ATK2;
+  //	else
+  //	if (!castdeath && caststate == &states[S_PLAY_ATK2])
+  //	    goto stopattack;	// Oh, gross hack!
+  //	else
+  //	st = caststate->nextstate;
+  //	}
+  //	caststate = &states[st];
+  //	castframes++;
   //
-  //   // advance animation
-  //   finalecount++;
+  //	sfx = F_SoundForState(st);
+  ///*
+  //	// sound hacks....
+  //	switch (st)
+  //	{
+  //	  case S_PLAY_ATK2:	sfx = sfx_dshtgn; break; // [crispy] fix Doomguy in casting sequence
+  //	  case S_POSS_ATK2:	sfx = sfx_pistol; break;
+  //	  case S_SPOS_ATK2:	sfx = sfx_shotgn; break;
+  //	  case S_VILE_ATK2:	sfx = sfx_vilatk; break;
+  //	  case S_SKEL_FIST2:	sfx = sfx_skeswg; break;
+  //	  case S_SKEL_FIST4:	sfx = sfx_skepch; break;
+  //	  case S_SKEL_MISS2:	sfx = sfx_skeatk; break;
+  //	  case S_FATT_ATK8:
+  //	  case S_FATT_ATK5:
+  //	  case S_FATT_ATK2:	sfx = sfx_firsht; break;
+  //	  case S_CPOS_ATK2:
+  //	  case S_CPOS_ATK3:
+  //	  case S_CPOS_ATK4:	sfx = sfx_shotgn; break;
+  //	  case S_TROO_ATK3:	sfx = sfx_claw; break;
+  //	  case S_SARG_ATK2:	sfx = sfx_sgtatk; break;
+  //	  case S_BOSS_ATK2:
+  //	  case S_BOS2_ATK2:
+  //	  case S_HEAD_ATK2:	sfx = sfx_firsht; break;
+  //	  case S_SKULL_ATK2:	sfx = sfx_sklatk; break;
+  //	  case S_SPID_ATK2:
+  //	  case S_SPID_ATK3:	sfx = sfx_shotgn; break;
+  //	  case S_BSPI_ATK2:	sfx = sfx_plasma; break;
+  //	  case S_CYBER_ATK2:
+  //	  case S_CYBER_ATK4:
+  //	  case S_CYBER_ATK6:	sfx = sfx_rlaunc; break;
+  //	  case S_PAIN_ATK3:	sfx = sfx_sklatk; break;
+  //	  default: sfx = 0; break;
+  //	}
   //
-  //   if (finalestage == F_STAGE_CAST)
-  //   {
-  //F_CastTicker ();
-  //return;
-  //   }
+  //*/
+  //	if (sfx)
+  //	    S_StartSound (NULL, sfx);
+  //    }
   //
-  //   if ( gamemode == commercial)
-  //return;
+  //    if (!castdeath && castframes == 12)
+  //    {
+  //	// go into attack frame
+  //	castattacking = true;
+  //	if (castonmelee)
+  //	    caststate=&states[mobjinfo[castorder[castnum].type].meleestate];
+  //	else
+  //	    caststate=&states[mobjinfo[castorder[castnum].type].missilestate];
+  //	castonmelee ^= 1;
+  //	if (caststate == &states[S_NULL])
+  //	{
+  //	    if (castonmelee)
+  //		caststate=
+  //		    &states[mobjinfo[castorder[castnum].type].meleestate];
+  //	    else
+  //		caststate=
+  //		    &states[mobjinfo[castorder[castnum].type].missilestate];
+  //	}
+  //    }
   //
-  //   if (finalestage == F_STAGE_TEXT
-  //    && finalecount>strlen (finaletext)*TEXTSPEED + TEXTWAIT)
-  //   {
-  //finalecount = 0;
-  //finalestage = F_STAGE_ARTSCREEN;
-  //wipegamestate = -1;		// force a wipe
-  //if (gameepisode == 3)
-  //    S_StartMusic (mus_bunny);
-  //   }
+  //    if (castattacking)
+  //    {
+  //	if (castframes == 24
+  //	    ||	caststate == &states[mobjinfo[castorder[castnum].type].seestate] )
+  //	{
+  //	  stopattack:
+  //	    castattacking = false;
+  //	    castframes = 0;
+  //	    caststate = &states[mobjinfo[castorder[castnum].type].seestate];
+  //	}
+  //    }
+  //
+  //    casttics = caststate->tics;
+  //    if (casttics == -1)
+  //    {
+  //	// [crispy] Allow A_RandomJump() in deaths in cast sequence
+  //	if (caststate->action.acp1 == A_RandomJump)
+  //	{
+  //	    if (Crispy_Random() < caststate->misc2)
+  //	    {
+  //		caststate = &states[caststate->misc1];
+  //	    }
+  //	    else
+  //	    {
+  //		caststate = &states[caststate->nextstate];
+  //	    }
+  //
+  //	    casttics = caststate->tics;
+  //	}
+  //
+  //	if (casttics == -1)
+  //	{
+  //	casttics = 15;
+  //	}
+  //    }
+End;
+
+Procedure F_Ticker();
+Var
+  i, j: int;
+Begin
+  // check for skipping
+  If ((gamemode = commercial)
+    And (finalecount > 50)) Then Begin
+
+    // go on to the next level
+    j := -1;
+    For i := 0 To MAXPLAYERS - 1 Do
+      If (players[i].cmd.buttons <> 0) Then Begin
+        j := i;
+        break;
+      End;
+
+    If (j <> -1) Then Begin
+      If (gamemission = pack_nerve) And (gamemap = 8) Then
+        F_StartCast()
+      Else If (gamemission = pack_master) And ((gamemap = 20) Or (gamemap = 21)) Then
+        F_StartCast()
+      Else If (gamemap = 30) Then
+        F_StartCast()
+      Else
+        gameaction := ga_worlddone;
+    End;
+  End;
+
+  // advance animation
+  finalecount := finalecount + 1;
+
+  If (finalestage = F_STAGE_CAST) Then Begin
+    F_CastTicker();
+    exit;
+  End;
+
+  If (gamemode = commercial) Then exit;
+
+
+  If (finalestage = F_STAGE_TEXT)
+    And (finalecount > length(finaletext) * TEXTSPEED + TEXTWAIT) Then Begin
+
+    finalecount := 0;
+    finalestage := F_STAGE_ARTSCREEN;
+    wipegamestate := GS_NEG_1; // force a wipe
+    If (gameepisode = 3) Then
+      S_StartMusic(mus_bunny);
+  End;
 End;
 
 // [crispy] randomize seestate and deathstate sounds in the cast
@@ -386,74 +555,70 @@ End;
 
 
 Procedure F_TextWrite();
-Begin
-  Raise exception.create('Port me.');
-  //   byte*	src;
-  //   pixel_t*	dest;
-  //
-  //   int		w;
-  //   signed int	count;
-  //   char *ch; // [crispy] un-const
-  //   int		c;
-  //   int		cx;
-  //   int		cy;
-  //
-  //   // erase the entire screen to a tiled background
-  //   src = W_CacheLumpName ( finaleflat , PU_CACHE);
-  //   dest = I_VideoBuffer;
-  //
-  //   // [crispy] use unified flat filling function
-  //   V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
-  //
-  //   V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
-  //
-  //   // draw some of the text onto the screen
-  //   cx = 10;
-  //   cy = 10;
-  //   ch = finaletext_rw;
-  //
-  //   count = ((signed int) finalecount - 10) / TEXTSPEED;
-  //   if (count < 0)
-  //count = 0;
-  //   for ( ; count ; count-- )
-  //   {
-  //c = *ch++;
-  //if (!c)
-  //    break;
-  //if (c == '\n')
-  //{
-  //    cx = 10;
-  //    cy += 11;
-  //    continue;
-  //}
-  //
-  //c = toupper(c) - HU_FONTSTART;
-  //if (c < 0 || c >= HU_FONTSIZE)
-  //{
-  //    cx += 4;
-  //    continue;
-  //}
-  //
-  //w = SHORT (hu_font[c]->width);
-  //if (cx+w > ORIGWIDTH)
-  //{
-  //    // [crispy] add line breaks for lines exceeding screenwidth
-  //    if (F_AddLineBreak(ch))
-  //    {
-  //	continue;
-  //    }
-  //    else
-  //    break;
-  //}
-  //// [cispy] prevent text from being drawn off-screen vertically
-  //if (cy + SHORT(hu_font[c]->height) > ORIGHEIGHT)
-  //{
-  //    break;
-  //}
-  //V_DrawPatch(cx, cy, hu_font[c]);
-  //cx+=w;
-  //   }
+Var
+  src: ^Byte;
+  dest: pixel_tArray;
 
+  w, i: int;
+  count: integer;
+  //   char *ch; // [crispy] un-const
+  c, cx, cy: int;
+
+Begin
+  // erase the entire screen to a tiled background
+  src := W_CacheLumpName(finaleflat, PU_CACHE);
+  dest := I_VideoBuffer;
+
+  // [crispy] use unified flat filling function
+  V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
+
+  V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  // draw some of the text onto the screen
+  cx := 10;
+  cy := 10;
+
+  count := int(finalecount - 10) Div TEXTSPEED;
+  If (count < 0) Then
+    count := 0;
+  i := 0;
+  While i < count - 1 Do Begin
+    If i + 1 > length(finaletext_rw) Then break;
+    C := ord(finaletext_rw[i + 1]);
+    If (c = ord('\')) And (i + 2 <= length(finaletext_rw)) And
+      (finaletext_rw[i + 2] = 'n') Then Begin
+      cx := 10;
+      cy := cy + 11;
+      i := i + 2;
+      continue;
+    End;
+
+    c := ord(UpperCase(chr(c))[1]) - ord(HU_FONTSTART);
+    If (c < 0) Or (c >= HU_FONTSIZE) Then Begin
+      cx := cx + 4;
+      inc(i);
+      continue;
+    End;
+
+    w := hu_font[c]^.width;
+    If (cx + w > ORIGWIDTH) Then Begin
+
+      // [crispy] add line breaks for lines exceeding screenwidth
+      If {(F_AddLineBreak(ch))} false Then Begin // WTF: Das dürfte doch eigentlich gar nicht vorkommen, wenn der Text ordentlich formatiert ist..
+        inc(i);
+        continue;
+      End
+      Else
+        break;
+    End;
+    // [cispy] prevent text from being drawn off-screen vertically
+    If (cy + hu_font[c]^.height > ORIGHEIGHT) Then Begin
+      break;
+    End;
+    V_DrawPatch(cx, cy, hu_font[c]);
+    cx := cx + w;
+    inc(i);
+  End;
 End;
 
 Procedure F_ArtScreenDrawer();
