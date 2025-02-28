@@ -604,7 +604,7 @@ Begin
     If (cx + w > ORIGWIDTH) Then Begin
 
       // [crispy] add line breaks for lines exceeding screenwidth
-      If {(F_AddLineBreak(ch))} false Then Begin // WTF: Das dürfte doch eigentlich gar nicht vorkommen, wenn der Text ordentlich formatiert ist..
+      If {(F_AddLineBreak(ch))}  false Then Begin
         inc(i);
         continue;
       End
@@ -621,64 +621,144 @@ Begin
   End;
 End;
 
-Procedure F_ArtScreenDrawer();
+Procedure F_BunnyScroll();
 Begin
   Raise exception.create('Port me.');
-  //const char *lumpname;
+  //   signed int  scrolled;
+  //   int		x;
+  //   patch_t*	p1;
+  //   patch_t*	p2;
+  //   char	name[10];
+  //   int		stage;
+  //   static int	laststage;
+  //   int         p2offset, p1offset, pillar_width;
   //
-  //if (gameepisode == 3)
-  //{
-  //    F_BunnyScroll();
-  //}
-  //else
-  //{
-  //    switch (gameepisode)
-  //    {
-  //        case 1:
-  //            if (gameversion >= exe_ultimate)
-  //            {
-  //                lumpname = "CREDIT";
-  //            }
-  //            else
-  //            {
-  //                lumpname = "HELP2";
-  //            }
-  //            break;
-  //        case 2:
-  //            lumpname = "VICTORY2";
-  //            break;
-  //        case 4:
-  //            lumpname = "ENDPIC";
-  //            break;
-  //        // [crispy] Sigil
-  //        case 5:
-  //            lumpname = "SIGILEND";
-  //            if (W_CheckNumForName(DEH_String(lumpname)) == -1)
-  //            {
-  //                return;
-  //            }
-  //            break;
-  //        // [crispy] Sigil II
-  //        case 6:
-  //            lumpname = "SGL2END";
-  //            if (W_CheckNumForName(DEH_String(lumpname)) == -1)
-  //            {
-  //                lumpname = "SIGILEND";
+  //   dxi = (ORIGWIDTH << FRACBITS) / NONWIDEWIDTH;
+  //   dy = (SCREENHEIGHT << FRACBITS) / ORIGHEIGHT;
+  //   dyi = (ORIGHEIGHT << FRACBITS) / SCREENHEIGHT;
   //
-  //                if (W_CheckNumForName(DEH_String(lumpname)) == -1)
-  //                {
-  //                    return;
-  //                }
-  //            }
-  //            break;
-  //        default:
-  //            return;
-  //    }
+  //   p1 = W_CacheLumpName (DEH_String("PFUB2"), PU_LEVEL);
+  //   p2 = W_CacheLumpName (DEH_String("PFUB1"), PU_LEVEL);
   //
-  //    lumpname = DEH_String(lumpname);
+  //   // [crispy] fill pillarboxes in widescreen mode
+  //   pillar_width = (SCREENWIDTH - (SHORT(p1->width) << FRACBITS) / dxi) / 2;
   //
-  //    V_DrawPatchFullScreen (W_CacheLumpName(lumpname, PU_CACHE), false);
-  //}
+  //   if (pillar_width > 0)
+  //   {
+  //       V_DrawFilledBox(0, 0, pillar_width, SCREENHEIGHT, 0);
+  //       V_DrawFilledBox(SCREENWIDTH - pillar_width, 0, pillar_width, SCREENHEIGHT, 0);
+  //   }
+  //   else
+  //   {
+  //       pillar_width = 0;
+  //   }
+  //
+  //   // Calculate the portion of PFUB2 that would be offscreen at original res.
+  //   p1offset = (ORIGWIDTH - SHORT(p1->width)) / 2;
+  //
+  //   if (SHORT(p2->width) == ORIGWIDTH)
+  //   {
+  //       // Unity or original PFUBs.
+  //       // PFUB1 only contains the pixels that scroll off.
+  //       p2offset = ORIGWIDTH - p1offset;
+  //   }
+  //   else
+  //   {
+  //       // Widescreen mod PFUBs.
+  //       // Right side of PFUB2 and left side of PFUB1 are identical.
+  //       p2offset = ORIGWIDTH + p1offset;
+  //   }
+  //
+  //   V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+  //
+  //   scrolled = (ORIGWIDTH - ((signed int) finalecount-230)/2);
+  //   if (scrolled > ORIGWIDTH)
+  //scrolled = ORIGWIDTH;
+  //   if (scrolled < 0)
+  //scrolled = 0;
+  //
+  //   for (x = pillar_width; x < SCREENWIDTH - pillar_width; x++)
+  //   {
+  //       int x2 = ((x * dxi) >> FRACBITS) - WIDESCREENDELTA + scrolled;
+  //
+  //       if (x2 < p2offset)
+  //           F_DrawPatchCol (x, p1, x2 - p1offset);
+  //       else
+  //           F_DrawPatchCol (x, p2, x2 - p2offset);
+  //   }
+  //
+  //   if (finalecount < 1130)
+  //return;
+  //   if (finalecount < 1180)
+  //   {
+  //       V_DrawPatch((ORIGWIDTH - 13 * 8) / 2,
+  //                   (ORIGHEIGHT - 8 * 8) / 2,
+  //                   W_CacheLumpName(DEH_String("END0"), PU_CACHE));
+  //laststage = 0;
+  //return;
+  //   }
+  //
+  //   stage = (finalecount-1180) / 5;
+  //   if (stage > 6)
+  //stage = 6;
+  //   if (stage > laststage)
+  //   {
+  //S_StartSound (NULL, sfx_pistol);
+  //laststage = stage;
+  //   }
+  //
+  //   DEH_snprintf(name, 10, "END%i", stage);
+  //   V_DrawPatch((ORIGWIDTH - 13 * 8) / 2,
+  //               (ORIGHEIGHT - 8 * 8) / 2,
+  //               W_CacheLumpName (name,PU_CACHE));
+End;
+
+Procedure F_ArtScreenDrawer();
+Var
+  lumpname: String;
+Begin
+
+  If (gameepisode = 3) Then Begin
+
+    F_BunnyScroll();
+  End
+  Else Begin
+    Case (gameepisode) Of
+
+      1: Begin
+          If (gameversion >= exe_ultimate) Then Begin
+            lumpname := 'CREDIT';
+          End
+          Else Begin
+            lumpname := 'HELP2';
+          End;
+        End;
+      2: Begin
+          lumpname := 'VICTORY2';
+        End;
+      4: Begin
+          lumpname := 'ENDPIC';
+        End;
+      // [crispy] Sigil
+      5: Begin
+          lumpname := 'SIGILEND';
+          If (W_CheckNumForName(lumpname) = -1) Then exit;
+        End;
+      // [crispy] Sigil II
+      6: Begin
+          lumpname := 'SGL2END';
+          If (W_CheckNumForName(lumpname) = -1) Then Begin
+            lumpname := 'SIGILEND';
+            If (W_CheckNumForName(lumpname) = -1) Then exit;
+          End;
+        End;
+    Else Begin
+        exit;
+      End;
+    End;
+  End;
+
+  V_DrawPatchFullScreen(W_CacheLumpName(lumpname, PU_CACHE), false);
 End;
 
 Procedure F_Drawer();
