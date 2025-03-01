@@ -88,3 +88,4 @@ Homepage used to create .gif images: https://ezgif.com/maker
 - (2025.02.11) finally ported everything to play e1m1 with 100% (kills, items, secret) without using cheat codes ![](documentation/e1m1_100.png)
 - (2025.02.12) enable HUD ![](documentation/HUD.png) <br> mapsize not yet scaleable
 - (2025.02.18) enable "invisible" drawing ![](documentation/invisible.png)
+- (2025.02.28) reached finish screen ![](documentation/finish_screen.png)
