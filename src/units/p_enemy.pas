@@ -124,6 +124,11 @@ Var
   viletryx: fixed_t;
   viletryy: fixed_t;
 
+  braintargets: Array Of Pmobj_t = Nil;
+  numbraintargets: int = 0; // [crispy] initialize
+  braintargeton: int = 0;
+  maxbraintargets: int; // [crispy] remove braintargets limit
+
 Procedure A_OpenShotgun2(mobj: Pmobj_t; player: Pplayer_t; psp: Ppspdef_t);
 Begin
   If Not assigned(player) Then exit; // [crispy] let pspr action pointers get called from mobj states
@@ -806,12 +811,12 @@ Begin
     sfx_podth1,
       sfx_podth2,
       sfx_podth3: Begin
-        sound := integer(sfx_podth1) + P_Random() mod 3;
+        sound := integer(sfx_podth1) + P_Random() Mod 3;
       End;
 
     sfx_bgdth1,
       sfx_bgdth2: Begin
-        sound := integer(sfx_bgdth1) + P_Random() mod 2;
+        sound := integer(sfx_bgdth1) + P_Random() Mod 2;
       End;
   Else Begin
       sound := integer(actor^.info^.deathsound);
@@ -1741,92 +1746,84 @@ Begin
 End;
 
 Procedure A_BrainAwake(mo: Pmobj_t);
+Var
+  thinker: Pthinker_t;
+  m: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
+  // find all the target spots
+  numbraintargets := 0;
+  braintargeton := 0;
+  thinker := thinkercap.next;
+  While thinker <> @thinkercap Do Begin
+    If (thinker^._function.acp1 <> @P_MobjThinker) Then Begin
+      thinker := thinker^.next;
+      continue; // not a mobj
+    End;
 
-  //   thinker_t*	thinker;
-  //    mobj_t*	m;
-  //
-  //    // find all the target spots
-  //    numbraintargets = 0;
-  //    braintargeton = 0;
-  //
-  //    for (thinker = thinkercap.next ;
-  //	 thinker != &thinkercap ;
-  //	 thinker = thinker->next)
-  //    {
-  //	if (thinker->function.acp1 != (actionf_p1)P_MobjThinker)
-  //	    continue;	// not a mobj
-  //
-  //	m = (mobj_t *)thinker;
-  //
-  //	if (m->type == MT_BOSSTARGET )
-  //	{
-  //	    // [crispy] remove braintargets limit
-  //	    if (numbraintargets == maxbraintargets)
-  //	    {
-  //		maxbraintargets = maxbraintargets ? 2 * maxbraintargets : 32;
-  //		braintargets = I_Realloc(braintargets, maxbraintargets * sizeof(*braintargets));
-  //
-  //		if (maxbraintargets > 32)
-  //		    fprintf(stderr, "R_BrainAwake: Raised braintargets limit to %d.\n", maxbraintargets);
-  //	    }
-  //
-  //	    braintargets[numbraintargets] = m;
-  //	    numbraintargets++;
-  //	}
-  //    }
-  //
-  //    S_StartSound (NULL,sfx_bossit);
-  //
-  //    // [crispy] prevent braintarget overflow
-  //    // (e.g. in two subsequent maps featuring a brain spitter)
-  //    if (braintargeton >= numbraintargets)
-  //    {
-  //	braintargeton = 0;
-  //    }
-  //
-  //    // [crispy] no spawn spots available
-  //    if (numbraintargets == 0)
-  //	numbraintargets = -1;
+    m := pmobj_t(thinker);
+
+    If (m^._type = MT_BOSSTARGET) Then Begin
+      // [crispy] remove braintargets limit
+      If (numbraintargets = maxbraintargets) Then Begin
+        If maxbraintargets <> 0 Then Begin
+          maxbraintargets := 2 * maxbraintargets;
+        End
+        Else Begin
+          maxbraintargets := 32;
+        End;
+        setlength(braintargets, maxbraintargets);
+        If (maxbraintargets > 32) Then
+          writeln(stderr, format('R_BrainAwake: Raised braintargets limit to %d.', [maxbraintargets]));
+      End;
+      braintargets[numbraintargets] := m;
+      numbraintargets := numbraintargets + 1;
+    End;
+    thinker := thinker^.next;
+  End;
+
+  S_StartSound(Nil, sfx_bossit);
+
+  // [crispy] prevent braintarget overflow
+  // (e.g. in two subsequent maps featuring a brain spitter)
+  If (braintargeton >= numbraintargets) Then Begin
+    braintargeton := 0;
+  End;
+
+  // [crispy] no spawn spots available
+  If (numbraintargets = 0) Then numbraintargets := -1;
 End;
 
 Procedure A_BrainSpit(mo: Pmobj_t);
+Const
+  easy: int = 0;
+Var
+  targ, newmobj: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
 
-  //   mobj_t*	targ;
-  //    mobj_t*	newmobj;
-  //
-  //    static int	easy = 0;
-  //
-  //    easy ^= 1;
-  //    if (gameskill <= sk_easy && (!easy))
-  //	return;
-  //
-  //    // [crispy] avoid division by zero by recalculating the number of spawn spots
-  //    if (numbraintargets == 0)
-  //	A_BrainAwake(NULL);
-  //
-  //    // [crispy] still no spawn spots available
-  //    if (numbraintargets == -1)
-  //	return;
-  //
-  //    // shoot a cube at current target
-  //    targ = braintargets[braintargeton];
-  //    if (numbraintargets == 0)
-  //    {
-  //        I_Error("A_BrainSpit: numbraintargets was 0 (vanilla crashes here)");
-  //    }
-  //    braintargeton = (braintargeton+1)%numbraintargets;
-  //
-  //    // spawn brain missile
-  //    newmobj = P_SpawnMissile (mo, targ, MT_SPAWNSHOT);
-  //    newmobj->target = targ;
-  //    newmobj->reactiontime =
-  //	((targ->y - mo->y)/newmobj->momy) / newmobj->state->tics;
-  //
-  //    S_StartSound(NULL, sfx_bospit);
+  easy := easy Xor 1;
+  If (gameskill <= sk_easy) And (easy = 0) Then exit;
+
+  // [crispy] avoid division by zero by recalculating the number of spawn spots
+  If (numbraintargets = 0) Then
+    A_BrainAwake(Nil);
+
+  // [crispy] still no spawn spots available
+  If (numbraintargets = -1) Then exit;
+
+
+  // shoot a cube at current target
+  targ := braintargets[braintargeton];
+  If (numbraintargets = 0) Then Begin
+    I_Error('A_BrainSpit: numbraintargets was 0 (vanilla crashes here)');
+  End;
+  braintargeton := (braintargeton + 1) Mod numbraintargets;
+
+  // spawn brain missile
+  newmobj := P_SpawnMissile(mo, targ, MT_SPAWNSHOT);
+  newmobj^.target := targ;
+  newmobj^.reactiontime := ((targ^.y - mo^.y) Div newmobj^.momy) Div newmobj^.state^.tics;
+
+  S_StartSound(Nil, sfx_bospit);
 End;
 
 Procedure A_BrainExplode(mo: Pmobj_t);
