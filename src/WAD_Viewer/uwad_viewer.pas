@@ -29,6 +29,7 @@ Type
     ltMusic,
     ltMap,
     ltExportAsRaw,
+    ltFlat,
     ltCount // Muss immer der letzte sein !
     );
 
@@ -41,7 +42,7 @@ Function LumpTypeToString(value: TLumpType): String;
 
 Implementation
 
-Uses v_patch;
+Uses v_patch, f_finale, w_wad;
 
 Function GuessLumpTypeByPointer(Const p: Pointer; LumpName: String): TLumpType;
 Const
@@ -56,6 +57,7 @@ Var
   pui16: ^UInt16;
   pmus: ^Integer;
   s, t: String;
+  i: Integer;
 Begin
   result := ltUnknown;
   If Not assigned(p) Then exit;
@@ -109,6 +111,12 @@ Begin
       End;
     End;
   End;
+  For i := 0 To high(textscreens) Do Begin
+    If (uppercase(textscreens[i].Background) = UpperCase(LumpName)) And (W_LumpLength(W_GetNumForName(LumpName)) = 64 * 64) Then Begin
+      result := ltFlat;
+      exit;
+    End;
+  End;
 End;
 
 Function LumpTypeToString(value: TLumpType): String;
@@ -120,6 +128,7 @@ Begin
     ltSound: Result := 'Sound';
     ltMusic: result := 'Music';
     ltMap: Result := 'Map';
+    ltFlat: result := 'Flat';
     ltExportAsRaw: result := 'Export as RAW';
   Else Begin
       Raise exception.create('LumpTypeToString, missing type in case!');

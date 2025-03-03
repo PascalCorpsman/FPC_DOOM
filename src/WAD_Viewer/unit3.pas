@@ -52,6 +52,7 @@ Type
   public
 
     Function LoadPatchLump(Const Lump: String): Boolean;
+    Function LoadFlatLump(Const Lump: String): Boolean;
 
   End;
 
@@ -289,12 +290,38 @@ Var
   ptr: PByte;
   m: TMemoryStream;
 Begin
+  button1.visible := true;
   ptr := W_CacheLumpName(Lump, 0);
   m := TMemoryStream.Create;
   m.Write(ptr^, W_LumpLength(W_GetNumForName(lump)));
   //  m.SaveToFile(lump + '.lump');
   m.free;
   result := LoadPatchLumpByPointer(ptr);
+  label4.caption := Lump;
+End;
+
+Function TForm3.LoadFlatLump(Const Lump: String): Boolean;
+Var
+  ptr: PByte;
+  j, i: Integer;
+Begin
+  result := W_LumpLength(W_GetNumForName(lump)) = 64 * 64;
+  If Not result Then exit;
+  button1.visible := false;
+  ptr := W_CacheLumpName(Lump, 0);
+  LumpImage.Width := 64;
+  LumpImage.Height := 64;
+  //LumpImage.canvas.Brush.Color := Doom8BitTo24RGBBit[255];
+  //LumpImage.canvas.Rectangle(-1, -1, LumpImage.Width + 1, LumpImage.Height + 1);
+  For j := 0 To 63 Do Begin
+    For i := 0 To 63 Do Begin
+      LumpImage.canvas.Pixels[i, j] := Doom8BitTo24RGBBit[ptr^];
+      inc(ptr);
+    End;
+  End;
+  image1.Picture.Assign(LumpImage);
+  label2.caption := format('%d x %d', [64, 64]);
+  label6.caption := format('%d , %d', [0, 0]);
   label4.caption := Lump;
 End;
 

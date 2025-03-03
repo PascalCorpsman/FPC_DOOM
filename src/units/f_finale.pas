@@ -6,34 +6,8 @@ Interface
 
 Uses
   ufpc_doom_types, Classes, SysUtils
-  , d_event
+  , d_event, d_mode, d_englsh
   ;
-
-Procedure F_StartFinale();
-Procedure F_Ticker();
-Function F_Responder(Const ev: Pevent_t): boolean;
-Procedure F_Drawer();
-
-Implementation
-
-Uses
-  doomstat, doomdef, sounds, info_types, info, doomtype
-  , am_map
-  , d_mode, d_englsh, d_main
-  , g_game
-  , hu_stuff
-  , i_video
-  , m_controls, m_random
-  , p_mobj, p_bexptr
-  , s_sound
-  , w_wad
-  , v_video
-  , z_zone
-  ;
-
-Const
-  TEXTSPEED = 3;
-  TEXTWAIT = 250;
 
 Type
   textscreen_t = Record
@@ -43,15 +17,7 @@ Type
     text: String;
   End;
 
-  castinfo_t = Record
-    name: String;
-    _type: mobjtype_t;
-  End;
-
-
-  finalestage_t = (F_STAGE_TEXT, F_STAGE_ARTSCREEN, F_STAGE_CAST);
-
-Const
+Const // FPC_DOOM braucht das nicht so "öffentlich" aber der WAD-Viewer
   textscreens: Array Of textscreen_t =
   (
     (mission: doom; episode: 1; level: 8; Background: 'FLOOR4_8'; text: E1TEXT),
@@ -87,6 +53,45 @@ Const
     (mission: pack_master; episode: 1; level: 21; Background: 'SLIME16'; text: M2TEXT)
     );
 
+
+Procedure F_StartFinale();
+Procedure F_Ticker();
+Function F_Responder(Const ev: Pevent_t): boolean;
+Procedure F_Drawer();
+
+Implementation
+
+Uses
+  doomstat, doomdef, sounds, info_types, info, doomtype
+  , am_map
+  , d_main
+  , g_game
+  , hu_stuff
+  , i_video
+  , m_controls, m_random
+  , p_mobj, p_bexptr
+  , s_sound
+  , w_wad
+  , v_video
+  , z_zone
+  ;
+
+Const
+  TEXTSPEED = 3;
+  TEXTWAIT = 250;
+
+Type
+
+
+  castinfo_t = Record
+    name: String;
+    _type: mobjtype_t;
+  End;
+
+
+  finalestage_t = (F_STAGE_TEXT, F_STAGE_ARTSCREEN, F_STAGE_CAST);
+
+Const
   castorder: Array Of castinfo_t = (
     (name: CC_ZOMBIE; _type: MT_POSSESSED),
     (name: CC_SHOTGUN; _type: MT_SHOTGUY),

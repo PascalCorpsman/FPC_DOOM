@@ -35,6 +35,7 @@ Type
     Procedure FormCreate(Sender: TObject);
   private
     Procedure LoadAndShowPatch(Const Lump: String);
+    Procedure LoadAndShowFlat(Const Lump: String);
     Procedure LoadAndShowSound(Const Lump: String);
     Procedure LoadAndShowMusic(Const Lump: String);
     Procedure LoadAndShowMap(Const Lump: String);
@@ -75,6 +76,9 @@ Begin
   If s = LumpTypeToString(ltExportAsRaw) Then Begin
     ExportAsRaw(label2.caption);
   End;
+  If s = LumpTypeToString(ltFlat) Then Begin
+    LoadAndShowFlat(label2.caption);
+  End;
 End;
 
 Procedure TForm2.FormCreate(Sender: TObject);
@@ -98,6 +102,16 @@ Begin
   End
   Else Begin
     showmessage('Error, "' + lump + '" does not seem to be a valild patch_t');
+  End;
+End;
+
+Procedure TForm2.LoadAndShowFlat(Const Lump: String);
+Begin
+  If form3.LoadFlatLump(Lump) Then Begin
+    form3.ShowModal;
+  End
+  Else Begin
+    showmessage('Error, "' + lump + '" does not seem to be a valild flat');
   End;
 End;
 
