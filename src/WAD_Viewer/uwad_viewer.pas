@@ -111,11 +111,18 @@ Begin
       End;
     End;
   End;
+
   For i := 0 To high(textscreens) Do Begin
     If (uppercase(textscreens[i].Background) = UpperCase(LumpName)) And (W_LumpLength(W_GetNumForName(LumpName)) = 64 * 64) Then Begin
       result := ltFlat;
       exit;
     End;
+  End;
+
+
+  // Als aller letztes noch den ein oder anderen "FLat" frei schalten, muss aber nicht unbedingt stimmen ..
+  If W_LumpLength(W_GetNumForName(LumpName)) = 64 * 64 Then Begin
+    result := ltFlat;
   End;
 End;
 

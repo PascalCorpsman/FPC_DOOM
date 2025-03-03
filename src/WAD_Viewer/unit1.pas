@@ -100,9 +100,9 @@ Const
 
 Procedure TForm1.Button1Click(Sender: TObject);
 Begin
-  //  LoadWadFile('Doom1.wad'); // TODO: Debug- remove
-  LoadWadFile('Doom2.wad'); // TODO: Debug- remove
-  exit; // TODO: Debug- remove
+  // LoadWadFile('Doom1.wad'); // TODO: Debug- remove
+  // LoadWadFile('Doom2.wad'); // TODO: Debug- remove
+  // exit; // TODO: Debug- remove
   // Select .wad file
   If OpenDialog1.Execute Then Begin
     LoadWadFile(OpenDialog1.FileName);
@@ -189,10 +189,16 @@ Begin
 End;
 
 Procedure TForm1.Edit3Change(Sender: TObject);
+Type
+  tOperand = (lt, eq, gt);
 Var
-  s, c, i: Integer;
+  si, s, c, i: Integer;
+  op: tOperand;
+  b: Boolean;
+  str: String;
 Begin
   StringGrid1.BeginUpdate;
+  op := gt;
   ClearOtherFilter(edit3);
   If Edit3.text = '' Then Begin
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
@@ -201,10 +207,26 @@ Begin
     End;
   End
   Else Begin
-    s := StrToIntDef(Edit3.Text, 0);
+    str := Edit3.Text;
+    If str[1] In ['=', '>', '<'] Then Begin
+      Case str[1] Of
+        '<': op := lt;
+        '=': op := eq;
+        '>': op := gt;
+      End;
+      delete(str, 1, 1);
+    End;
+    s := StrToIntDef(str, 0);
     c := 0;
     For i := 1 To StringGrid1.RowCount - 1 Do Begin
-      If s > StrToIntDef(StringGrid1.Cells[IndexLumpSize, i], 0) Then Begin
+      b := false;
+      si := StrToIntDef(StringGrid1.Cells[IndexLumpSize, i], 0);
+      Case op Of
+        lt: b := s > si;
+        eq: b := s = si;
+        gt: b := s < si;
+      End;
+      If Not b Then Begin
         StringGrid1.RowHeights[i] := 0;
       End
       Else Begin
