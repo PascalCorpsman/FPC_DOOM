@@ -352,17 +352,10 @@ Begin
   ArrangeColumnEdit(edit2, IndexLumpType);
   ArrangeColumnEdit(edit3, IndexLumpSize);
 
-  //  s := StringGrid1.Left;
-  //  For i := 0 To IndexLumpType - 1 Do Begin
-  //    s := s + StringGrid1.ColWidths[i]
-  //  End;
-  //  edit2.Left := S;
-  //  edit2.Width := StringGrid1.ColWidths[IndexLumpType];
   edit1.text := '';
   edit2.text := '';
   edit3.text := '';
   label2.caption := format('%d lumps', [StringGrid1.RowCount - 1]);
-
 End;
 
 End.

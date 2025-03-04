@@ -65,7 +65,6 @@ Implementation
 
 Uses w_wad, uWAD_viewer, v_patch;
 
-
 Function V_GetPaletteIndex(color: TColor): integer;
 Const
   INT_MAX = 65535;
@@ -105,7 +104,6 @@ Begin
   LumpImage := TBitmap.Create;
   caption := 'patch_t previewer';
 End;
-
 
 Procedure TForm3.Button1Click(Sender: TObject);
 // Doku: https://www.cyotek.com/blog/decoding-doom-picture-files
@@ -247,22 +245,15 @@ Var
   column: Pcolumn_t;
   source: PByte;
   count: Byte;
-  //  f: TextFile;
 Begin
   result := false;
   p := ptr;
-
-  //  assignfile(f, 'Blub.txt');
-  //  Rewrite(f);
-  If GuessLumpTypeByPointer(p, '') <> ltPatch Then exit;
+  If GuessLumpTypeByPointer(p, label4.caption) <> ltPatch Then exit;
   LumpImage.Width := p^.width;
   LumpImage.Height := p^.height;
-  //  writeln(f, p^.width);
-  //  writeln(f, p^.height);
   LumpImage.canvas.Brush.Color := Doom8BitTo24RGBBit[255];
   LumpImage.canvas.Rectangle(-1, -1, LumpImage.Width + 1, LumpImage.Height + 1);
   For i := 0 To p^.width - 1 Do Begin
-    //    writeln(f, p^.columnofs[i]);
     column := Pointer(p) + p^.columnofs[i];
     While column^.topdelta <> $FF Do Begin
       source := pointer(column) + 3;
@@ -282,22 +273,21 @@ Begin
   label2.caption := format('%d x %d', [p^.width, p^.height]);
   label6.caption := format('%d , %d', [p^.leftoffset, p^.topoffset]);
   result := true;
-  //  CloseFile(f);
 End;
 
 Function TForm3.LoadPatchLump(Const Lump: String): Boolean;
 Var
   ptr: PByte;
-  m: TMemoryStream;
+  //m: TMemoryStream;
 Begin
+  label4.caption := Lump;
   button1.visible := true;
   ptr := W_CacheLumpName(Lump, 0);
-  m := TMemoryStream.Create;
-  m.Write(ptr^, W_LumpLength(W_GetNumForName(lump)));
+  //m := TMemoryStream.Create;
+  //m.Write(ptr^, W_LumpLength(W_GetNumForName(lump)));
   //  m.SaveToFile(lump + '.lump');
-  m.free;
+  //m.free;
   result := LoadPatchLumpByPointer(ptr);
-  label4.caption := Lump;
 End;
 
 Function TForm3.LoadFlatLump(Const Lump: String): Boolean;
@@ -307,12 +297,11 @@ Var
 Begin
   result := W_LumpLength(W_GetNumForName(lump)) = 64 * 64;
   If Not result Then exit;
+  label4.caption := Lump;
   button1.visible := false;
   ptr := W_CacheLumpName(Lump, 0);
   LumpImage.Width := 64;
   LumpImage.Height := 64;
-  //LumpImage.canvas.Brush.Color := Doom8BitTo24RGBBit[255];
-  //LumpImage.canvas.Rectangle(-1, -1, LumpImage.Width + 1, LumpImage.Height + 1);
   For j := 0 To 63 Do Begin
     For i := 0 To 63 Do Begin
       LumpImage.canvas.Pixels[i, j] := Doom8BitTo24RGBBit[ptr^];
@@ -322,7 +311,6 @@ Begin
   image1.Picture.Assign(LumpImage);
   label2.caption := format('%d x %d', [64, 64]);
   label6.caption := format('%d , %d', [0, 0]);
-  label4.caption := Lump;
 End;
 
 End.

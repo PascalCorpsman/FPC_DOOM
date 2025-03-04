@@ -54,21 +54,46 @@ Const
 
 Var
   patch: ^patch_t;
+  column: Pcolumn_t;
   pui16: ^UInt16;
   pmus: ^Integer;
   s, t: String;
   i: Integer;
+  valid: Boolean;
+  LumpSize: integer;
 Begin
   result := ltUnknown;
   If Not assigned(p) Then exit;
+  LumpSize := W_LumpLength(W_GetNumForName(LumpName));
 
   // Check auf patch_t
   patch := p;
   If (patch^.width <= 640) And (patch^.width > 0) And
     (patch^.height <= 400) And (patch^.height > 0) Then Begin
-    // TODO: Theoretisch könnte hier noch die gesammte Colmun geschichte abgeklappert werden und geschaut ob sich das wirklich alles sauber auflösen lässt.
-    result := ltPatch;
-    exit;
+    // Wir tun tatsächlich so als würden wir das Bild malen, und validieren so die daten..
+    valid := true;
+    For i := 0 To patch^.width - 1 Do Begin
+      column := Pointer(patch) + patch^.columnofs[i];
+      If (patch^.columnofs[i] > 0) And (patch^.columnofs[i] < LumpSize) Then Begin
+        While (column^.topdelta <> $FF) And valid Do Begin
+          If column^.topdelta + column^.length > patch^.height Then Begin
+            valid := false;
+          End;
+          column := pointer(column) + column^.length + 4;
+          If pointer(column) > Pointer(patch) + LumpSize Then Begin
+            valid := false;
+          End;
+        End;
+      End
+      Else Begin
+        valid := false;
+      End;
+      If Not valid Then break;
+    End;
+    If valid Then Begin
+      result := ltPatch;
+      exit;
+    End;
   End;
 
   // Check for sound
@@ -113,7 +138,7 @@ Begin
   End;
 
   For i := 0 To high(textscreens) Do Begin
-    If (uppercase(textscreens[i].Background) = UpperCase(LumpName)) And (W_LumpLength(W_GetNumForName(LumpName)) = 64 * 64) Then Begin
+    If (uppercase(textscreens[i].Background) = UpperCase(LumpName)) And (Lumpsize = 64 * 64) Then Begin
       result := ltFlat;
       exit;
     End;
