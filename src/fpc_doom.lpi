@@ -23,12 +23,14 @@
     </PublishOptions>
     <RunParams>
       <local>
+        <CommandLineParams Value="-nomonsters"/>
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T &amp;apos;Lazarus Run Output&amp;apos; -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
       <FormatVersion Value="2"/>
       <Modes Count="1">
         <Mode0 Name="default">
           <local>
+            <CommandLineParams Value="-nomonsters"/>
             <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T &amp;apos;Lazarus Run Output&amp;apos; -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
           </local>
         </Mode0>

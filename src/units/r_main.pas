@@ -585,7 +585,7 @@ End;
 // Returns side 0 (front) or 1 (back).
 //
 
-Function R_PointOnSide(x, y: fixed_t; node: Pnode_t): int;
+Function R_PointOnSide(x, y: fixed_t; node: Pnode_t): int; // -- Geprüft
 Var
   dx: fixed_t;
   dy: fixed_t;
@@ -593,20 +593,17 @@ Var
   right: fixed_t;
 Begin
   If (node^.dx = 0) Then Begin
-    If (x <= node^.x) Then Begin
-      result := ord(node^.dy > 0);
-      exit;
-    End;
-
-    result := ord(node^.dy < 0);
+    If (x <= node^.x) Then
+      result := ord(node^.dy > 0)
+    Else
+      result := ord(node^.dy < 0);
+    exit;
   End;
   If (node^.dy = 0) Then Begin
-    If (y <= node^.y) Then Begin
-      result := ord(node^.dx < 0);
-      exit;
-    End;
-
-    result := ord(node^.dx > 0);
+    If (y <= node^.y) Then
+      result := ord(node^.dx < 0)
+    Else
+      result := ord(node^.dx > 0);
     exit;
   End;
 
@@ -615,23 +612,23 @@ Begin
 
   // Try to quickly decide by looking at sign bits.
   If ((node^.dy Xor node^.dx Xor dx Xor dy) And $80000000) <> 0 Then Begin
-    If ((node^.dy Xor dx) And $80000000) <> 0 Then Begin
+    If ((node^.dy Xor dx) And $80000000) <> 0 Then
       // (left is negative)
-      result := 1;
-    End;
-    result := 0;
+      result := 1
+    Else
+      result := 0;
+    exit;
   End;
 
   left := FixedMul(SarLongint(node^.dy, FRACBITS), dx);
   right := FixedMul(dy, SarLongint(node^.dx, FRACBITS));
 
-  If (right < left) Then Begin
+  If (right < left) Then
     // front side
-    result := 0;
-    exit;
-  End;
-  // back side
-  result := 1;
+    result := 0
+  Else
+    // back side
+    result := 1;
 End;
 
 Function LerpFixed(oldvalue, newvalue: fixed_t): fixed_t;

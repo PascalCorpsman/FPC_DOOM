@@ -24,7 +24,7 @@ Var
 
 Procedure R_ClearClipSegs();
 Procedure R_ClearDrawSegs();
-Procedure R_RenderBSPNode(bspnum: int);
+Procedure R_RenderBSPNode(Const bspnum: int);
 
 Implementation
 
@@ -488,6 +488,8 @@ Var
   sub: ^subsector_t;
 Begin
 
+//  hier weiter prüfen
+
   //#ifdef RANGECHECK
   //    if (num>=numsubsectors)
   //	I_Error ("R_Subsector: ss %i with numss = %i",
@@ -555,7 +557,7 @@ End;
 //  traversing subtree recursively.
 // Just call with BSP root.
 
-Procedure R_RenderBSPNode(bspnum: int);
+Procedure R_RenderBSPNode(Const bspnum: int); // -- Geprüft
 Var
   bsp: ^node_t;
   side: int;
@@ -582,4 +584,5 @@ Begin
 End;
 
 End.
+
 

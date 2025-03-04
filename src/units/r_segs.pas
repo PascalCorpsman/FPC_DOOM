@@ -276,7 +276,7 @@ Type
   End;
 
 Const
-  scale_values: Array[0..7] Of TScaleValue =
+  scale_values: Array[0..8] Of TScaleValue =
   (
     (clamp: 2048 * FRACUNIT; heightbits: 12),
     (clamp: 1024 * FRACUNIT; heightbits: 12),
@@ -285,7 +285,8 @@ Const
     (clamp: 512 * FRACUNIT; heightbits: 10),
     (clamp: 256 * FRACUNIT; heightbits: 10),
     (clamp: 256 * FRACUNIT; heightbits: 9),
-    (clamp: 128 * FRACUNIT; heightbits: 9)
+    (clamp: 128 * FRACUNIT; heightbits: 9),
+    (clamp: 64 * FRACUNIT; heightbits: 9)
     );
 
 Procedure R_FixWiggle(sector: Psector_t);
@@ -294,7 +295,7 @@ Const
 Var
   height: int;
 Begin
-  height := SarLongint(sector^.interpceilingheight - sector^.interpfloorheight, FRACBITS);
+  height := (sector^.interpceilingheight - sector^.interpfloorheight) Div FRACUNIT;
 
   // disallow negative heights. using 1 forces cache initialization
   If (height < 1) Then
