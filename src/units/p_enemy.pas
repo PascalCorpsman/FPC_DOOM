@@ -1090,7 +1090,6 @@ Begin
 
   If (dest = Nil) Or (dest^.health <= 0) Then exit;
 
-
   // change angle
   exact := R_PointToAngle2(actor^.x,
     actor^.y,
@@ -1098,15 +1097,15 @@ Begin
     dest^.y);
 
   If (exact <> actor^.angle) Then Begin
-    If (exact - actor^.angle > $80000000) Then Begin
+    If (angle_t(exact - actor^.angle) > $80000000) Then Begin
 
-      actor^.angle := actor^.angle - TRACEANGLE;
-      If (exact - actor^.angle < $80000000) Then
+      actor^.angle := angle_t(actor^.angle - TRACEANGLE);
+      If (angle_t(exact - actor^.angle) < $80000000) Then
         actor^.angle := exact;
     End
     Else Begin
-      actor^.angle := actor^.angle + TRACEANGLE;
-      If (exact - actor^.angle > $80000000) Then
+      actor^.angle := angle_t(actor^.angle + TRACEANGLE);
+      If (angle_t(exact - actor^.angle) > $80000000) Then
         actor^.angle := exact;
     End;
   End;
@@ -1586,64 +1585,56 @@ End;
 //
 
 Procedure A_PainShootSkull(actor: Pmobj_t; angle: angle_t);
+Var
+  x: fixed_t;
+  y: fixed_t;
+  z: fixed_t;
+  newmobj: Pmobj_t;
+  an: angle_t;
+  prestep, count: int;
+  currentthinker: Pthinker_t;
 Begin
-  Raise exception.create('Port me.');
+  // count total number of skull currently on the level
+  count := 0;
 
-  //    fixed_t	x;
-  //    fixed_t	y;
-  //    fixed_t	z;
-  //
-  //    mobj_t*	newmobj;
-  //    angle_t	an;
-  //    int		prestep;
-  //    int		count;
-  //    thinker_t*	currentthinker;
-  //
-  //    // count total number of skull currently on the level
-  //    count = 0;
-  //
-  //    currentthinker = thinkercap.next;
-  //    while (currentthinker != &thinkercap)
-  //    {
-  //	if (   (currentthinker->function.acp1 == (actionf_p1)P_MobjThinker)
-  //	    && ((mobj_t *)currentthinker)->type == MT_SKULL)
-  //	    count++;
-  //	currentthinker = currentthinker->next;
-  //    }
-  //
-  //    // if there are allready 20 skulls on the level,
-  //    // don't spit another one
-  //    if (count > 20)
-  //	return;
-  //
-  //
-  //    // okay, there's playe for another one
-  //    an = angle >> ANGLETOFINESHIFT;
-  //
-  //    prestep =
-  //	4*FRACUNIT
-  //	+ 3*(actor->info->radius + mobjinfo[MT_SKULL].radius)/2;
-  //
-  //    x = actor->x + FixedMul (prestep, finecosine[an]);
-  //    y = actor->y + FixedMul (prestep, finesine[an]);
-  //    z = actor->z + 8*FRACUNIT;
-  //
-  //    newmobj = P_SpawnMobj (x , y, z, MT_SKULL);
-  //
-  //    // Check for movements.
-  //    if (!P_TryMove (newmobj, newmobj->x, newmobj->y))
-  //    {
-  //	// kill it immediately
-  //	P_DamageMobj (newmobj,actor,actor,10000);
-  //	return;
-  //    }
-  //
-  //    // [crispy] Lost Souls bleed Puffs
-  //    if (crispy->coloredblood == COLOREDBLOOD_ALL)
-  //        newmobj->flags |= MF_NOBLOOD;
-  //
-  //    newmobj->target = actor->target;
-  //    A_SkullAttack (newmobj);
+  currentthinker := thinkercap.next;
+  While (currentthinker <> @thinkercap) Do Begin
+    If ((currentthinker^._function.acp1 = @P_MobjThinker)
+      And (pmobj_t(currentthinker)^._type = MT_SKULL)) Then
+      count := count + 1;
+    currentthinker := currentthinker^.next;
+  End;
+
+  // if there are allready 20 skulls on the level,
+  // don't spit another one
+  If (count > 20) Then exit;
+
+  // okay, there's playe for another one
+  an := angle Shr ANGLETOFINESHIFT;
+
+  prestep :=
+    4 * FRACUNIT
+    + 3 * (actor^.info^.radius + mobjinfo[int(MT_SKULL)].radius) Div 2;
+
+  x := actor^.x + FixedMul(prestep, finecosine[an]);
+  y := actor^.y + FixedMul(prestep, finesine[an]);
+  z := actor^.z + 8 * FRACUNIT;
+
+  newmobj := P_SpawnMobj(x, y, z, MT_SKULL);
+
+  // Check for movements.
+  If (Not P_TryMove(newmobj, newmobj^.x, newmobj^.y)) Then Begin
+    // kill it immediately
+    P_DamageMobj(newmobj, actor, actor, 10000);
+    exit;
+  End;
+
+  // [crispy] Lost Souls bleed Puffs
+  If (crispy.coloredblood = COLOREDBLOOD_ALL) Then
+    newmobj^.flags := newmobj^.flags Or MF_NOBLOOD;
+
+  newmobj^.target := actor^.target;
+  A_SkullAttack(newmobj);
 End;
 
 //
@@ -1662,9 +1653,9 @@ End;
 Procedure A_PainDie(actor: Pmobj_t);
 Begin
   A_Fall(actor);
-  A_PainShootSkull(actor, actor^.angle + ANG90);
-  A_PainShootSkull(actor, actor^.angle + ANG180);
-  A_PainShootSkull(actor, actor^.angle + ANG270);
+  A_PainShootSkull(actor, angle_t(actor^.angle + ANG90));
+  A_PainShootSkull(actor, angle_t(actor^.angle + ANG180));
+  A_PainShootSkull(actor, angle_t(actor^.angle + ANG270));
 End;
 
 //
@@ -1715,29 +1706,25 @@ Begin
 End;
 
 Procedure A_BrainScream(mo: Pmobj_t);
+Var
+  x, y, z: int;
+  th: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
+  x := mo^.x - 196 * FRACUNIT;
+  While x < mo^.x + 320 * FRACUNIT Do Begin
+    y := mo^.y - 320 * FRACUNIT;
+    z := 128 + P_Random() * 2 * FRACUNIT;
+    th := P_SpawnMobj(x, y, z, MT_ROCKET);
+    th^.momz := P_Random() * 512;
 
-  //   int		x;
-  //    int		y;
-  //    int		z;
-  //    mobj_t*	th;
-  //
-  //    for (x=mo->x - 196*FRACUNIT ; x< mo->x + 320*FRACUNIT ; x+= FRACUNIT*8)
-  //    {
-  //	y = mo->y - 320*FRACUNIT;
-  //	z = 128 + P_Random()*2*FRACUNIT;
-  //	th = P_SpawnMobj (x,y,z, MT_ROCKET);
-  //	th->momz = P_Random()*512;
-  //
-  //	P_SetMobjState (th, S_BRAINEXPLODE1);
-  //
-  //	th->tics -= P_Random()&7;
-  //	if (th->tics < 1)
-  //	    th->tics = 1;
-  //    }
-  //
-  //    S_StartSound (NULL,sfx_bosdth);
+    P_SetMobjState(th, S_BRAINEXPLODE1);
+
+    th^.tics := th^.tics - P_Random() And 7;
+    If (th^.tics < 1) Then
+      th^.tics := 1;
+    x := x + FRACUNIT * 8;
+  End;
+  S_StartSound(Nil, sfx_bosdth);
 End;
 
 Procedure A_BrainDie(mo: Pmobj_t);
@@ -1827,28 +1814,24 @@ Begin
 End;
 
 Procedure A_BrainExplode(mo: Pmobj_t);
+Var
+  x, y, z: int;
+  th: Pmobj_t;
 Begin
-  Raise exception.create('Port me.');
+  x := mo^.x + P_SubRandom() * 2048;
+  y := mo^.y;
+  z := 128 + P_Random() * 2 * FRACUNIT;
+  th := P_SpawnMobj(x, y, z, MT_ROCKET);
+  th^.momz := P_Random() * 512;
 
-  //    int		x;
-  //    int		y;
-  //    int		z;
-  //    mobj_t*	th;
-  //
-  //    x = mo->x +  P_SubRandom() * 2048;
-  //    y = mo->y;
-  //    z = 128 + P_Random()*2*FRACUNIT;
-  //    th = P_SpawnMobj (x,y,z, MT_ROCKET);
-  //    th->momz = P_Random()*512;
-  //
-  //    P_SetMobjState (th, S_BRAINEXPLODE1);
-  //
-  //    th->tics -= P_Random()&7;
-  //    if (th->tics < 1)
-  //	th->tics = 1;
-  //
-  //    // [crispy] brain explosions are translucent
-  //    th->flags |= MF_TRANSLUCENT;
+  P_SetMobjState(th, S_BRAINEXPLODE1);
+
+  th^.tics := th^.tics - P_Random() And 7;
+  If (th^.tics < 1) Then
+    th^.tics := 1;
+
+  // [crispy] brain explosions are translucent
+  th^.flags := int(th^.flags Or MF_TRANSLUCENT);
 End;
 
 Procedure A_SpawnSound(mo: Pmobj_t);
@@ -1858,65 +1841,63 @@ Begin
 End;
 
 Procedure A_SpawnFly(mo: Pmobj_t);
+Var
+  newmobj: Pmobj_t;
+  fog: Pmobj_t;
+  targ: Pmobj_t;
+  r: int;
+  _type: mobjtype_t;
 Begin
-  Raise exception.create('Port me.');
+  mo^.reactiontime := mo^.reactiontime - 1;
+  If (mo^.reactiontime > 0) Then exit; // still flying
 
-  //   mobj_t*	newmobj;
-  //    mobj_t*	fog;
-  //    mobj_t*	targ;
-  //    int		r;
-  //    mobjtype_t	type;
-  //
-  //    if (--mo->reactiontime)
-  //	return;	// still flying
-  //
-  //    targ = P_SubstNullMobj(mo->target);
-  //
-  //    // First spawn teleport fog.
-  //    fog = P_SpawnMobj (targ->x, targ->y, targ->z, MT_SPAWNFIRE);
-  //    S_StartSound (fog, sfx_telept);
-  //
-  //    // Randomly select monster to spawn.
-  //    r = P_Random ();
-  //
-  //    // Probability distribution (kind of :),
-  //    // decreasing likelihood.
-  //    if ( r<50 )
-  //	type = MT_TROOP;
-  //    else if (r<90)
-  //	type = MT_SERGEANT;
-  //    else if (r<120)
-  //	type = MT_SHADOWS;
-  //    else if (r<130)
-  //	type = MT_PAIN;
-  //    else if (r<160)
-  //	type = MT_HEAD;
-  //    else if (r<162)
-  //	type = MT_VILE;
-  //    else if (r<172)
-  //	type = MT_UNDEAD;
-  //    else if (r<192)
-  //	type = MT_BABY;
-  //    else if (r<222)
-  //	type = MT_FATSO;
-  //    else if (r<246)
-  //	type = MT_KNIGHT;
-  //    else
-  //	type = MT_BRUISER;
-  //
-  //    newmobj	= P_SpawnMobj (targ->x, targ->y, targ->z, type);
-  //
-  //    // [crispy] count spawned monsters
-  //    extrakills++;
-  //
-  //    if (P_LookForPlayers (newmobj, true) )
-  //	P_SetMobjState (newmobj, newmobj->info->seestate);
-  //
-  //    // telefrag anything in this spot
-  //    P_TeleportMove (newmobj, newmobj->x, newmobj->y);
-  //
-  //    // remove self (i.e., cube).
-  //    P_RemoveMobj (mo);
+  targ := P_SubstNullMobj(mo^.target);
+
+  // First spawn teleport fog.
+  fog := P_SpawnMobj(targ^.x, targ^.y, targ^.z, MT_SPAWNFIRE);
+  S_StartSound(fog, sfx_telept);
+
+  // Randomly select monster to spawn.
+  r := P_Random();
+
+  // Probability distribution (kind of :),
+  // decreasing likelihood.
+  If (r < 50) Then
+    _type := MT_TROOP
+  Else If (r < 90) Then
+    _type := MT_SERGEANT
+  Else If (r < 120) Then
+    _type := MT_SHADOWS
+  Else If (r < 130) Then
+    _type := MT_PAIN
+  Else If (r < 160) Then
+    _type := MT_HEAD
+  Else If (r < 162) Then
+    _type := MT_VILE
+  Else If (r < 172) Then
+    _type := MT_UNDEAD
+  Else If (r < 192) Then
+    _type := MT_BABY
+  Else If (r < 222) Then
+    _type := MT_FATSO
+  Else If (r < 246) Then
+    _type := MT_KNIGHT
+  Else
+    _type := MT_BRUISER;
+
+  newmobj := P_SpawnMobj(targ^.x, targ^.y, targ^.z, _type);
+
+  // [crispy] count spawned monsters
+  extrakills := extrakills + 1;
+
+  If (P_LookForPlayers(newmobj, true)) Then
+    P_SetMobjState(newmobj, newmobj^.info^.seestate);
+
+  // telefrag anything in this spot
+  P_TeleportMove(newmobj, newmobj^.x, newmobj^.y);
+
+  // remove self (i.e., cube).
+  P_RemoveMobj(mo);
 End;
 
 //

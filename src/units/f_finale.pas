@@ -69,10 +69,11 @@ Uses
   , hu_stuff
   , i_video
   , m_controls, m_random
-  , p_mobj, p_bexptr
+  , p_mobj, p_bexptr, p_pspr, p_enemy
+  , r_defs, r_things, r_data
   , s_sound
   , w_wad
-  , v_video
+  , v_video, v_patch
   , z_zone
   ;
 
@@ -194,156 +195,243 @@ Begin
   S_ChangeMusic(mus_evil, true);
 End;
 
-Procedure F_CastTicker();
+
+// [crispy] randomize seestate and deathstate sounds in the cast
+
+Function F_RandomizeSound(sound: sfxenum_t): sfxenum_t;
 Begin
-  Raise Exception.Create('Port me.');
-  //    int		st;
-  //    int		sfx;
-  //
-  //    if (--casttics > 0)
-  //	return;			// not time to change state yet
-  //
-  //    if (caststate->tics == -1 || caststate->nextstate == S_NULL || castskip) // [crispy] skippable cast
-  //    {
-  //	if (castskip)
-  //	{
-  //	    castnum += castskip;
-  //	    castskip = 0;
-  //	}
-  //	else
-  //	// switch from deathstate to next monster
-  //	castnum++;
-  //	castdeath = false;
-  //	if (castorder[castnum].name == NULL)
-  //	    castnum = 0;
-  //	if (mobjinfo[castorder[castnum].type].seesound)
-  //	    S_StartSound (NULL, F_RandomizeSound(mobjinfo[castorder[castnum].type].seesound));
-  //	caststate = &states[mobjinfo[castorder[castnum].type].seestate];
-  //	castframes = 0;
-  //	castangle = 0; // [crispy] turnable cast
-  //	castflip = false; // [crispy] flippable death sequence
-  //    }
-  //    else
-  //    {
-  //	// just advance to next state in animation
-  //	// [crispy] fix Doomguy in casting sequence
-  //	/*
-  //	if (!castdeath && caststate == &states[S_PLAY_ATK1])
-  //	    goto stopattack;	// Oh, gross hack!
-  //	*/
-  //	// [crispy] Allow A_RandomJump() in deaths in cast sequence
-  //	if (caststate->action.acp1 == A_RandomJump && Crispy_Random() < caststate->misc2)
-  //	{
-  //	    st = caststate->misc1;
-  //	}
-  //	else
-  //	{
-  //	// [crispy] fix Doomguy in casting sequence
-  //	if (!castdeath && caststate == &states[S_PLAY_ATK1])
-  //	    st = S_PLAY_ATK2;
-  //	else
-  //	if (!castdeath && caststate == &states[S_PLAY_ATK2])
-  //	    goto stopattack;	// Oh, gross hack!
-  //	else
-  //	st = caststate->nextstate;
-  //	}
-  //	caststate = &states[st];
-  //	castframes++;
-  //
-  //	sfx = F_SoundForState(st);
-  ///*
-  //	// sound hacks....
-  //	switch (st)
-  //	{
-  //	  case S_PLAY_ATK2:	sfx = sfx_dshtgn; break; // [crispy] fix Doomguy in casting sequence
-  //	  case S_POSS_ATK2:	sfx = sfx_pistol; break;
-  //	  case S_SPOS_ATK2:	sfx = sfx_shotgn; break;
-  //	  case S_VILE_ATK2:	sfx = sfx_vilatk; break;
-  //	  case S_SKEL_FIST2:	sfx = sfx_skeswg; break;
-  //	  case S_SKEL_FIST4:	sfx = sfx_skepch; break;
-  //	  case S_SKEL_MISS2:	sfx = sfx_skeatk; break;
-  //	  case S_FATT_ATK8:
-  //	  case S_FATT_ATK5:
-  //	  case S_FATT_ATK2:	sfx = sfx_firsht; break;
-  //	  case S_CPOS_ATK2:
-  //	  case S_CPOS_ATK3:
-  //	  case S_CPOS_ATK4:	sfx = sfx_shotgn; break;
-  //	  case S_TROO_ATK3:	sfx = sfx_claw; break;
-  //	  case S_SARG_ATK2:	sfx = sfx_sgtatk; break;
-  //	  case S_BOSS_ATK2:
-  //	  case S_BOS2_ATK2:
-  //	  case S_HEAD_ATK2:	sfx = sfx_firsht; break;
-  //	  case S_SKULL_ATK2:	sfx = sfx_sklatk; break;
-  //	  case S_SPID_ATK2:
-  //	  case S_SPID_ATK3:	sfx = sfx_shotgn; break;
-  //	  case S_BSPI_ATK2:	sfx = sfx_plasma; break;
-  //	  case S_CYBER_ATK2:
-  //	  case S_CYBER_ATK4:
-  //	  case S_CYBER_ATK6:	sfx = sfx_rlaunc; break;
-  //	  case S_PAIN_ATK3:	sfx = sfx_sklatk; break;
-  //	  default: sfx = 0; break;
-  //	}
-  //
-  //*/
-  //	if (sfx)
-  //	    S_StartSound (NULL, sfx);
-  //    }
-  //
-  //    if (!castdeath && castframes == 12)
-  //    {
-  //	// go into attack frame
-  //	castattacking = true;
-  //	if (castonmelee)
-  //	    caststate=&states[mobjinfo[castorder[castnum].type].meleestate];
-  //	else
-  //	    caststate=&states[mobjinfo[castorder[castnum].type].missilestate];
-  //	castonmelee ^= 1;
-  //	if (caststate == &states[S_NULL])
-  //	{
-  //	    if (castonmelee)
-  //		caststate=
-  //		    &states[mobjinfo[castorder[castnum].type].meleestate];
-  //	    else
-  //		caststate=
-  //		    &states[mobjinfo[castorder[castnum].type].missilestate];
-  //	}
-  //    }
-  //
-  //    if (castattacking)
-  //    {
-  //	if (castframes == 24
-  //	    ||	caststate == &states[mobjinfo[castorder[castnum].type].seestate] )
-  //	{
-  //	  stopattack:
-  //	    castattacking = false;
-  //	    castframes = 0;
-  //	    caststate = &states[mobjinfo[castorder[castnum].type].seestate];
-  //	}
-  //    }
-  //
-  //    casttics = caststate->tics;
-  //    if (casttics == -1)
-  //    {
-  //	// [crispy] Allow A_RandomJump() in deaths in cast sequence
-  //	if (caststate->action.acp1 == A_RandomJump)
-  //	{
-  //	    if (Crispy_Random() < caststate->misc2)
-  //	    {
-  //		caststate = &states[caststate->misc1];
-  //	    }
-  //	    else
-  //	    {
-  //		caststate = &states[caststate->nextstate];
-  //	    }
-  //
-  //	    casttics = caststate->tics;
-  //	}
-  //
-  //	if (casttics == -1)
-  //	{
-  //	casttics = 15;
-  //	}
-  //    }
+  If (crispy.soundfix = 0) Then Begin
+    result := sound;
+    exit;
+  End;
+
+  Case (sound) Of
+    // [crispy] actor->info->seesound, from p_enemy.c:A_Look()
+    sfx_posit1,
+      sfx_posit2,
+      sfx_posit3:
+      result := sfxenum_t(int(sfx_posit1) + Crispy_Random() Mod 3);
+
+    sfx_bgsit1,
+      sfx_bgsit2:
+      result := sfxenum_t(int(sfx_bgsit1) + Crispy_Random() Mod 2);
+
+    // [crispy] actor->info->deathsound, from p_enemy.c:A_Scream()
+    sfx_podth1,
+      sfx_podth2,
+      sfx_podth3:
+      result := sfxenum_t(int(sfx_podth1) + Crispy_Random() Mod 3);
+
+    sfx_bgdth1,
+      sfx_bgdth2:
+      result := sfxenum_t(int(sfx_bgdth1) + Crispy_Random() Mod 2);
+  Else
+    result := sound;
+  End;
+End;
+
+Type
+  actionsound_t = Record
+
+    action: actionf_p1;
+    sound: sfxenum_t;
+    early: Boolean;
+  End;
+
+Const
+  actionsounds: Array Of actionsound_t =
+  (
+    (action: @A_PosAttack; sound: sfx_pistol; early: false),
+    (action: @A_SPosAttack; sound: sfx_shotgn; early: false),
+    (action: @A_CPosAttack; sound: sfx_shotgn; early: false),
+    (action: @A_CPosRefire; sound: sfx_shotgn; early: false),
+    (action: @A_VileTarget; sound: sfx_vilatk; early: true),
+    (action: @A_SkelWhoosh; sound: sfx_skeswg; early: false),
+    (action: @A_SkelFist; sound: sfx_skepch; early: false),
+    (action: @A_SkelMissile; sound: sfx_skeatk; early: true),
+    (action: @A_FatAttack1; sound: sfx_firsht; early: false),
+    (action: @A_FatAttack2; sound: sfx_firsht; early: false),
+    (action: @A_FatAttack3; sound: sfx_firsht; early: false),
+    (action: @A_HeadAttack; sound: sfx_firsht; early: true),
+    (action: @A_BruisAttack; sound: sfx_firsht; early: true),
+    (action: @A_TroopAttack; sound: sfx_claw; early: false),
+    (action: @A_SargAttack; sound: sfx_sgtatk; early: true),
+    (action: @A_SkullAttack; sound: sfx_sklatk; early: false),
+    (action: @A_PainAttack; sound: sfx_sklatk; early: true),
+    (action: @A_BspiAttack; sound: sfx_plasma; early: false),
+    (action: @A_CyberAttack; sound: sfx_rlaunc; early: false)
+    );
+
+
+  // [crispy] play attack sound based on state action function (instead of state number)
+
+Function F_SoundForState(st: int): int;
+Var
+  i: int;
+  ass: ^actionsound_t;
+  castaction, nextaction: actionf_p1;
+Begin
+  castaction := caststate^.action.acp1;
+  nextaction := states[int(caststate^.nextstate)].action.acp1;
+
+  // [crispy] fix Doomguy in casting sequence
+  If (caststate^.action.acv = Nil) Then Begin
+
+    If (st = int(S_PLAY_ATK2)) Then
+      result := int(sfx_dshtgn)
+    Else
+      result := int(sfx_None);
+    exit;
+  End
+  Else Begin
+    For i := 0 To high(actionsounds) Do Begin
+      ass := @actionsounds[i];
+      If ((Not ass^.early) And (castaction = ass^.action) Or
+        (ass^.early) And (nextaction = ass^.action)) Then Begin
+        result := int(ass^.sound);
+        exit;
+      End;
+    End;
+  End;
+  result := int(sfx_None);
+End;
+
+Procedure F_CastTicker();
+Label
+  stopattack;
+Var
+  st: int;
+  sfx: sfxenum_t;
+Begin
+  casttics := casttics - 1;
+  If (casttics > 0) Then exit; // not time to change state yet
+
+  If (caststate^.tics = -1) Or (caststate^.nextstate = S_NULL) Or (castskip <> 0) Then Begin // [crispy] skippable cast
+
+    If (castskip <> 0) Then Begin
+      castnum := castnum + castskip;
+      castskip := 0;
+    End
+    Else
+      // switch from deathstate to next monster
+      castnum := castnum + 1;
+    castdeath := false;
+    If castnum > high(castorder) Then castnum := 0;
+
+    If (mobjinfo[int(castorder[castnum]._type)].seesound <> sfx_None) Then
+      S_StartSound(Nil, F_RandomizeSound(mobjinfo[int(castorder[castnum]._type)].seesound));
+    caststate := @states[int(mobjinfo[int(castorder[castnum]._type)].seestate)];
+    castframes := 0;
+    castangle := 0; // [crispy] turnable cast
+    castflip := false; // [crispy] flippable death sequence
+  End
+  Else Begin
+    // just advance to next state in animation
+    // [crispy] fix Doomguy in casting sequence
+    (*
+    if (!castdeath && caststate == &states[S_PLAY_ATK1])
+        goto stopattack;	// Oh, gross hack!
+    *)
+    // [crispy] Allow A_RandomJump() in deaths in cast sequence
+    If (caststate^.action.acp3 = @A_RandomJump) And (Crispy_Random() < caststate^.misc2) Then Begin
+      st := caststate^.misc1;
+    End
+    Else Begin
+      // [crispy] fix Doomguy in casting sequence
+      If (Not castdeath) And (caststate = @states[int(S_PLAY_ATK1)]) Then
+        st := int(S_PLAY_ATK2)
+      Else If (Not castdeath) And (caststate = @states[int(S_PLAY_ATK2)]) Then
+        Goto stopattack // Oh, gross hack!
+      Else
+        st := int(caststate^.nextstate);
+    End;
+    caststate := @states[st];
+    castframes := castframes + 1;
+
+    sfx := sfxenum_t(F_SoundForState(st));
+    (*
+        //	// sound hacks....
+        //	switch (st)
+        //	{
+        //	  case S_PLAY_ATK2:	sfx = sfx_dshtgn; break; // [crispy] fix Doomguy in casting sequence
+        //	  case S_POSS_ATK2:	sfx = sfx_pistol; break;
+        //	  case S_SPOS_ATK2:	sfx = sfx_shotgn; break;
+        //	  case S_VILE_ATK2:	sfx = sfx_vilatk; break;
+        //	  case S_SKEL_FIST2:	sfx = sfx_skeswg; break;
+        //	  case S_SKEL_FIST4:	sfx = sfx_skepch; break;
+        //	  case S_SKEL_MISS2:	sfx = sfx_skeatk; break;
+        //	  case S_FATT_ATK8:
+        //	  case S_FATT_ATK5:
+        //	  case S_FATT_ATK2:	sfx = sfx_firsht; break;
+        //	  case S_CPOS_ATK2:
+        //	  case S_CPOS_ATK3:
+        //	  case S_CPOS_ATK4:	sfx = sfx_shotgn; break;
+        //	  case S_TROO_ATK3:	sfx = sfx_claw; break;
+        //	  case S_SARG_ATK2:	sfx = sfx_sgtatk; break;
+        //	  case S_BOSS_ATK2:
+        //	  case S_BOS2_ATK2:
+        //	  case S_HEAD_ATK2:	sfx = sfx_firsht; break;
+        //	  case S_SKULL_ATK2:	sfx = sfx_sklatk; break;
+        //	  case S_SPID_ATK2:
+        //	  case S_SPID_ATK3:	sfx = sfx_shotgn; break;
+        //	  case S_BSPI_ATK2:	sfx = sfx_plasma; break;
+        //	  case S_CYBER_ATK2:
+        //	  case S_CYBER_ATK4:
+        //	  case S_CYBER_ATK6:	sfx = sfx_rlaunc; break;
+        //	  case S_PAIN_ATK3:	sfx = sfx_sklatk; break;
+        //	  default: sfx = 0; break;
+        //	}
+        //
+        //*)
+    If (sfx <> sfx_None) Then
+      S_StartSound(Nil, sfx);
+  End;
+
+  If (Not castdeath) And (castframes = 12) Then Begin
+
+    // go into attack frame
+    castattacking := true;
+    If (castonmelee <> 0) Then
+      caststate := @states[int(mobjinfo[int(castorder[castnum]._type)].meleestate)]
+    Else
+      caststate := @states[int(mobjinfo[int(castorder[castnum]._type)].missilestate)];
+    castonmelee := castonmelee Xor 1;
+    If (caststate = @states[int(S_NULL)]) Then Begin
+
+      If (castonmelee <> 0) Then
+        caststate :=
+          @states[int(mobjinfo[int(castorder[castnum]._type)].meleestate)]
+      Else
+        caststate :=
+          @states[int(mobjinfo[int(castorder[castnum]._type)].missilestate)];
+    End;
+  End;
+
+  If (castattacking) Then Begin
+    If (castframes = 24)
+      Or (caststate = @states[int(mobjinfo[int(castorder[castnum]._type)].seestate)]) Then Begin
+      stopattack:
+      castattacking := false;
+      castframes := 0;
+      caststate := @states[int(mobjinfo[int(castorder[castnum]._type)].seestate)];
+    End;
+  End;
+  casttics := caststate^.tics;
+  If (casttics = -1) Then Begin
+    // [crispy] Allow A_RandomJump() in deaths in cast sequence
+    If (caststate^.action.acp3 = @A_RandomJump) Then Begin
+      If (Crispy_Random() < caststate^.misc2) Then Begin
+        caststate := @states[caststate^.misc1];
+      End
+      Else Begin
+        caststate := @states[int(caststate^.nextstate)];
+      End;
+      casttics := caststate^.tics;
+    End;
+    If (casttics = -1) Then Begin
+      casttics := 15;
+    End;
+  End;
 End;
 
 Procedure F_Ticker();
@@ -396,45 +484,6 @@ Begin
   End;
 End;
 
-// [crispy] randomize seestate and deathstate sounds in the cast
-
-Function F_RandomizeSound(sound: sfxenum_t): sfxenum_t;
-Begin
-  Raise exception.create('Port me.');
-  //if (!crispy->soundfix)
-  //	return sound;
-  //
-  //switch (sound)
-  //{
-  //	// [crispy] actor->info->seesound, from p_enemy.c:A_Look()
-  //	case sfx_posit1:
-  //	case sfx_posit2:
-  //	case sfx_posit3:
-  //		return sfx_posit1 + Crispy_Random()%3;
-  //		break;
-  //
-  //	case sfx_bgsit1:
-  //	case sfx_bgsit2:
-  //		return sfx_bgsit1 + Crispy_Random()%2;
-  //		break;
-  //
-  //	// [crispy] actor->info->deathsound, from p_enemy.c:A_Scream()
-  //	case sfx_podth1:
-  //	case sfx_podth2:
-  //	case sfx_podth3:
-  //		return sfx_podth1 + Crispy_Random()%3;
-  //		break;
-  //
-  //	case sfx_bgdth1:
-  //	case sfx_bgdth2:
-  //		return sfx_bgdth1 + Crispy_Random()%2;
-  //		break;
-  //
-  //	default:
-  //		return sound;
-  //		break;
- //	}
-End;
 
 Function F_CastResponder(Const ev: Pevent_t): boolean;
 Var
@@ -526,38 +575,74 @@ Begin
   End;
 End;
 
-Procedure F_CastDrawer();
+Procedure F_CastPrint(text: String);
+Var
+  i, c, cx, w, width: int;
 Begin
-  Raise exception.create('Port me.');
-  //   spritedef_t*	sprdef;
-  //   spriteframe_t*	sprframe;
-  //   int			lump;
-  //   boolean		flip;
-  //   patch_t*		patch;
-  //
-  //   // erase the entire screen to a background
-  //   V_DrawPatchFullScreen (W_CacheLumpName (DEH_String("BOSSBACK"), PU_CACHE), false);
-  //
-  //   F_CastPrint (DEH_String(castorder[castnum].name));
-  //
-  //   // draw the current frame in the middle of the screen
-  //   sprdef = &sprites[caststate->sprite];
-  //   // [crispy] the TNT1 sprite is not supposed to be rendered anyway
-  //   if (!sprdef->numframes && caststate->sprite == SPR_TNT1)
-  //   {
-  //return;
-  //   }
-  //   sprframe = &sprdef->spriteframes[ caststate->frame & FF_FRAMEMASK];
-  //   lump = sprframe->lump[castangle]; // [crispy] turnable cast
-  //   flip = (boolean)sprframe->flip[castangle] ^ castflip; // [crispy] turnable cast, flippable death sequence
-  //
-  //   patch = W_CacheLumpNum (lump+firstspritelump, PU_CACHE);
-  //   if (flip)
-  //V_DrawPatchFlipped(ORIGWIDTH/2, 170, patch);
-  //   else
-  //V_DrawPatch(ORIGWIDTH/2, 170, patch);
+  // find width
+  width := 0;
+
+  For i := 1 To length(text) Do Begin
+
+    c := ord(text[i]);
+    If (c = 0) Then
+      break;
+    c := ord(UpperCase(chr(c))[1]) - ord(HU_FONTSTART);
+    If (c < 0) Or (c >= HU_FONTSIZE) Then Begin
+      width := width + 4;
+      continue;
+    End;
+    w := hu_font[c]^.width;
+    width := width + w;
+  End;
+
+  // draw it
+  cx := ORIGWIDTH Div 2 - width Div 2;
+  For i := 1 To length(text) Do Begin
+    c := ord(text[i]);
+    If (c = 0) Then
+      break;
+    c := ord(UpperCase(chr(c))[1]) - ord(HU_FONTSTART);
+    If (c < 0) Or (c >= HU_FONTSIZE) Then Begin
+      width := width + 4;
+      continue;
+    End;
+    w := hu_font[c]^.width;
+    V_DrawPatch(cx, 180, hu_font[c]);
+    cx := cx + w;
+  End;
 End;
 
+Procedure F_CastDrawer();
+Var
+  sprdef: ^spritedef_t;
+  sprframe: ^spriteframe_t;
+  lump: int;
+  flip: boolean;
+  patch: ^patch_t;
+Begin
+
+  // erase the entire screen to a background
+  V_DrawPatchFullScreen(W_CacheLumpName('BOSSBACK', PU_CACHE), false);
+
+  F_CastPrint(castorder[castnum].name);
+
+  // draw the current frame in the middle of the screen
+  sprdef := @sprites[int(caststate^.sprite)];
+  // [crispy] the TNT1 sprite is not supposed to be rendered anyway
+  If (sprdef^.numframes = 0) And (caststate^.sprite = SPR_TNT1) Then exit;
+
+  sprframe := @sprdef^.spriteframes[caststate^.frame And FF_FRAMEMASK];
+  lump := sprframe^.lump[castangle]; // [crispy] turnable cast
+  flip := odd(sprframe^.flip[castangle]) Xor castflip; // [crispy] turnable cast, flippable death sequence
+
+  patch := W_CacheLumpNum(lump + firstspritelump, PU_CACHE);
+  If (flip) Then
+    //    V_DrawPatchFlipped((ORIGWIDTH - patch^.width) Div 2, 170, patch)
+    V_DrawPatchFlipped(ORIGWIDTH Div 2 - patch^.width, 170, patch)
+  Else
+    V_DrawPatch(ORIGWIDTH Div 2 - patch^.width, 170, patch);
+End;
 
 Procedure F_TextWrite();
 Var

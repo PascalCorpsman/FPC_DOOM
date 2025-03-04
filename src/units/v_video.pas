@@ -20,6 +20,7 @@ Procedure V_Init();
 Procedure V_DrawPatchDirect(x, y: int; Const patch: ppatch_t);
 Procedure V_DrawPatch(x, y: int; Const patch: ppatch_t);
 Procedure V_DrawPatchFullScreen(Const patch: ppatch_t; flipped: boolean);
+Procedure V_DrawPatchFlipped(x, y: int; Const patch: Ppatch_t);
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
 Procedure V_DrawBlock(x, y, width, height: int; Const src: pixel_tArray);
 
@@ -53,6 +54,92 @@ Var
   dest_screen: pixel_tArray = Nil;
   dirtybox: Array[0..3] Of int; // TODO: Das ist eigentlich falsch und sollte ein fixed_t sein ..
   dx, dxi, dy, dyi: fixed_t;
+
+  (*
+   * EGAL wie Crispy.hires ist, V_DrawPatch geht immer von ORIGWIDTH / ORIGHEIGHT aus !
+   * d.h. dass ggf der Pixel passend Verschoben und "Dicker" gemacht werden muss
+   *)
+
+Procedure V_DrawPatchSetPixel(x, y: int; col: Byte);
+Var
+  d, i, j, index: integer;
+Begin
+  y := y Shl Crispy.hires;
+  x := x Shl Crispy.hires;
+  d := (1 Shl Crispy.hires) - 1;
+  For j := 0 To d Do Begin
+    index := (y + j) * SCREENWIDTH + x;
+    For i := 0 To d Do Begin
+      dest_screen[index + i] := col;
+    End;
+  End;
+End;
+
+//
+// V_DrawPatchFlipped
+// Masks a column based masked pic to the screen.
+// Flips horizontally, e.g. to mirror face.
+//
+
+Procedure V_DrawPatchFlipped(x, y: int; Const patch: Ppatch_t);
+{$IFDEF DebugBMPOut_in_V_DrawPatch}
+Const
+  PatchFlippedCounter: integer = 0;
+Var
+  b: tbitmap;
+{$ENDIF}
+
+Var
+  w, col: int;
+  column: Pcolumn_t;
+  source: PByte;
+  row: integer;
+  count: Byte;
+  sc: byte;
+Begin
+  y := y - patch^.topoffset;
+  x := x + patch^.leftoffset;
+{$IFDEF DebugBMPOut_in_V_DrawPatch}
+  b := TBitmap.Create;
+  b.Width := patch^.width;
+  b.Height := patch^.height;
+  // TODO: ggf noch mit clfuchsia löschen ?
+{$ENDIF}
+  w := patch^.width;
+  col := 0;
+  While col < w Do Begin
+    column := Pointer(patch) + patch^.columnofs[col];
+    row := 0;
+    While column^.topdelta <> $FF Do Begin
+      source := pointer(column) + 3;
+      row := column^.topdelta;
+      count := column^.length;
+      While count > 0 Do Begin
+        sc := source^;
+        If assigned(dp_translation) Then Begin
+          sc := dp_translation[sc];
+        End;
+{$IFDEF DebugBMPOut_in_V_DrawPatch}
+        b.canvas.Pixels[w - col - 1, row] := Doom8BitTo24RGBBit[sc] And $00FFFFFF;
+{$ENDIF}
+        V_DrawPatchSetPixel((x + w - col - 1), (y + row), sc);
+        // If (index >= 0) And (index <= high(dest_screen)) Then Begin
+        // dest_screen[index] := sc;
+        // End;
+        source := pointer(source) + 1;
+        row := row + 1;
+        dec(Count);
+      End;
+      column := pointer(column) + column^.length + 4;
+    End;
+    inc(col);
+  End;
+{$IFDEF DebugBMPOut_in_V_DrawPatch}
+  b.SaveToFile(format('V_DrawPatchFlipped%0.8d.bmp', [PatchFlippedCounter]));
+  PatchFlippedCounter := PatchFlippedCounter + 1;
+  b.free;
+{$ENDIF}
+End;
 
 Procedure V_UseBuffer(Const buffer: pixel_tArray);
 Begin
@@ -250,26 +337,6 @@ Begin
   End;
 End;
 
-(*
- * EGAL wie Crispy.hires ist, V_DrawPatch geht immer von ORIGWIDTH / ORIGHEIGHT aus !
- * d.h. dass ggf der Pixel passend Verschoben und "Dicker" gemacht werden muss
- *)
-
-Procedure V_DrawPatchSetPixel(x, y: int; col: Byte);
-Var
-  d, i, j, index: integer;
-Begin
-  y := y Shl Crispy.hires;
-  x := x Shl Crispy.hires;
-  d := (1 Shl Crispy.hires) - 1;
-  For j := 0 To d Do Begin
-    index := (y + j) * SCREENWIDTH + x;
-    For i := 0 To d Do Begin
-      dest_screen[index + i] := col;
-    End;
-  End;
-End;
-
 Procedure V_DrawPatch(x, y: int; Const patch: ppatch_t);
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
 Const
@@ -341,17 +408,10 @@ Begin
   patch^.topoffset := 0;
 
   If (flipped) Then Begin
-    Raise exception.create('V_DrawPatchFullScreen für flipped implementieren.');
-    // V_DrawPatchFlipped(0, 0, patch);
+    V_DrawPatchFlipped(0, 0, patch);
   End
   Else Begin
-    //    If Crispy.hires <> 0 Then Begin
-    //      V_DrawStretchedPatch(0, 0, SCREENWIDTH, SCREENHEIGHT, patch);
-    //    End
-    //    Else Begin
-    // Ohne Skallierung ist Fullscreen einfach ;)
     V_DrawPatch(0, 0, patch);
-    //    End;
   End;
 End;
 
