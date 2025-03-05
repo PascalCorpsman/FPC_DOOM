@@ -245,18 +245,14 @@ End;
 // and adds any visible pieces to the line list.
 //
 
-Procedure R_AddLine(line: Pseg_t);
-Label
-  clipsolid;
-Label
-  clippass;
+Procedure R_AddLine(line: Pseg_t); // Geprüft
 Var
   x1: int;
   x2: int;
   angle1: angle_t;
   angle2: angle_t;
   span: angle_t;
-  tspan: angle_t;
+  clipangle2, tspan: angle_t;
 Begin
   curline := line;
 
@@ -278,15 +274,16 @@ Begin
   angle2 := angle_t(angle2 - viewangle);
 
   tspan := angle_t(angle1 + clipangle);
-  If (tspan > 2 * clipangle) Then Begin
-    tspan := tspan - 2 * clipangle;
+  clipangle2 := 2 * clipangle;
+  If (tspan > clipangle2) Then Begin
+    tspan := tspan - clipangle2;
     // Totally off the left edge?
     If (tspan >= span) Then exit;
     angle1 := clipangle;
   End;
   tspan := angle_t(clipangle - angle2);
-  If (tspan > 2 * clipangle) Then Begin
-    tspan := tspan - 2 * clipangle;
+  If (tspan > clipangle2) Then Begin
+    tspan := tspan - clipangle2;
     // Totally off the left edge?
     If (tspan >= span) Then exit;
     angle2 := angle_t(-clipangle);
@@ -295,8 +292,6 @@ Begin
   // The seg is in the view range,
   // but not necessarily visible.
 
-  //angle1 := SarLongint(angle_t(angle1 + ANG90), ANGLETOFINESHIFT);
-  //angle2 := SarLongint(angle_t(angle2 + ANG90), ANGLETOFINESHIFT);
   angle1 := angle_t(angle1 + ANG90) Shr ANGLETOFINESHIFT;
   angle2 := angle_t(angle2 + ANG90) Shr ANGLETOFINESHIFT;
 
@@ -304,13 +299,15 @@ Begin
   x2 := viewangletox[angle2];
 
   // Does not cross a pixel?
-  If (x1 = x2) Then exit;
+  If (x1 >= x2) Then exit;
 
   backsector := line^.backsector;
 
   // Single sided line?
-  If Not assigned(backsector) Then
-    Goto clipsolid;
+  If Not assigned(backsector) Then Begin
+    R_ClipSolidWallSegment(x1, x2 - 1);
+    exit;
+  End;
 
   // [AM] Interpolate sector movement before
   //      running clipping tests.  Frontsector
@@ -319,13 +316,17 @@ Begin
 
   // Closed door.
   If (backsector^.interpceilingheight <= frontsector^.interpfloorheight) Or
-    (backsector^.interpfloorheight >= frontsector^.interpceilingheight) Then
-    Goto clipsolid;
+    (backsector^.interpfloorheight >= frontsector^.interpceilingheight) Then Begin
+    R_ClipSolidWallSegment(x1, x2 - 1);
+    exit;
+  End;
 
   // Window.
   If (backsector^.interpceilingheight <> frontsector^.interpceilingheight)
-    Or (backsector^.interpfloorheight <> frontsector^.interpfloorheight) Then
-    Goto clippass;
+    Or (backsector^.interpfloorheight <> frontsector^.interpfloorheight) Then Begin
+    R_ClipPassWallSegment(x1, x2 - 1);
+    exit;
+  End;
 
   // Reject empty lines used for triggers
   //  and special events.
@@ -340,12 +341,7 @@ Begin
     exit;
   End;
 
-  clippass:
   R_ClipPassWallSegment(x1, x2 - 1);
-  exit;
-
-  clipsolid:
-  R_ClipSolidWallSegment(x1, x2 - 1);
 End;
 
 //
@@ -481,14 +477,12 @@ End;
 // Draw one or more line segments.
 //
 
-Procedure R_Subsector(num: int);
+Procedure R_Subsector(num: int); // grob geprüft (ohne aufgerufene Routinen)
 Var
   count: int;
   line: ^seg_t;
   sub: ^subsector_t;
 Begin
-
-//  hier weiter prüfen
 
   //#ifdef RANGECHECK
   //    if (num>=numsubsectors)
@@ -584,5 +578,4 @@ Begin
 End;
 
 End.
-
 
