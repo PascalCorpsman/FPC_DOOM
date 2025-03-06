@@ -304,7 +304,7 @@ Begin
   backsector := line^.backsector;
 
   // Single sided line?
-  If Not assigned(backsector) Then Begin
+  If backsector = Nil Then Begin
     R_ClipSolidWallSegment(x1, x2 - 1);
     exit;
   End;

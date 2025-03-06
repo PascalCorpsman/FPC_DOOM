@@ -23,8 +23,8 @@ Implementation
 
 Uses
   sounds
-  , m_random
-  , p_map, p_inter, p_enemy
+  , m_random, m_fixed
+  , p_map, p_inter, p_enemy, p_maputl, p_mobj
   , s_sound
   ;
 
@@ -75,30 +75,48 @@ End;
 //
 
 Procedure A_Mushroom(actor: Pmobj_t);
+Var
+  i, j, n: int;
+  misc1, misc2: fixed_t;
+  target, mo: Pmobj_t;
 Begin
-  Raise Exception.Create('Port me.');
+  n := actor^.info^.damage;
 
-  //  int i, j, n = actor->info->damage;
-  //
-  //  // Mushroom parameters are part of code pointer's state
-  //  fixed_t misc1 = actor->state->misc1 ? actor->state->misc1 : FRACUNIT*4;
-  //  fixed_t misc2 = actor->state->misc2 ? actor->state->misc2 : FRACUNIT/2;
-  //
-  //  A_Explode(actor);               // make normal explosion
-  //
-  //  for (i = -n; i <= n; i += 8)    // launch mushroom cloud
-  //    for (j = -n; j <= n; j += 8)
-  //      {
-  //	mobj_t target = *actor, *mo;
-  //	target.x += i << FRACBITS;    // Aim in many directions from source
-  //	target.y += j << FRACBITS;
-  //	target.z += P_AproxDistance(i,j) * misc1;           // Aim fairly high
-  //	mo = P_SpawnMissile(actor, &target, MT_FATSHOT);    // Launch fireball
-  //	mo->momx = FixedMul(mo->momx, misc2);
-  //	mo->momy = FixedMul(mo->momy, misc2);               // Slow down a bit
-  //	mo->momz = FixedMul(mo->momz, misc2);
-  //	mo->flags &= ~MF_NOGRAVITY;   // Make debris fall under gravity
-  //      }
+  // Mushroom parameters are part of code pointer's state
+  If actor^.state^.misc1 <> 0 Then Begin
+    misc1 := actor^.state^.misc1;
+  End
+  Else Begin
+    misc1 := FRACUNIT * 4;
+  End;
+  If actor^.state^.misc2 <> 0 Then Begin
+    misc2 := actor^.state^.misc2;
+  End
+  Else Begin
+    misc2 := FRACUNIT Div 2;
+  End;
+
+  A_Explode(actor); // make normal explosion
+
+  //  for (i = -n; i <= n; i += 8)
+  i := -n;
+  While i <= n Do Begin // launch mushroom cloud
+    //    for (j = -n; j <= n; j += 8)
+    j := -n;
+    While j <= n Do Begin
+      target := actor;
+      target^.x := target^.x + i Shl FRACBITS; // Aim in many directions from source
+      target^.y := target^.y + j Shl FRACBITS;
+      target^.z := target^.z + P_AproxDistance(i, j) * misc1; // Aim fairly high
+      mo := P_SpawnMissile(actor, target, MT_FATSHOT); // Launch fireball
+      mo^.momx := FixedMul(mo^.momx, misc2);
+      mo^.momy := FixedMul(mo^.momy, misc2); // Slow down a bit
+      mo^.momz := FixedMul(mo^.momz, misc2);
+      mo^.flags := mo^.flags And Not MF_NOGRAVITY; // Make debris fall under gravity
+      j := j + 8;
+    End;
+    i := i + 8;
+  End;
 End;
 
 //
