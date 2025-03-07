@@ -409,7 +409,6 @@ Begin
   // [crispy] (flags & ML_MAPPED) is all we need to know for automap
   If (automapactive) And (crispy.automapoverlay = 0) Then exit;
 
-
   // calculate rw_distance for scale calculation
   rw_normalangle := angle_t(curline^.r_angle + ANG90); // [crispy] use re-calculated angle
 
@@ -453,21 +452,6 @@ Begin
     rw_scalestep := drawsegs[ds_p].scalestep;
   End
   Else Begin
-    // UNUSED: try to fix the stretched line bug
-   //#if 0
-   //	if (rw_distance < FRACUNIT/2)
-   //	{
-   //	    fixed_t		trx,try;
-   //	    fixed_t		gxt,gyt;
-   //
-   //	    trx = curline^.v1^.x - viewx;
-   //	    try = curline^.v1^.y - viewy;
-   //
-   //	    gxt = FixedMul(trx,viewcos);
-   //	    gyt = -FixedMul(try,viewsin);
-   //	    ds_p^.scale1 = FixedDiv(projection, gxt-gyt)<<detailshift;
-   //	}
-   //#endif
     drawsegs[ds_p].scale2 := drawsegs[ds_p].scale1;
   End;
 
@@ -482,7 +466,7 @@ Begin
   maskedtexture := false;
   drawsegs[ds_p].maskedtexturecol := Nil;
 
-  If Not assigned(backsector) Then Begin
+  If backsector = Nil Then Begin
 
     // single sided line
     midtexture := texturetranslation[sidedef^.midtexture];
@@ -490,8 +474,7 @@ Begin
     markfloor := true;
     markceiling := true;
     If (linedef^.flags And ML_DONTPEGBOTTOM) <> 0 Then Begin
-      vtop := frontsector^.interpfloorheight +
-        textureheight[sidedef^.midtexture];
+      vtop := frontsector^.interpfloorheight + textureheight[sidedef^.midtexture];
       // bottom of texture at bottom
       rw_midtexturemid := vtop - viewz;
     End
@@ -502,8 +485,8 @@ Begin
     rw_midtexturemid := rw_midtexturemid + sidedef^.rowoffset;
 
     drawsegs[ds_p].silhouette := SIL_BOTH;
-    drawsegs[ds_p].sprtopclip := screenheightarray;
-    drawsegs[ds_p].sprbottomclip := negonearray;
+    drawsegs[ds_p].sprtopclip := @screenheightarray[0];
+    drawsegs[ds_p].sprbottomclip := @negonearray[0];
     drawsegs[ds_p].bsilheight := INT_MAX;
     drawsegs[ds_p].tsilheight := INT_MIN;
   End
@@ -512,15 +495,12 @@ Begin
     // adapted from mbfsrc/R_BSP.C:234-257
     doorclosed :=
       // if door is closed because back is shut:
-    (backsector^.interpceilingheight <= backsector^.interpfloorheight
+    (backsector^.interpceilingheight <= backsector^.interpfloorheight)
       // preserve a kind of transparent door/lift special effect:
-      ) And ((backsector^.interpceilingheight >= frontsector^.interpceilingheight) Or (
-      curline^.sidedef^.toptexture <> 0)
-      ) And ((backsector^.interpfloorheight <= frontsector^.interpfloorheight) Or (
-      curline^.sidedef^.bottomtexture <> 0)
+    And ((backsector^.interpceilingheight >= frontsector^.interpceilingheight) Or (curline^.sidedef^.toptexture <> 0))
+      And ((backsector^.interpfloorheight <= frontsector^.interpfloorheight) Or (curline^.sidedef^.bottomtexture <> 0))
       // properly render skies (consider door "open" if both ceilings are sky):
-      ) And ((backsector^.ceilingpic <> skyflatnum) Or (
-      frontsector^.ceilingpic <> skyflatnum));
+    And ((backsector^.ceilingpic <> skyflatnum) Or (frontsector^.ceilingpic <> skyflatnum));
 
     // two sided line
     drawsegs[ds_p].sprtopclip := Nil;
@@ -548,13 +528,13 @@ Begin
     End;
 
     If (backsector^.interpceilingheight <= frontsector^.interpfloorheight) Or (doorclosed) Then Begin
-      drawsegs[ds_p].sprbottomclip := negonearray;
+      drawsegs[ds_p].sprbottomclip := @negonearray[0];
       drawsegs[ds_p].bsilheight := INT_MAX;
       drawsegs[ds_p].silhouette := drawsegs[ds_p].silhouette Or SIL_BOTTOM;
     End;
 
     If (backsector^.interpfloorheight >= frontsector^.interpceilingheight) Or (doorclosed) Then Begin
-      drawsegs[ds_p].sprtopclip := screenheightarray;
+      drawsegs[ds_p].sprtopclip := @screenheightarray[0];
       drawsegs[ds_p].tsilheight := INT_MIN;
       drawsegs[ds_p].silhouette := drawsegs[ds_p].silhouette Or SIL_TOP;
     End;
@@ -597,9 +577,7 @@ Begin
       markfloor := true;
     End;
 
-
     If (worldhigh < worldtop) Then Begin
-
       // top texture
       toptexture := texturetranslation[sidedef^.toptexture];
       If (linedef^.flags And ML_DONTPEGTOP) <> 0 Then Begin
@@ -608,8 +586,7 @@ Begin
         rw_toptexturemid := worldtop;
       End
       Else Begin
-        vtop := backsector^.interpceilingheight
-          + textureheight[sidedef^.toptexture];
+        vtop := backsector^.interpceilingheight + textureheight[sidedef^.toptexture];
 
         // bottom of texture
         rw_toptexturemid := vtop - viewz;

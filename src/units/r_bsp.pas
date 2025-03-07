@@ -76,30 +76,45 @@ End;
 //
 
 Procedure R_ClipSolidWallSegment(first, last: int);
-Label
-  crunch;
 Var
   next: ^cliprange_t;
   start: ^cliprange_t;
-Begin
+  tmp: ^cliprange_t;
 
+  Procedure crunch;
+  Begin
+    If next = start Then
+      // Post just extended past the bottom of one post.
+      exit;
+    While next <> newend Do Begin
+      // Remove a post.
+      inc(start);
+      inc(next);
+      start^ := next^;
+    End;
+    newend := start;
+    inc(newend);
+  End;
+
+Begin
   // Find the first range that touches the range
   //  (adjacent pixels are touching).
-  start := solidsegs;
-  While (start^.last < first - 1) Do
+  start := @solidsegs[0];
+  While start^.last < first - 1 Do
     inc(start);
 
-  If (first < start^.first) Then Begin
-    If (last < start^.first - 1) Then Begin
-
+  If first < start^.first Then Begin
+    If last < start^.first - 1 Then Begin
       // Post is entirely visible (above start),
       //  so insert a new clippost.
       R_StoreWallRange(first, last);
       next := newend;
-      newend := newend + 1;
+      inc(newend);
 
-      While (next <> start) Do Begin
-        next^ := (next - 1)^;
+      While next <> start Do Begin
+        tmp := next;
+        dec(tmp);
+        next^ := tmp^;
         dec(next);
       End;
       next^.first := first;
@@ -114,20 +129,24 @@ Begin
   End;
 
   // Bottom contained in start?
-  If (last <= start^.last) Then exit;
+  If last <= start^.last Then
+    exit;
 
   next := start;
-  While (last >= (next + 1)^.first - 1) Do Begin
-
+  tmp := next;
+  inc(tmp);
+  While last >= tmp^.first - 1 Do Begin
     // There is a fragment between two posts.
-    R_StoreWallRange(next^.last + 1, (next + 1)^.first - 1);
+    R_StoreWallRange(next^.last + 1, tmp^.first - 1);
     inc(next);
+    inc(tmp);
 
-    If (last <= next^.last) Then Begin
+    If last <= next^.last Then Begin
       // Bottom is contained in next.
       // Adjust the clip size.
       start^.last := next^.last;
-      Goto crunch;
+      crunch;
+      exit;
     End;
   End;
 
@@ -138,23 +157,7 @@ Begin
 
   // Remove start+1 to next from the clip list,
   // because start now covers their area.
-  crunch:
-
-  If (next = start) Then Begin
-    // Post just extended past the bottom of one post.
-    exit;
-  End;
-
-  // Übersetzt mit ChatGPT, mal sehen ob das passt
-  // Das foglende soll alle Elemente im Array um 1 verschieben
-  While (next <> newend) Do Begin
-    inc(next);
-    inc(start);
-    // Remove a post.
-    start^ := next^;
-  End;
-
-  newend := start + 1;
+  crunch;
 End;
 
 //
@@ -168,22 +171,20 @@ End;
 Procedure R_ClipPassWallSegment(first, last: int);
 Var
   start: ^cliprange_t;
+  tmp: ^cliprange_t;
 Begin
-
   // Find the first range that touches the range
   //  (adjacent pixels are touching).
-  start := solidsegs;
+  start := @solidsegs[0];
   While (start^.last < first - 1) Do
     inc(start);
 
   If (first < start^.first) Then Begin
-
     If (last < start^.first - 1) Then Begin
       // Post is entirely visible (above start).
       R_StoreWallRange(first, last);
       exit;
     End;
-
     // There is a fragment above *start.
     R_StoreWallRange(first, start^.first - 1);
   End;
@@ -191,11 +192,15 @@ Begin
   // Bottom contained in start?
   If (last <= start^.last) Then exit;
 
-  While (last >= (start + 1)^.first - 1) Do Begin
+  tmp := start;
+  inc(tmp);
+  While (last >= tmp^.first - 1) Do Begin
     // There is a fragment between two posts.
-    R_StoreWallRange(start^.last + 1, (start + 1)^.first - 1);
+    R_StoreWallRange(start^.last + 1, tmp^.first - 1);
     inc(start);
-    If (last <= start^.last) Then exit;
+    inc(tmp);
+
+    If last <= start^.last Then exit;
   End;
 
   // There is a fragment after *next.
