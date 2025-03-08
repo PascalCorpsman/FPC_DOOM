@@ -608,11 +608,6 @@ End;
 
 Procedure I_StartFrame();
 Begin
-  // TODO: Sobald der Renderer funktionert, ist der folgende Code unnütz, weil dann
-  //       der Framebuffer immer Vollständig beschrieben wird.
-  //       Aktuell, ist dem leider nicht so, Bereiche oberhalb von Secrets / sich bewegenden Plattformen werden
-  //       nicht Korrekt Gerendert, dies sieht man am besten in DOOM2 Level 32 :/
-  FillChar(I_VideoBuffer[0], length(I_VideoBuffer), 255); // -> Enabled to find missing render bug
 End;
 
 Procedure I_FinishUpdate();

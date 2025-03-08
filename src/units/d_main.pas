@@ -751,6 +751,9 @@ Begin
   End
   Else Begin
     wipe := false;
+    // Clear Framebuffer, in case of clip cheat the not rendered background
+    // looks otherwise really strange ..
+    FillChar(I_VideoBuffer[0], length(I_VideoBuffer), 0);
   End;
   If (gamestate = GS_LEVEL) And (gametic <> 0) Then Begin
     HU_Erase();
