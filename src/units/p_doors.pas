@@ -456,58 +456,73 @@ End;
 //
 
 Function EV_DoLockedDoor(line: Pline_t; _type: vldoor_e; thing: Pmobj_t): int;
+Var
+  p: Pplayer_t;
+
 Begin
-  Raise exception.create('Port me.');
-  // player_t * p;
-  //   p = thing->player;
-  //
-  //   if (!p)
-  //return 0;
-  //
-  //   switch(line->special)
-  //   {
-  //     case 99:	// Blue Lock
-  //     case 133:
-  //if (!p->cards[it_bluecard] && !p->cards[it_blueskull])
-  //{
-  //    p->message = DEH_String(PD_BLUEO);
-  //    // [NS] Locked door sound.
-  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
-  //    // [crispy] blinking key or skull in the status bar
-  //    p->tryopen[it_bluecard] = KEYBLINKTICS;
-  //    return 0;
-  //}
-  //break;
-  //
-  //     case 134: // Red Lock
-  //     case 135:
-  //if (!p->cards[it_redcard] && !p->cards[it_redskull])
-  //{
-  //    p->message = DEH_String(PD_REDO);
-  //    // [NS] Locked door sound.
-  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
-  //    // [crispy] blinking key or skull in the status bar
-  //    p->tryopen[it_redcard] = KEYBLINKTICS;
-  //    return 0;
-  //}
-  //break;
-  //
-  //     case 136:	// Yellow Lock
-  //     case 137:
-  //if (!p->cards[it_yellowcard] &&
-  //    !p->cards[it_yellowskull])
-  //{
-  //    p->message = DEH_String(PD_YELLOWO);
-  //    // [NS] Locked door sound.
-  //    S_StartSoundOptional(crispy->soundfix ? p->mo : NULL, sfx_locked, sfx_oof);
-  //    // [crispy] blinking key or skull in the status bar
-  //    p->tryopen[it_yellowcard] = KEYBLINKTICS;
-  //    return 0;
-  //}
-  //break;
-  //   }
-  //
-  //   return EV_DoDoor(line,type);
+  p := thing^.player;
+  result := 0;
+
+  If (p = Nil) Then Begin
+    exit;
+  End;
+
+  Case line^.special Of
+    99, // Blue Lock
+    133: Begin
+        If (Not p^.cards[it_bluecard]) And (Not p^.cards[it_blueskull]) Then Begin
+
+          p^.message := PD_BLUEO;
+          // [NS] Locked door sound.
+          If crispy.soundfix <> 0 Then Begin
+            S_StartSoundOptional(p^.mo, sfx_locked, sfx_oof);
+          End
+          Else Begin
+            S_StartSoundOptional(Nil, sfx_locked, sfx_oof);
+          End;
+          // [crispy] blinking key or skull in the status bar
+          p^.tryopen[it_bluecard] := KEYBLINKTICS;
+          exit;
+        End;
+      End;
+
+    134, // Red Lock
+    135: Begin
+        If (Not p^.cards[it_redcard]) And (Not p^.cards[it_redskull]) Then Begin
+
+          p^.message := PD_REDO;
+          // [NS] Locked door sound.
+          If crispy.soundfix <> 0 Then Begin
+            S_StartSoundOptional(p^.mo, sfx_locked, sfx_oof);
+          End
+          Else Begin
+            S_StartSoundOptional(Nil, sfx_locked, sfx_oof);
+          End;
+          // [crispy] blinking key or skull in the status bar
+          p^.tryopen[it_redcard] := KEYBLINKTICS;
+          exit;
+        End;
+      End;
+
+    136, // Yellow Lock
+    137: Begin
+        If (Not p^.cards[it_yellowcard]) And (Not p^.cards[it_yellowskull]) Then Begin
+
+          p^.message := PD_YELLOWO;
+          // [NS] Locked door sound.
+          If crispy.soundfix <> 0 Then Begin
+            S_StartSoundOptional(p^.mo, sfx_locked, sfx_oof);
+          End
+          Else Begin
+            S_StartSoundOptional(Nil, sfx_locked, sfx_oof);
+          End;
+          // [crispy] blinking key or skull in the status bar
+          p^.tryopen[it_yellowcard] := KEYBLINKTICS;
+          exit;
+        End;
+      End;
+  End;
+  result := EV_DoDoor(line, _type);
 End;
 
 //
