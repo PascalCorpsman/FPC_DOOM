@@ -272,6 +272,7 @@ Procedure P_UpdateSpecials();
 Procedure P_ShootSpecialLine(thing: Pmobj_t; line: pline_t);
 Procedure P_CrossSpecialLine(linenum, side: int; thing: Pmobj_t);
 
+Function P_FindHighestCeilingSurrounding(sec: Psector_t): fixed_t;
 Function P_FindLowestCeilingSurrounding(sec: Psector_t): fixed_t;
 
 Function P_FindHighestFloorSurrounding(sec: Psector_t): fixed_t;
@@ -1409,6 +1410,28 @@ End;
 //
 // FIND LOWEST CEILING IN THE SURROUNDING SECTORS
 //
+
+Function P_FindHighestCeilingSurrounding(sec: Psector_t): fixed_t;
+Begin
+  Raise exception.create('Port me.');
+  //    int		i;
+  //    line_t*	check;
+  //    sector_t*	other;
+  //    fixed_t	height = 0;
+  //
+  //    for (i=0 ;i < sec->linecount ; i++)
+  //    {
+  //	check = sec->lines[i];
+  //	other = getNextSector(check,sec);
+  //
+  //	if (!other)
+  //	    continue;
+  //
+  //	if (other->ceilingheight > height)
+  //	    height = other->ceilingheight;
+  //    }
+  //    return height;
+End;
 
 Function P_FindLowestCeilingSurrounding(sec: Psector_t): fixed_t;
 Var
