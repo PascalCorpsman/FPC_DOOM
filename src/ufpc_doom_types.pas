@@ -77,6 +77,7 @@ Type
   TProcedure = Procedure();
 
   signed_char = Int8;
+  signed_int = integer;
   unsigned_char = UInt8;
 
   uint8_t = UInt8;

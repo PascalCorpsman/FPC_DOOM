@@ -53,7 +53,6 @@ Const // FPC_DOOM braucht das nicht so "öffentlich" aber der WAD-Viewer
     (mission: pack_master; episode: 1; level: 21; Background: 'SLIME16'; text: M2TEXT)
     );
 
-
 Procedure F_StartFinale();
 Procedure F_Ticker();
 Function F_Responder(Const ev: Pevent_t): boolean;
@@ -68,7 +67,7 @@ Uses
   , g_game
   , hu_stuff
   , i_video
-  , m_controls, m_random
+  , m_controls, m_random, m_fixed
   , p_mobj, p_bexptr, p_pspr, p_enemy
   , r_defs, r_things, r_data
   , s_sound
@@ -83,12 +82,10 @@ Const
 
 Type
 
-
   castinfo_t = Record
     name: String;
     _type: mobjtype_t;
   End;
-
 
   finalestage_t = (F_STAGE_TEXT, F_STAGE_ARTSCREEN, F_STAGE_CAST);
 
@@ -131,6 +128,7 @@ Var
   castangle: signed_char; // [crispy] turnable cast
   castskip: signed_char; // [crispy] skippable cast
   castflip: Boolean; // [crispy] flippable death sequence
+  dxi, dy, dyi: fixed_t;
 
   //
   // F_StartFinale
@@ -195,7 +193,6 @@ Begin
   S_ChangeMusic(mus_evil, true);
 End;
 
-
 // [crispy] randomize seestate and deathstate sounds in the cast
 
 Function F_RandomizeSound(sound: sfxenum_t): sfxenum_t;
@@ -232,7 +229,6 @@ End;
 
 Type
   actionsound_t = Record
-
     action: actionf_p1;
     sound: sfxenum_t;
     early: Boolean;
@@ -261,7 +257,6 @@ Const
     (action: @A_BspiAttack; sound: sfx_plasma; early: false),
     (action: @A_CyberAttack; sound: sfx_rlaunc; early: false)
     );
-
 
   // [crispy] play attack sound based on state action function (instead of state number)
 
@@ -472,7 +467,6 @@ Begin
 
   If (gamemode = commercial) Then exit;
 
-
   If (finalestage = F_STAGE_TEXT)
     And (finalecount > length(finaletext) * TEXTSPEED + TEXTWAIT) Then Begin
 
@@ -483,7 +477,6 @@ Begin
       S_StartMusic(mus_bunny);
   End;
 End;
-
 
 Function F_CastResponder(Const ev: Pevent_t): boolean;
 Var
@@ -711,110 +704,134 @@ Begin
   End;
 End;
 
-Procedure F_BunnyScroll();
+Procedure F_DrawPatchCol(x: int; patch: Ppatch_t; col: int);
 Begin
-  Raise exception.create('Port me.');
-  //   signed int  scrolled;
-  //   int		x;
-  //   patch_t*	p1;
-  //   patch_t*	p2;
-  //   char	name[10];
-  //   int		stage;
-  //   static int	laststage;
-  //   int         p2offset, p1offset, pillar_width;
+  Raise Exception.Create('Port me.');
+  //    column_t*	column;
+  //    byte*	source;
+  //    pixel_t*	dest;
+  //    pixel_t*	desttop;
+  //    int		count;
   //
-  //   dxi = (ORIGWIDTH << FRACBITS) / NONWIDEWIDTH;
-  //   dy = (SCREENHEIGHT << FRACBITS) / ORIGHEIGHT;
-  //   dyi = (ORIGHEIGHT << FRACBITS) / SCREENHEIGHT;
+  //    column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+  //    desttop = I_VideoBuffer + x;
   //
-  //   p1 = W_CacheLumpName (DEH_String("PFUB2"), PU_LEVEL);
-  //   p2 = W_CacheLumpName (DEH_String("PFUB1"), PU_LEVEL);
+  //    // step through the posts in a column
+  //    while (column->topdelta != 0xff )
+  //    {
+  //	int srccol = 0;
+  //	source = (byte *)column + 3;
+  //	dest = desttop + ((column->topdelta * dy) >> FRACBITS)*SCREENWIDTH;
+  //	count = (column->length * dy) >> FRACBITS;
   //
-  //   // [crispy] fill pillarboxes in widescreen mode
-  //   pillar_width = (SCREENWIDTH - (SHORT(p1->width) << FRACBITS) / dxi) / 2;
-  //
-  //   if (pillar_width > 0)
-  //   {
-  //       V_DrawFilledBox(0, 0, pillar_width, SCREENHEIGHT, 0);
-  //       V_DrawFilledBox(SCREENWIDTH - pillar_width, 0, pillar_width, SCREENHEIGHT, 0);
-  //   }
-  //   else
-  //   {
-  //       pillar_width = 0;
-  //   }
-  //
-  //   // Calculate the portion of PFUB2 that would be offscreen at original res.
-  //   p1offset = (ORIGWIDTH - SHORT(p1->width)) / 2;
-  //
-  //   if (SHORT(p2->width) == ORIGWIDTH)
-  //   {
-  //       // Unity or original PFUBs.
-  //       // PFUB1 only contains the pixels that scroll off.
-  //       p2offset = ORIGWIDTH - p1offset;
-  //   }
-  //   else
-  //   {
-  //       // Widescreen mod PFUBs.
-  //       // Right side of PFUB2 and left side of PFUB1 are identical.
-  //       p2offset = ORIGWIDTH + p1offset;
-  //   }
-  //
-  //   V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
-  //
-  //   scrolled = (ORIGWIDTH - ((signed int) finalecount-230)/2);
-  //   if (scrolled > ORIGWIDTH)
-  //scrolled = ORIGWIDTH;
-  //   if (scrolled < 0)
-  //scrolled = 0;
-  //
-  //   for (x = pillar_width; x < SCREENWIDTH - pillar_width; x++)
-  //   {
-  //       int x2 = ((x * dxi) >> FRACBITS) - WIDESCREENDELTA + scrolled;
-  //
-  //       if (x2 < p2offset)
-  //           F_DrawPatchCol (x, p1, x2 - p1offset);
-  //       else
-  //           F_DrawPatchCol (x, p2, x2 - p2offset);
-  //   }
-  //
-  //   if (finalecount < 1130)
-  //return;
-  //   if (finalecount < 1180)
-  //   {
-  //       V_DrawPatch((ORIGWIDTH - 13 * 8) / 2,
-  //                   (ORIGHEIGHT - 8 * 8) / 2,
-  //                   W_CacheLumpName(DEH_String("END0"), PU_CACHE));
-  //laststage = 0;
-  //return;
-  //   }
-  //
-  //   stage = (finalecount-1180) / 5;
-  //   if (stage > 6)
-  //stage = 6;
-  //   if (stage > laststage)
-  //   {
-  //S_StartSound (NULL, sfx_pistol);
-  //laststage = stage;
-  //   }
-  //
-  //   DEH_snprintf(name, 10, "END%i", stage);
-  //   V_DrawPatch((ORIGWIDTH - 13 * 8) / 2,
-  //               (ORIGHEIGHT - 8 * 8) / 2,
-  //               W_CacheLumpName (name,PU_CACHE));
+  //	while (count--)
+  //	{
+  //#ifndef CRISPY_TRUECOLOR
+  //	    *dest = source[srccol >> FRACBITS];
+  //#else
+  //	    *dest = pal_color[source[srccol >> FRACBITS]];
+  //#endif
+  //	    srccol += dyi;
+  //	    dest += SCREENWIDTH;
+  //	}
+  //	column = (column_t *)(  (byte *)column + column->length + 4 );
+  //    }
+End;
+
+Procedure F_BunnyScroll();
+Const
+  laststage: int = 0;
+Var
+  scrolled: signed_int;
+  x, x2: int;
+  p1: Ppatch_t;
+  p2: Ppatch_t;
+  name: String;
+  stage: int;
+  p2offset, p1offset, pillar_width: int;
+Begin
+  dxi := (ORIGWIDTH Shl FRACBITS) Div NONWIDEWIDTH;
+  dy := (SCREENHEIGHT Shl FRACBITS) Div ORIGHEIGHT;
+  dyi := (ORIGHEIGHT Shl FRACBITS) Div SCREENHEIGHT;
+
+  p1 := W_CacheLumpName('PFUB2', PU_LEVEL);
+  p2 := W_CacheLumpName('PFUB1', PU_LEVEL);
+
+  // [crispy] fill pillarboxes in widescreen mode
+  pillar_width := (SCREENWIDTH - (SHORT(p1^.width) Shl FRACBITS) Div dxi) Div 2;
+
+  If (pillar_width > 0) Then Begin
+    V_DrawFilledBox(0, 0, pillar_width, SCREENHEIGHT, 0);
+    V_DrawFilledBox(SCREENWIDTH - pillar_width, 0, pillar_width, SCREENHEIGHT, 0);
+  End
+  Else Begin
+    pillar_width := 0;
+  End;
+
+  // Calculate the portion of PFUB2 that would be offscreen at original res.
+  p1offset := (ORIGWIDTH - SHORT(p1^.width)) Div 2;
+
+  If ((p2^.width) = ORIGWIDTH) Then Begin
+    // Unity or original PFUBs.
+    // PFUB1 only contains the pixels that scroll off.
+    p2offset := ORIGWIDTH - p1offset;
+  End
+  Else Begin
+    // Widescreen mod PFUBs.
+    // Right side of PFUB2 and left side of PFUB1 are identical.
+    p2offset := ORIGWIDTH + p1offset;
+  End;
+
+  V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  scrolled := (ORIGWIDTH - (finalecount - 230) Div 2);
+  If (scrolled > ORIGWIDTH) Then
+    scrolled := ORIGWIDTH;
+  If (scrolled < 0) Then
+    scrolled := 0;
+
+  For x := pillar_width To SCREENWIDTH - pillar_width - 1 Do Begin
+    x2 := ((x * dxi) Shr FRACBITS) - WIDESCREENDELTA + scrolled;
+    If (x2 < p2offset) Then
+      F_DrawPatchCol(x, p1, x2 - p1offset)
+    Else
+      F_DrawPatchCol(x, p2, x2 - p2offset);
+  End;
+
+  If (finalecount < 1130) Then exit;
+
+  If (finalecount < 1180) Then Begin
+
+    V_DrawPatch((ORIGWIDTH - 13 * 8) Div 2,
+      (ORIGHEIGHT - 8 * 8) Div 2,
+      W_CacheLumpName('END0', PU_CACHE));
+    laststage := 0;
+    exit;
+  End;
+
+  stage := (finalecount - 1180) Div 5;
+  If (stage > 6) Then
+    stage := 6;
+  If (stage > laststage) Then Begin
+    S_StartSound(Nil, sfx_pistol);
+    laststage := stage;
+  End;
+
+  name := format('END%d', [stage]);
+  V_DrawPatch((ORIGWIDTH - 13 * 8) Div 2,
+    (ORIGHEIGHT - 8 * 8) Div 2,
+    W_CacheLumpName(name, PU_CACHE));
 End;
 
 Procedure F_ArtScreenDrawer();
 Var
   lumpname: String;
 Begin
-
   If (gameepisode = 3) Then Begin
-
     F_BunnyScroll();
   End
   Else Begin
     Case (gameepisode) Of
-
       1: Begin
           If (gameversion >= exe_ultimate) Then Begin
             lumpname := 'CREDIT';

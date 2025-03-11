@@ -29,6 +29,7 @@ Procedure V_MarkRect(x, y, width, height: int);
 Procedure V_CopyRect(srcx, srcy: int; Const source: pixel_tArray; width, height, destx, desty: int);
 Procedure V_DrawHorizLine(x, y, w, c: int);
 Procedure V_FillFlat(y_start, y_stop, x_start, x_stop: int; Const src: PByte; Const dest: pixel_tArray);
+Procedure V_DrawFilledBox(x, y, w, h, c: int);
 
 Var
   // The screen buffer; this is modified to draw things to the screen
@@ -264,6 +265,27 @@ Begin
       //#endif
     End;
   End;
+End;
+
+Procedure V_DrawFilledBox(x, y, w, h, c: int);
+Begin
+  Raise exception.create('Port me.');
+  //pixel_t *buf, *buf1;
+  //int x1, y1;
+  //
+  //buf = I_VideoBuffer + SCREENWIDTH * y + x;
+  //
+  //for (y1 = 0; y1 < h; ++y1)
+  //{
+  //    buf1 = buf;
+  //
+  //    for (x1 = 0; x1 < w; ++x1)
+  //    {
+  //        *buf1++ = c;
+  //    }
+  //
+  //    buf += SCREENWIDTH;
+  //}
 End;
 
 (*

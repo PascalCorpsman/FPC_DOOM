@@ -767,6 +767,7 @@ Procedure P_MovePsprites(player: Pplayer_t);
 Var
   i: int;
   psp: ^pspdef_t;
+  angle: angle_t;
 Begin
   For i := 0 To integer(NUMPSPRITES) - 1 Do Begin
     psp := @player^.psprites[psprnum_t(i)];
@@ -794,32 +795,24 @@ Begin
   psp^.sx2 := psp^.sx;
   psp^.sy2 := psp^.sy;
   If (psp^.state <> Nil) And ((crispy.bobfactor <> 0) Or (crispy.centerweapon <> 0) Or (crispy.uncapped <> 0)) Then Begin
-    Raise exception.create('Port me.');
     // [crispy] don't center vertically during lowering and raising states
-   //	if (psp^.state^.misc1 ||
-   //	    psp^.state^.action.acp3 == (actionf_p3)A_Lower ||
-   //	    psp^.state^.action.acp3 == (actionf_p3)A_Raise)
-   //	{
-   //	}
-   //	else
-   //	// [crispy] not attacking means idle
-   //	if (!player^.attackdown ||
-   //	    crispy^.centerweapon == CENTERWEAPON_BOB)
-   //	{
-   //		angle_t angle = (128 * leveltime) & FINEMASK;
-   //		psp^.sx2 = FRACUNIT + FixedMul(player^.bob2, finecosine[angle]);
-   //		angle &= FINEANGLES / 2 - 1;
-   //		psp^.sy2 = WEAPONTOP + FixedMul(player^.bob2, finesine[angle]);
-   //	}
-   //	else
-   //	// [crispy] center the weapon sprite horizontally and push up vertically
-   //	if (crispy^.centerweapon == CENTERWEAPON_CENTER)
-   //	{
-   //		psp^.sx2 = FRACUNIT;
-   //		psp^.sy2 = WEAPONTOP;
-   //	}
+    If (psp^.state^.misc1 <> 0) Or
+      (psp^.state^.action.acp3 = @A_Lower) Or
+      (psp^.state^.action.acp3 = @A_Raise) Then Begin
+    End
+    Else If (Not player^.attackdown) Or
+      (crispy.centerweapon = CENTERWEAPON_BOB) Then Begin
+      angle := (128 * leveltime) And FINEMASK;
+      psp^.sx2 := FRACUNIT + FixedMul(player^.bob2, finecosine[angle]);
+      angle := angle And (FINEANGLES Div 2 - 1);
+      psp^.sy2 := WEAPONTOP + FixedMul(player^.bob2, finesine[angle]);
+    End
+    Else If (crispy.centerweapon = CENTERWEAPON_CENTER) Then Begin
+      // [crispy] center the weapon sprite horizontally and push up vertically
+      psp^.sx2 := FRACUNIT;
+      psp^.sy2 := WEAPONTOP;
+    End;
   End;
-
   player^.psprites[ps_flash].sx2 := psp^.sx2;
   player^.psprites[ps_flash].sy2 := psp^.sy2;
 End;
