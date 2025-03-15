@@ -264,19 +264,17 @@ Begin
 End;
 
 Procedure EV_StopPlat(line: Pline_t);
+Var
+  j: int;
 Begin
-  Raise exception.create('Port me.');
-  //      int		j;
-  //
-  //    for (j = 0;j < MAXPLATS;j++)
-  //	if (activeplats[j]
-  //	    && ((activeplats[j])->status != in_stasis)
-  //	    && ((activeplats[j])->tag == line->tag))
-  //	{
-  //	    (activeplats[j])->oldstatus = (activeplats[j])->status;
-  //	    (activeplats[j])->status = in_stasis;
-  //	    (activeplats[j])->thinker.function.acv = (actionf_v)NULL;
-  //	}
+  For j := 0 To MAXPLATS - 1 Do
+    If assigned(activeplats[j])
+      And (activeplats[j]^.status <> in_stasis)
+      And (activeplats[j]^.tag = line^.tag) Then Begin
+      activeplats[j]^.oldstatus := activeplats[j]^.status;
+      activeplats[j]^.status := in_stasis;
+      activeplats[j]^.thinker._function.acv := Nil;
+    End;
 End;
 
 Var
