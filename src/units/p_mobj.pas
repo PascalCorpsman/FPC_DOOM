@@ -985,58 +985,56 @@ End;
 //
 
 Procedure P_NightmareRespawn(mobj: Pmobj_t);
+Var
+  x, y, z: fixed_t;
+  ss: Psubsector_t;
+  mo: Pmobj_t;
+  mthing: Pmapthing_t;
 Begin
-  Raise exception.create('Port me.');
-  //    fixed_t		x;
-  //    fixed_t		y;
-  //    fixed_t		z;
-  //    subsector_t*	ss;
-  //    mobj_t*		mo;
-  //    mapthing_t*		mthing;
-  //
-  //    x = mobj->spawnpoint.x << FRACBITS;
-  //    y = mobj->spawnpoint.y << FRACBITS;
-  //
-  //    // somthing is occupying it's position?
-  //    if (!P_CheckPosition (mobj, x, y) )
-  //	return;	// no respwan
-  //
-  //    // spawn a teleport fog at old spot
-  //    // because of removal of the body?
-  //    mo = P_SpawnMobj (mobj->x,
-  //		      mobj->y,
-  //		      mobj->subsector->sector->floorheight , MT_TFOG);
-  //    // initiate teleport sound
-  //    S_StartSound (mo, sfx_telept);
-  //
-  //    // spawn a teleport fog at the new spot
-  //    ss = R_PointInSubsector (x,y);
-  //
-  //    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_TFOG);
-  //
-  //    S_StartSound (mo, sfx_telept);
-  //
-  //    // spawn the new monster
-  //    mthing = &mobj->spawnpoint;
-  //
-  //    // spawn it
-  //    if (mobj->info->flags & MF_SPAWNCEILING)
-  //	z = ONCEILINGZ;
-  //    else
-  //	z = ONFLOORZ;
-  //
-  //    // inherit attributes from deceased one
-  //    mo = P_SpawnMobj (x,y,z, mobj->type);
-  //    mo->spawnpoint = mobj->spawnpoint;
-  //    mo->angle = ANG45 * (mthing->angle/45);
-  //
-  //    // [crispy] count respawned monsters
-  //    extrakills++;
-  //
-  //    if (mthing->options & MTF_AMBUSH)
-  //	mo->flags |= MF_AMBUSH;
-  //
-  //    mo->reactiontime = 18;
+
+  x := mobj^.spawnpoint.x Shl FRACBITS;
+  y := mobj^.spawnpoint.y Shl FRACBITS;
+
+  // somthing is occupying it's position?
+  If (Not P_CheckPosition(mobj, x, y)) Then
+    exit; // no respwan
+
+  // spawn a teleport fog at old spot
+  // because of removal of the body?
+  mo := P_SpawnMobj(mobj^.x,
+    mobj^.y,
+    mobj^.subsector^.sector^.floorheight, MT_TFOG);
+  // initiate teleport sound
+  S_StartSound(mo, sfx_telept);
+
+  // spawn a teleport fog at the new spot
+  ss := R_PointInSubsector(x, y);
+
+  mo := P_SpawnMobj(x, y, ss^.sector^.floorheight, MT_TFOG);
+
+  S_StartSound(mo, sfx_telept);
+
+  // spawn the new monster
+  mthing := @mobj^.spawnpoint;
+
+  // spawn it
+  If (mobj^.info^.flags And MF_SPAWNCEILING) <> 0 Then
+    z := ONCEILINGZ
+  Else
+    z := ONFLOORZ;
+
+  // inherit attributes from deceased one
+  mo := P_SpawnMobj(x, y, z, mobj^._type);
+  mo^.spawnpoint := mobj^.spawnpoint;
+  mo^.angle := ANG45 * (mthing^.angle Div 45);
+
+  // [crispy] count respawned monsters
+  extrakills := extrakills + 1;
+
+  If (mthing^.options And MTF_AMBUSH) <> 0 Then
+    mo^.flags := mo^.flags Or MF_AMBUSH;
+
+  mo^.reactiontime := 18;
 
   // remove the old monster,
   P_RemoveMobj(mobj);
