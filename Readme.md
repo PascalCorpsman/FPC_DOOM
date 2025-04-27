@@ -18,6 +18,7 @@ Also i found some usefull documentations that try to explain the code:
 - https://doomwiki.org/wiki/Doom_source_code
 - https://doom.fandom.com/wiki/Doom_source_code
 - https://doom.fandom.com/wiki/Doom_source_code_files
+- https://www.youtube.com/watch?v=cqL3jvlU61c&themeRefresh=1
   
 There is already a [FPC Doom](https://github.com/jval1972/FPCDoom) on the [List](https://doomwiki.org/wiki/Source_port) of 
 ports, but that version only supports DirectX and therefore only supports Windows platform.
