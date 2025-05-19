@@ -2162,7 +2162,7 @@ Begin
   //    }
 
   ST_loadData();
-  setlength(st_backing_screen, MAXWIDTH * (ST_HEIGHT Shl 1) * sizeof(pixel_t)); // WTF: müsste hier nicht Crispy.hires +1 stehen ?
+  setlength(st_backing_screen, MAXWIDTH * (ST_HEIGHT Shl Crispy.hires) * sizeof(pixel_t));
 End;
 
 
