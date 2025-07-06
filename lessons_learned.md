@@ -261,7 +261,7 @@ Var
 // lets assume lines is correct defined and somewhere in the code ld was set to one of its elements
 index := (ptrint(ld) - ptrint(@lines[0])) Div sizeof(lines[0]);
 ```
-### accessing to a substruct whithin a strucr
+### accessing to a substruct whithin a struct
 
 ```cpp
 typedef struct
