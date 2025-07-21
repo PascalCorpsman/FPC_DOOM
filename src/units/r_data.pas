@@ -88,7 +88,7 @@ Var
 Implementation
 
 Uses
-  info_types
+  info_types, math
   , g_game
   , i_system
   , p_setup, p_tick, p_mobj
@@ -171,8 +171,10 @@ Var
 Procedure R_InitColormaps();
 Var
   playpal: Array Of Byte;
-  i: Integer;
+  i, j: Integer;
   lump: int;
+  rs, gs, bs, r, g, b: Byte;
+  s: Single;
 Begin
   // Load in the light tables,
 //  256 byte align tables.
@@ -183,13 +185,25 @@ Begin
    * Auslesen der FarbPallete, die Dankenswerter weise direct im .wad file steht ;)
    *)
   playpal := W_CacheLumpName('PLAYPAL', PU_STATIC);
-  For i := 0 To 255 Do Begin
-    Doom8BitTo24RGBBit[i] :=
-         (playpal[i * 3 + 0] Shl 0)
-      Or (playpal[i * 3 + 1] Shl 8)
-      Or (playpal[i * 3 + 2] Shl 16)
-      Or ($FF Shl 24) // 100% Opak = nicht Transparent
-    ;
+  For j := 0 To 4 Do Begin
+    s := Power(1.1, j); // 1.10 = 10% mehr wurde mehr oder weniger "empirisch" ermittelt.. Crispy Doom initialisiert die anders, aber besser wie nix ..
+    For i := 0 To 255 Do Begin
+      //    Doom8BitTo24RGBBit[i] :=
+      r := playpal[i * 3 + 0];
+      g := playpal[i * 3 + 1];
+      b := playpal[i * 3 + 2];
+
+      rs := min(255, round(r * s));
+      gs := min(255, round(g * s));
+      bs := min(255, round(b * s));
+
+      Doom8BitTo24RGBBit[j, i] :=
+        (rs Shl 0)
+        Or (gs Shl 8)
+        Or (bs Shl 16)
+        Or ($FF Shl 24) // 100% Opak = nicht Transparent
+      ;
+    End;
   End;
   // TODO: Theoretisch werden hier auch noch irgend welche Lightings erzeugt ..
 End;

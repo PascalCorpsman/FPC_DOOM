@@ -31,7 +31,7 @@ Const
   //  #define KEY_F8		(0x80+0x42)
   //  #define KEY_F9		(0x80+0x43)
   //  #define KEY_F10		(0x80+0x44)
-  //  #define KEY_F11		(0x80+0x57)
+  KEY_F11 = VK_F11;
   //  #define KEY_F12		(0x80+0x58)
   //
   KEY_BACKSPACE = VK_BACK;

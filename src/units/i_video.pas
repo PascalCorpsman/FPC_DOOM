@@ -189,7 +189,7 @@ Begin
   b.Height := SCREENHEIGHT;
   For i := 0 To SCREENWIDTH - 1 Do Begin
     For j := 0 To SCREENHEIGHT - 1 Do Begin
-      b.canvas.pixels[i, j] := Doom8BitTo24RGBBit[source[j * SCREENWIDTH + i]];
+      b.canvas.pixels[i, j] := Doom8BitTo24RGBBit[0, source[j * SCREENWIDTH + i]];
     End;
   End;
   b.SaveToFile(format('DumpScreen%0.3d.bmp', [dumpIndex]));
@@ -772,7 +772,7 @@ Begin
   glBindTexture(GL_TEXTURE_2D, OpenGLTexture);
   DestPtr := @OpenGLData[0];
   For i := 0 To high(I_VideoBuffer) Do Begin
-    DestPtr^ := Doom8BitTo24RGBBit[I_VideoBuffer[i]];
+    DestPtr^ := Doom8BitTo24RGBBit[Crispy.gamma, I_VideoBuffer[i]];
     inc(DestPtr);
   End;
 

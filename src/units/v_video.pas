@@ -37,7 +37,7 @@ Var
 
   dp_translation: Array Of Byte; // Übersetzt die Aktuellen Farben in "neue" -> Siehe v_trans.pas, Default = nil = Deaktiviert
 
-  Doom8BitTo24RGBBit: Array[0..255] Of uint32; // Das ist im Prinzip die Farbpalette, welche Doom zur Darstellung der RGB Farben nutzt..
+  Doom8BitTo24RGBBit: Array[0..4, 0..255] Of uint32; // Das ist im Prinzip die Farbpalette, welche Doom zur Darstellung der RGB Farben nutzt..
 
   dp_translucent: boolean = false;
 
@@ -121,7 +121,7 @@ Begin
           sc := dp_translation[sc];
         End;
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
-        b.canvas.Pixels[w - col - 1, row] := Doom8BitTo24RGBBit[sc] And $00FFFFFF;
+        b.canvas.Pixels[w - col - 1, row] := Doom8BitTo24RGBBit[0, sc] And $00FFFFFF;
 {$ENDIF}
         V_DrawPatchSetPixel((x + w - col - 1), (y + row), sc);
         // If (index >= 0) And (index <= high(dest_screen)) Then Begin
@@ -398,7 +398,7 @@ Begin
           sc := dp_translation[sc];
         End;
 {$IFDEF DebugBMPOut_in_V_DrawPatch}
-        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[sc] And $00FFFFFF;
+        b.canvas.Pixels[col, row] := Doom8BitTo24RGBBit[0, sc] And $00FFFFFF;
 {$ENDIF}
         V_DrawPatchSetPixel((x + col), (y + row), sc);
         // If (index >= 0) And (index <= high(dest_screen)) Then Begin

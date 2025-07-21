@@ -55,10 +55,10 @@ Const
   //  #define DETAILHI	"High detail"
   //  #define DETAILLO	"Low detail"
   GAMMALVL0 = 'Gamma correction OFF';
-  //  #define GAMMALVL1	"Gamma correction level 1"
-  //  #define GAMMALVL2	"Gamma correction level 2"
-  //  #define GAMMALVL3	"Gamma correction level 3"
-  //  #define GAMMALVL4	"Gamma correction level 4"
+  GAMMALVL1 = 'Gamma correction level 1';
+  GAMMALVL2 = 'Gamma correction level 2';
+  GAMMALVL3 = 'Gamma correction level 3';
+  GAMMALVL4 = 'Gamma correction level 4';
   //  // [crispy] intermediate gamma levels
   //  #define GAMMALVL050	"Gamma correction level -4"
   //  #define GAMMALVL055	"Gamma correction level -3.6"

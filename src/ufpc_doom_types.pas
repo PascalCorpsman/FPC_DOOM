@@ -126,7 +126,7 @@ Type
     freeaim: int;
     freelook: int; // 0,1 ?
     //    	int freelook_hh;
-    //    	int gamma;
+    gamma: int; // 0, 1, 2, 3, 4   0 = Off, 4 = brightest
     hires: Int; // 0, 1, 2 Alles über 2 macht eigentlich keinen Sinn mehr, Bei werten > 2 muss MAXWIDTH und MAXHEIGHT aus i_video.pas angepasst werden, sonst knallts beim start !
     jump: int; // JUMP_OFF, JUMP_LOW, JUMP_HIGH -> ist aber nur im Singleplayer erlaubt !
     //    	int leveltime;

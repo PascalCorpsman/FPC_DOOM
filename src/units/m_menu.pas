@@ -93,6 +93,27 @@ Const
   e_nightmare = 4;
   load_end = 8;
   SAVESTRINGSIZE = 24;
+  gammamsg: Array Of String =
+  (
+    //    GAMMALVL050,
+    //    GAMMALVL055,
+    //    GAMMALVL060,
+    //    GAMMALVL065,
+    //    GAMMALVL070,
+    //    GAMMALVL075,
+    //    GAMMALVL080,
+    //    GAMMALVL085,
+    //    GAMMALVL090,
+    GAMMALVL0,
+    //    GAMMALVL05,
+    GAMMALVL1,
+    //    GAMMALVL15,
+    GAMMALVL2,
+    //    GAMMALVL25,
+    GAMMALVL3,
+    //    GAMMALVL35,
+    GAMMALVL4
+    );
 
 Type
 
@@ -1056,151 +1077,152 @@ Begin
   //    }
 
   //    // F-Keys
-  //    if (!menuactive)
-  //    {
-  //	if (key == key_menu_decscreen)      // Screen size down
-  //        {
-  //	    if (automapactive || chat_on)
-  //		return false;
-  //	    M_SizeDisplay(0);
-  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-  //	    return true;
-  //	}
-  //        else if (key == key_menu_incscreen) // Screen size up
-  //        {
-  //	    if (automapactive || chat_on)
-  //		return false;
-  //	    M_SizeDisplay(1);
-  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
-  //	    return true;
-  //	}
-  //        else if (key == key_menu_help)     // Help key
-  //        {
-  //	    M_StartControlPanel ();
-  //
-  //	    if (gameversion >= exe_ultimate)
-  //	      currentMenu = &ReadDef2;
-  //	    else
-  //	      currentMenu = &ReadDef1;
-  //
-  //	    itemOn = 0;
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    return true;
-  //	}
-  //        else if (key == key_menu_save)     // Save
-  //        {
-  //	    M_StartControlPanel();
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_SaveGame(0);
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_load)     // Load
-  //        {
-  //	    M_StartControlPanel();
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_LoadGame(0);
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_volume)   // Sound Volume
-  //        {
-  //	    M_StartControlPanel ();
-  //	    currentMenu = &SoundDef;
-  //	    itemOn = currentMenu->lastOn; // [crispy] remember cursor position
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    return true;
-  //	}
-  //        else if (key == key_menu_detail)   // Detail toggle
-  //        {
-  //	    M_ChangeDetail(0);
-  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_qsave)    // Quicksave
-  //        {
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_QuickSave();
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_endgame)  // End game
-  //        {
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_EndGame(0);
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_messages) // Toggle messages
-  //        {
-  //	    M_ChangeMessages(0);
-  //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_qload)    // Quickload
-  //        {
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_QuickLoad();
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_quit)     // Quit DOOM
-  //        {
-  //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-  //	    M_QuitDOOM(0);
-  //	    return true;
-  //        }
-  //        else if (key == key_menu_gamma)    // gamma toggle
-  //        {
-  //	    crispy->gamma++;
-  //	    if (crispy->gamma > 4+13) // [crispy] intermediate gamma levels
-  //		crispy->gamma = 0;
-  //	    players[consoleplayer].message = DEH_String(gammamsg[crispy->gamma]);
-  //#ifndef CRISPY_TRUECOLOR
-  //            I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
-  //#else
-  //            {
-  //		I_SetPalette (0);
-  //		R_InitColormaps();
-  //		inhelpscreens = true;
-  //		R_FillBackScreen();
-  //		viewactive = false;
-  //            }
-  //#endif
-  //	    return true;
-  //	}
+  If (Not menuactive) Then Begin
 
-  //        // [crispy] those two can be considered as shortcuts for the IDCLEV cheat
-  //        // and should be treated as such, i.e. add "if (!netgame)"
-  //        // hovewer, allow while multiplayer demos
-  //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_reloadlevel)
-  //        {
-  //	    if (demoplayback)
-  //	    {
-  //		if (crispy->demowarp)
-  //		{
-  //		// [crispy] enable screen render back before replaying
-  //		nodrawers = false;
-  //		singletics = false;
-  //		}
-  //		// [crispy] replay demo lump or file
-  //		G_DoPlayDemo();
-  //		return true;
-  //	    }
-  //	    else
-  //	    if (G_ReloadLevel())
-  //		return true;
-  //        }
-  //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_nextlevel)
-  //        {
-  //	    if (demoplayback)
-  //	    {
-  //		// [crispy] go to next level
-  //		demo_gotonextlvl = true;
-  //		G_DemoGotoNextLevel(true);
-  //		return true;
-  //	    }
-  //	    else
-  //	    if (G_GotoNextLevel())
-  //		return true;
-  //        }
-  //
-  //    }
+    //	if (key == key_menu_decscreen)      // Screen size down
+    //        {
+    //	    if (automapactive || chat_on)
+    //		return false;
+    //	    M_SizeDisplay(0);
+    //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //        else if (key == key_menu_incscreen) // Screen size up
+    //        {
+    //	    if (automapactive || chat_on)
+    //		return false;
+    //	    M_SizeDisplay(1);
+    //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //        else if (key == key_menu_help)     // Help key
+    //        {
+    //	    M_StartControlPanel ();
+    //
+    //	    if (gameversion >= exe_ultimate)
+    //	      currentMenu = &ReadDef2;
+    //	    else
+    //	      currentMenu = &ReadDef1;
+    //
+    //	    itemOn = 0;
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //        else if (key == key_menu_save)     // Save
+    //        {
+    //	    M_StartControlPanel();
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_SaveGame(0);
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_load)     // Load
+    //        {
+    //	    M_StartControlPanel();
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_LoadGame(0);
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_volume)   // Sound Volume
+    //        {
+    //	    M_StartControlPanel ();
+    //	    currentMenu = &SoundDef;
+    //	    itemOn = currentMenu->lastOn; // [crispy] remember cursor position
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //	}
+    //        else if (key == key_menu_detail)   // Detail toggle
+    //        {
+    //	    M_ChangeDetail(0);
+    //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_qsave)    // Quicksave
+    //        {
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_QuickSave();
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_endgame)  // End game
+    //        {
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_EndGame(0);
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_messages) // Toggle messages
+    //        {
+    //	    M_ChangeMessages(0);
+    //	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_qload)    // Quickload
+    //        {
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_QuickLoad();
+    //	    return true;
+    //        }
+    //        else if (key == key_menu_quit)     // Quit DOOM
+    //        {
+    //	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+    //	    M_QuitDOOM(0);
+    //	    return true;
+    //        }
+    //        else
+    If (key = key_menu_gamma) Then Begin // gamma toggle
+
+      crispy.gamma := (crispy.gamma + 1) Mod 5;
+      //	    if (crispy->gamma > 4+13) // [crispy] intermediate gamma levels
+      //		crispy->gamma = 0;
+      players[consoleplayer].message := gammamsg[crispy.gamma];
+      //#ifndef CRISPY_TRUECOLOR
+      //            I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
+      //#else
+      //            {
+      //		I_SetPalette (0);
+      //		R_InitColormaps();
+      //		inhelpscreens = true;
+      //		R_FillBackScreen();
+      //		viewactive = false;
+      //            }
+      //#endif
+      //	    return true;
+    End;
+
+    //        // [crispy] those two can be considered as shortcuts for the IDCLEV cheat
+    //        // and should be treated as such, i.e. add "if (!netgame)"
+    //        // hovewer, allow while multiplayer demos
+    //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_reloadlevel)
+    //        {
+    //	    if (demoplayback)
+    //	    {
+    //		if (crispy->demowarp)
+    //		{
+    //		// [crispy] enable screen render back before replaying
+    //		nodrawers = false;
+    //		singletics = false;
+    //		}
+    //		// [crispy] replay demo lump or file
+    //		G_DoPlayDemo();
+    //		return true;
+    //	    }
+    //	    else
+    //	    if (G_ReloadLevel())
+    //		return true;
+    //        }
+    //        else if ((!netgame || netdemo) && key != 0 && key == key_menu_nextlevel)
+    //        {
+    //	    if (demoplayback)
+    //	    {
+    //		// [crispy] go to next level
+    //		demo_gotonextlvl = true;
+    //		G_DemoGotoNextLevel(true);
+    //		return true;
+    //	    }
+    //	    else
+    //	    if (G_GotoNextLevel())
+    //		return true;
+    //        }
+    //
+  End;
 
   // Pop-up menu?
   If (Not menuactive) Then Begin

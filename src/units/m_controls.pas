@@ -131,7 +131,7 @@ Var
   //extern int key_menu_messages;
   //extern int key_menu_qload;
   //extern int key_menu_quit;
-  //extern int key_menu_gamma;
+  key_menu_gamma: int;
 
   //extern int key_menu_incscreen;
   //extern int key_menu_decscreen;
@@ -303,7 +303,7 @@ Begin
   //    M_BindIntVariable("key_menu_messages",  &key_menu_messages);
   //    M_BindIntVariable("key_menu_qload",     &key_menu_qload);
   //    M_BindIntVariable("key_menu_quit",      &key_menu_quit);
-  //    M_BindIntVariable("key_menu_gamma",     &key_menu_gamma);
+  key_menu_gamma := KEY_F11;
   //
   //    M_BindIntVariable("key_menu_incscreen", &key_menu_incscreen);
   //    M_BindIntVariable("key_menu_decscreen", &key_menu_decscreen);
