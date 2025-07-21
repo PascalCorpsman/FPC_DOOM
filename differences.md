@@ -46,6 +46,7 @@ Playing:
 | PAUSE | toggle Pause the game
 | w | when activated by settings, jump
 | SPACE | use "thing" if directly in front of player
+| F11 | toggle gamma
 
 Menu:
 | Key | description |
